@@ -10,6 +10,7 @@ data class Grave(
     val ownerName: String = "Unknown",
     val location: Location,
     val items: Map<Int, ItemStack>,
+    val armorContents: Map<String, ItemStack> = emptyMap(),
     val hologramIds: List<UUID>,
     val originalBlockData: BlockData,
     val storedXp: Int = 0,

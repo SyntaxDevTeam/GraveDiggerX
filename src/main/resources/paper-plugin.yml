@@ -3,7 +3,7 @@ version: ${version}
 description: ${description}
 api-version: '1.21'
 
-authors: [ SyntaxDevTeam, f1lipuss ]
+authors: [ SyntaxDevTeam ]
 website: syntaxdevteam.pl
 
 localization:

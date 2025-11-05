@@ -40,6 +40,21 @@ class GraveGUI(
             }
         }
 
+        val armorSlots = listOf(45, 46, 47, 48, 49)
+        val armorItems = listOf(
+            grave.armorContents["helmet"],
+            grave.armorContents["chestplate"],
+            grave.armorContents["leggings"],
+            grave.armorContents["boots"],
+            grave.armorContents["offhand"]
+        )
+
+        armorSlots.zip(armorItems).forEach { (slot, item) ->
+            if (item != null && item.type != Material.AIR) {
+                inventory.setItem(slot, item)
+            }
+        }
+
         inventory.setItem(51, createOwnerBanner())
         inventory.setItem(52, createXpBanner())
         inventory.setItem(53, createCollectButton())
@@ -120,7 +135,7 @@ class GraveGUI(
             world.spawnParticle(Particle.SOUL_FIRE_FLAME, loc, 20, 0.2, 0.2, 0.2, 0.05)
             world.playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 0.5f)
             player.playSound(player.location, Sound.ENTITY_GENERIC_HURT, 1f, 0.5f)
-            
+
             player.closeInventory()
             return
         }
@@ -135,6 +150,12 @@ class GraveGUI(
                 else -> if (slot in 0..35) player.inventory.setItem(slot, item)
             }
         }
+
+        grave.armorContents["helmet"]?.let { if (it.type != Material.AIR) player.inventory.helmet = it }
+        grave.armorContents["chestplate"]?.let { if (it.type != Material.AIR) player.inventory.chestplate = it }
+        grave.armorContents["leggings"]?.let { if (it.type != Material.AIR) player.inventory.leggings = it }
+        grave.armorContents["boots"]?.let { if (it.type != Material.AIR) player.inventory.boots = it }
+        grave.armorContents["offhand"]?.let { if (it.type != Material.AIR) player.inventory.setItemInOffHand(it) }
 
         if (grave.storedXp > 0) {
             player.giveExp(grave.storedXp)
