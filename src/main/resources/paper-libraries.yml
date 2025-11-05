@@ -1,0 +1,15 @@
+libraries:
+  # Libraries required by the plugin
+  - org.eclipse.aether:aether-api:1.1.0
+  - org.yaml:snakeyaml:2.5
+  - com.google.code.gson:gson:2.13.2
+  # Kyori Adventure libraries
+  - net.kyori:adventure-text-minimessage:4.25.0
+  - net.kyori:adventure-text-serializer-gson:4.25.0
+  - net.kyori:adventure-text-serializer-legacy:4.25.0
+  - net.kyori:adventure-text-serializer-plain:4.25.0
+  - net.kyori:adventure-text-serializer-ansi:4.25.0
+  # Caffeine caching library necessary for SyntaxCore and SyntaxMessages
+  - com.github.ben-manes.caffeine:caffeine:3.2.3
+  - pl.syntaxdevteam:messageHandler:1.0.2-SNAPSHOT
+  - pl.syntaxdevteam:core:1.2.5-SNAPSHOT

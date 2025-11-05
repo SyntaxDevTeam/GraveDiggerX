@@ -1,0 +1,60 @@
+name: GraveDiggerX
+version: ${version}
+description: ${description}
+api-version: '1.21'
+
+authors: [ SyntaxDevTeam, f1lipuss ]
+website: syntaxdevteam.pl
+
+localization:
+  available: [en_US, pl_PL]
+  default: en_US
+
+main: pl.syntaxdevteam.gravediggerx.GraveDiggerX
+loader: pl.syntaxdevteam.gravediggerx.loader.SyntaxLoader
+has-open-classloader: false
+
+features:
+  debug: true
+
+
+permissions:
+  grx.owner:
+    description: "Master permission node for GraveDiggerX"
+    default: false
+    children:
+      grx.cmd.help: true
+      grx.cmd.reload: true
+      grx.cmd.list: true
+      grx.cmd.admin: true
+      grx.opengrave: true
+
+  grx.cmd.help:
+    description: "Permission to use /grx help"
+    default: true
+
+  grx.cmd.reload:
+    description: "Permission to reload plugin configuration"
+    default: op
+
+  grx.cmd.list:
+    description: "Permission to list own graves"
+    default: true
+
+  grx.cmd.admin:
+    description: "Permission to use admin commands"
+    default: op
+
+  grx.opengrave:
+    description: "Permission to open and collect graves"
+    default: true
+
+  grx.*:
+    description: "All GraveDiggerX permissions"
+    default: false
+    children:
+      grx.cmd.help: true
+      grx.cmd.reload: true
+      grx.cmd.list: true
+      grx.cmd.admin: true
+      grx.opengrave: true
