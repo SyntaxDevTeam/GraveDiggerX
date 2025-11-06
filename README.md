@@ -48,7 +48,7 @@ Dodatkowe uprawnienia:
 | `grx.owner` | Master permission granting full access to all plugin features. |
 | `grx.*` | Wildcard that provides access to all plugin permissions. |
 
-> **Wskazówka:** Operators (OPs) have full access to all plugin features without needing any additional permissions.
+> **Tip:** Operators (OPs) have full access to all plugin features without needing any additional permissions.
 
 
 ## Support and Development
