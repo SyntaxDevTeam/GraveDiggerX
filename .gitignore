@@ -1,0 +1,33 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+build/
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+gradle-app.setting
+
+# Logs, runtime, server files
+run/
+logs/
+*.log
+*.log.gz
+crash-reports/
+
+# Minecraft / Paper temporary data
+cache/
+plugins/
+world/
+world_nether/
+world_the_end/
+
+# Kotlin build outputs
+bin/
+*.class
+*.jar
+
+# OS junk
+.DS_Store
+Thumbs.db
