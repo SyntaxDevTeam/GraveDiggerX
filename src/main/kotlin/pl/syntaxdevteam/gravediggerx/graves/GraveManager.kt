@@ -42,10 +42,10 @@ class GraveManager(private val plugin: GraveDiggerX) {
             }
         }
 
-        activeGraves.clear()
-
         val loadedGraves = dataStore.loadAllGraves()
-        if (loadedGraves.isEmpty()) return
+        if (loadedGraves.isEmpty()) {
+            return
+        }
 
         var restored = 0
         var skipped = 0
@@ -62,17 +62,19 @@ class GraveManager(private val plugin: GraveDiggerX) {
                     Bukkit.getScheduler().runTask(plugin, Runnable {
                         val block = loc.block
                         block.type = Material.PLAYER_HEAD
+
                         val skull = block.state as? org.bukkit.block.Skull
-                        if (skull != null) {
+                        skull?.apply {
+                            val profile = Bukkit.createProfile(grave.ownerId, grave.ownerName)
                             Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
-                                val profile = Bukkit.createProfile(grave.ownerId, grave.ownerName)
                                 profile.complete(true)
                                 Bukkit.getScheduler().runTask(plugin, Runnable {
-                                    skull.setPlayerProfile(profile)
-                                    skull.update(true, false)
+                                    setPlayerProfile(profile)
+                                    update(true, false)
                                 })
                             })
                         }
+
                         val hologramIds = createHologram(loc, grave.ownerName)
                         val ghostId = if (grave.ghostActive)
                             plugin.ghostManager.createGhostAndGetId(grave.ownerId, loc, grave.ownerName)
@@ -81,7 +83,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
                         val updated = grave.copy(
                             hologramIds = hologramIds,
                             ghostEntityId = ghostId,
-                            ghostActive = grave.ghostActive
+                            ghostActive = ghostId != null
                         )
 
                         activeGraves[getKey(loc)] = updated
