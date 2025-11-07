@@ -24,7 +24,11 @@ class GraveDeathListener(private val plugin: GraveDiggerX) : Listener {
         player.inventory.boots?.let { playerItems[39] = it }
         player.inventory.itemInOffHand?.let { playerItems[40] = it }
 
-        val totalXP = event.droppedExp
+        val totalXP = player.totalExperience
+
+        player.totalExperience = 0
+        player.exp = 0f
+        player.level = 0
 
         event.drops.clear()
         event.keepInventory = false
