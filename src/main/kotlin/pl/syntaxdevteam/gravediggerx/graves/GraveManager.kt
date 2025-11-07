@@ -76,17 +76,36 @@ class GraveManager(private val plugin: GraveDiggerX) {
                         }
 
                         val hologramIds = createHologram(loc, grave.ownerName)
-                        val ghostId = if (grave.ghostActive)
-                            plugin.ghostManager.createGhostAndGetId(grave.ownerId, loc, grave.ownerName)
-                        else null
+
+                        var ghostId: UUID? = null
+                        if (grave.ghostActive) {
+                            Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+                                val newGhostId = plugin.ghostManager.createGhostAndGetId(grave.ownerId, loc, grave.ownerName)
+                                if (newGhostId != null) {
+                                    val active = activeGraves[getKey(loc)]
+                                    if (active != null) {
+                                        val updated = active.copy(
+                                            ghostEntityId = newGhostId,
+                                            ghostActive = true
+                                        )
+                                        activeGraves[getKey(loc)] = updated
+                                    }
+                                }
+                            }, 40L)
+                        }
 
                         val updated = grave.copy(
                             hologramIds = hologramIds,
                             ghostEntityId = ghostId,
-                            ghostActive = ghostId != null
+                            ghostActive = grave.ghostActive
                         )
 
-                        activeGraves[getKey(loc)] = updated
+                        grave.hologramIds.forEach { oldId ->
+                            Bukkit.getEntity(oldId)?.remove()
+                        }
+
+                        val blockLoc = loc.toBlockLocation()
+                        activeGraves[getKey(blockLoc)] = updated
                         plugin.timeGraveRemove.scheduleRemoval(updated)
                         restored++
                     })
@@ -218,8 +237,12 @@ class GraveManager(private val plugin: GraveDiggerX) {
 
     private fun getKey(location: Location): String {
         val worldName = location.world?.name ?: "unknown"
-        return "$worldName:${location.blockX}:${location.blockY}:${location.blockZ}"
+        val x = location.blockX
+        val y = location.blockY
+        val z = location.blockZ
+        return "$worldName:$x:$y:$z"
     }
+
 
     fun removeAllGraves() {
         val keys = activeGraves.keys.toList()

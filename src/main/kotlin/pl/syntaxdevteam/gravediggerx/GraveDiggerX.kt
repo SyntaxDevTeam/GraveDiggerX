@@ -42,6 +42,8 @@ class GraveDiggerX : JavaPlugin() {
         server.pluginManager.registerEvents(GraveClickListener(this), this)
         server.pluginManager.registerEvents(GraveDeathListener(this), this)
 
+        graveManager.loadGravesFromStorage()
+
     }
 
     override fun onDisable() {
