@@ -1,12 +1,11 @@
 package pl.syntaxdevteam.gravediggerx.graves
 
 import com.google.gson.*
+import com.google.gson.reflect.TypeToken
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
-import org.bukkit.util.io.BukkitObjectInputStream
-import org.bukkit.util.io.BukkitObjectOutputStream
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import java.io.*
 import java.util.*
@@ -27,7 +26,7 @@ class GraveDataStore(private val plugin: GraveDiggerX) {
     fun saveAllGraves(graves: Collection<Grave>) {
         try {
             val jsonArray = JsonArray()
-            
+
             for (grave in graves) {
                 val graveJson = JsonObject()
                 graveJson.addProperty("ownerId", grave.ownerId.toString())
@@ -45,7 +44,8 @@ class GraveDataStore(private val plugin: GraveDiggerX) {
                 for ((slot, itemStack) in grave.items) {
                     val itemJson = JsonObject()
                     itemJson.addProperty("slot", slot)
-                    itemJson.addProperty("data", serializeItemStack(itemStack))
+                    val serialized = serializeItemStack(itemStack)
+                    itemJson.add("item", serialized)
                     itemsArray.add(itemJson)
                 }
                 graveJson.add("items", itemsArray)
@@ -56,14 +56,29 @@ class GraveDataStore(private val plugin: GraveDiggerX) {
                 graveJson.addProperty("ghostActive", grave.ghostActive)
                 graveJson.addProperty("lastAttackerId", grave.lastAttackerId?.toString())
                 graveJson.addProperty("itemsStolen", grave.itemsStolen)
-                
+
                 jsonArray.add(graveJson)
             }
 
             val jsonText = gson.toJson(jsonArray)
-            dataFile.bufferedWriter().use { writer ->
+            val tmpFile = File(dataFile.parentFile, dataFile.name + ".tmp")
+            tmpFile.bufferedWriter().use { writer ->
                 writer.write(jsonText)
                 writer.flush()
+            }
+
+            try {
+                val source = tmpFile.toPath()
+                val target = dataFile.toPath()
+                java.nio.file.Files.move(
+                    source,
+                    target,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE
+                )
+            } catch (_: Exception) {
+                if (dataFile.exists()) dataFile.delete()
+                tmpFile.renameTo(dataFile)
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -102,7 +117,15 @@ class GraveDataStore(private val plugin: GraveDiggerX) {
                     for (itemElement in itemsArray) {
                         val itemObj = itemElement.asJsonObject
                         val slot = itemObj.get("slot").asInt
-                        val itemStack = deserializeItemStack(itemObj.get("data").asString)
+                        val itemStack = when {
+                            itemObj.has("item") && itemObj.get("item").isJsonObject -> {
+                                deserializeItemFromJson(itemObj.getAsJsonObject("item"))
+                            }
+                            itemObj.has("data") && itemObj.get("data").isJsonPrimitive -> {
+                                deserializeItemLegacyBase64(itemObj.get("data").asString)
+                            }
+                            else -> ItemStack(Material.AIR)
+                        }
                         items[slot] = itemStack
                     }
 
@@ -135,27 +158,37 @@ class GraveDataStore(private val plugin: GraveDiggerX) {
             emptyList()
         }
     }
-    private fun serializeItemStack(itemStack: ItemStack): String {
+    private fun serializeItemStack(itemStack: ItemStack): JsonObject {
         return try {
-            val outputStream = ByteArrayOutputStream()
-            val dataOutput = BukkitObjectOutputStream(outputStream)
-            dataOutput.writeObject(itemStack)
-            dataOutput.close()
-            Base64.getEncoder().encodeToString(outputStream.toByteArray())
+            val map: Map<String, Any> = itemStack.serialize()
+            gson.toJsonTree(map).asJsonObject
         } catch (e: Exception) {
-            Base64.getEncoder().encodeToString(ByteArray(0))
+            JsonObject()
         }
     }
 
-    private fun deserializeItemStack(data: String): ItemStack {
+    private fun deserializeItemFromJson(json: JsonObject): ItemStack {
+        return try {
+            val type = object : TypeToken<Map<String, Any>>() {}.type
+            val map: Map<String, Any> = gson.fromJson(json, type)
+            ItemStack.deserialize(map)
+        } catch (e: Exception) {
+            ItemStack(Material.AIR)
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun deserializeItemLegacyBase64(data: String): ItemStack {
         return try {
             if (data.isEmpty()) return ItemStack(Material.AIR)
             val decoded = Base64.getDecoder().decode(data)
             val inputStream = ByteArrayInputStream(decoded)
-            val dataInput = BukkitObjectInputStream(inputStream)
-            val itemStack = dataInput.readObject() as ItemStack
+            val cls = Class.forName("org.bukkit.util.io.BukkitObjectInputStream")
+            val ctor = cls.getConstructor(InputStream::class.java)
+            val dataInput = ctor.newInstance(inputStream) as ObjectInputStream
+            val itemStack = dataInput.readObject() as? ItemStack
             dataInput.close()
-            itemStack
+            itemStack ?: ItemStack(Material.AIR)
         } catch (e: Exception) {
             ItemStack(Material.AIR)
         }
