@@ -16,6 +16,9 @@ class GraveManager(private val plugin: GraveDiggerX) {
     private val graveRemoveListeners = ConcurrentHashMap<UUID, MutableList<() -> Unit>>()
     private val dataStore = GraveDataStore(plugin)
 
+    @Volatile private var pendingSaveTask: org.bukkit.scheduler.BukkitTask? = null
+    private val saveDebounceTicks: Long = 40L // ~2s at 20 TPS
+
     private fun notifyGraveRemoved(grave: Grave) {
         graveRemoveListeners[grave.ownerId]?.forEach { it.invoke() }
         graveRemoveListeners.remove(grave.ownerId)
@@ -42,85 +45,108 @@ class GraveManager(private val plugin: GraveDiggerX) {
             }
         }
 
-        val loadedGraves = dataStore.loadAllGraves()
-        if (loadedGraves.isEmpty()) {
-            return
-        }
-
-        var restored = 0
-        var skipped = 0
-
-        Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-            for (grave in loadedGraves) {
-                val loc = grave.location
-                val world = loc.world ?: run {
-                    skipped++
-                    return@Runnable
-                }
-
-                world.getChunkAtAsync(loc).thenAccept {
-                    Bukkit.getScheduler().runTask(plugin, Runnable {
-                        val block = loc.block
-                        block.type = Material.PLAYER_HEAD
-
-                        val skull = block.state as? org.bukkit.block.Skull
-                        skull?.apply {
-                            val profile = Bukkit.createProfile(grave.ownerId, grave.ownerName)
-                            Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
-                                profile.complete(true)
-                                Bukkit.getScheduler().runTask(plugin, Runnable {
-                                    setPlayerProfile(profile)
-                                    update(true, false)
-                                })
-                            })
-                        }
-
-                        val hologramIds = createHologram(loc, grave.ownerName)
-
-                        var ghostId: UUID? = null
-                        if (grave.ghostActive) {
-                            Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-                                val newGhostId = plugin.ghostManager.createGhostAndGetId(grave.ownerId, loc, grave.ownerName)
-                                if (newGhostId != null) {
-                                    val active = activeGraves[getKey(loc)]
-                                    if (active != null) {
-                                        val updated = active.copy(
-                                            ghostEntityId = newGhostId,
-                                            ghostActive = true
-                                        )
-                                        activeGraves[getKey(loc)] = updated
-                                    }
-                                }
-                            }, 40L)
-                        }
-
-                        val updated = grave.copy(
-                            hologramIds = hologramIds,
-                            ghostEntityId = ghostId,
-                            ghostActive = grave.ghostActive
-                        )
-
-                        grave.hologramIds.forEach { oldId ->
-                            Bukkit.getEntity(oldId)?.remove()
-                        }
-
-                        val blockLoc = loc.toBlockLocation()
-                        activeGraves[getKey(blockLoc)] = updated
-                        plugin.timeGraveRemove.scheduleRemoval(updated)
-                        restored++
-                    })
-                }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+            val loadedGraves = dataStore.loadAllGraves()
+            if (loadedGraves.isEmpty()) {
+                return@Runnable
             }
 
+            var restored = 0
+            var skipped = 0
+
             Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-            }, 100L)
-        }, 40L)
+                for (grave in loadedGraves) {
+                    val loc = grave.location
+                    val world = loc.world ?: run {
+                        skipped++
+                        return@Runnable
+                    }
+
+                    world.getChunkAtAsync(loc).thenAccept {
+                        Bukkit.getScheduler().runTask(plugin, Runnable {
+                            val block = loc.block
+                            block.type = Material.PLAYER_HEAD
+
+                            val skull = block.state as? org.bukkit.block.Skull
+                            skull?.apply {
+                                val profile = Bukkit.createProfile(grave.ownerId, grave.ownerName)
+                                Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+                                    profile.complete(true)
+                                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                                        this.setOwnerProfile(profile)
+                                        update(true, false)
+                                    })
+                                })
+                            }
+
+                            val hologramIds = createHologram(loc, grave.ownerName)
+
+                            var ghostId: UUID? = null
+                            if (grave.ghostActive) {
+                                Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+                                    val newGhostId = plugin.ghostManager.createGhostAndGetId(grave.ownerId, loc, grave.ownerName)
+                                    if (newGhostId != null) {
+                                        val active = activeGraves[getKey(loc)]
+                                        if (active != null) {
+                                            val updated = active.copy(
+                                                ghostEntityId = newGhostId,
+                                                ghostActive = true
+                                            )
+                                            activeGraves[getKey(loc)] = updated
+                                        }
+                                    }
+                                }, 40L)
+                            }
+
+                            val updated = grave.copy(
+                                hologramIds = hologramIds,
+                                ghostEntityId = ghostId,
+                                ghostActive = grave.ghostActive
+                            )
+
+                            grave.hologramIds.forEach { oldId ->
+                                Bukkit.getEntity(oldId)?.remove()
+                            }
+
+                            val blockLoc = loc.toBlockLocation()
+                            activeGraves[getKey(blockLoc)] = updated
+                            plugin.timeGraveRemove.scheduleRemoval(updated)
+                            restored++
+                        })
+                    }
+                }
+
+                Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+                }, 100L)
+            }, 40L)
+        })
     }
 
 
     fun saveGravesToStorage() {
-        val validGraves = activeGraves.values.toList()
-        dataStore.saveAllGraves(validGraves)
+        requestSave()
+    }
+
+    fun requestSave() {
+        pendingSaveTask?.cancel()
+        pendingSaveTask = Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, Runnable {
+            pendingSaveTask = null
+            performSaveAsync()
+        }, saveDebounceTicks)
+    }
+
+    private fun performSaveAsync() {
+        val snapshot = activeGraves.values.toList()
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+            dataStore.saveAllGraves(snapshot)
+        })
+    }
+
+    fun flushSavesSync() {
+        pendingSaveTask?.cancel()
+        pendingSaveTask = null
+        val snapshot = activeGraves.values.toList()
+        dataStore.saveAllGraves(snapshot)
     }
 
     fun createGraveAndGetIt(player: org.bukkit.entity.Player, items: Map<Int, ItemStack>, xp: Int = 0): Grave? {
@@ -139,9 +165,14 @@ class GraveManager(private val plugin: GraveDiggerX) {
         block.type = Material.PLAYER_HEAD
         val skull = block.state as? org.bukkit.block.Skull
         skull?.apply {
-            val offline = Bukkit.getOfflinePlayer(player.uniqueId)
-            setOwningPlayer(offline)
-            update()
+            val profile = Bukkit.createProfile(player.uniqueId, player.name)
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+                profile.complete(true)
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    this.setOwnerProfile(profile)
+                    update(true, false)
+                })
+            })
         }
 
         val hologramIds = createHologram(location, player.name)
