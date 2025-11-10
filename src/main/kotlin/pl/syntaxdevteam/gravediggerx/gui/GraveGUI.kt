@@ -63,7 +63,7 @@ class GraveGUI(
     private fun createOwnerBanner(): ItemStack {
         val banner = ItemStack(Material.WHITE_BANNER)
         val meta = banner.itemMeta
-        val ownerName = Bukkit.getOfflinePlayer(grave.ownerId).name ?: plugin.messageHandler.getCleanMessage("error", "unknown-player", emptyMap())
+        val ownerName = grave.ownerName.ifBlank { plugin.messageHandler.getCleanMessage("error", "unknown-player", emptyMap()) }
         val message = plugin.messageHandler.getCleanMessage("gui-grave", "stats-owner", mapOf("player" to ownerName))
         meta.displayName(plugin.messageHandler.formatMixedTextToMiniMessage(message, null))
         banner.itemMeta = meta
