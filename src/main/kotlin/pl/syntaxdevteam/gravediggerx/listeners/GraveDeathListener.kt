@@ -12,6 +12,18 @@ class GraveDeathListener(private val plugin: GraveDiggerX) : Listener {
     fun onPlayerDeath(event: PlayerDeathEvent) {
         val player = event.entity
 
+        // Check dimension/world environment toggle from config and early-return if disabled
+        val env = player.world.environment
+        val enabledInWorld = when (env) {
+            org.bukkit.World.Environment.NORMAL -> plugin.config.getBoolean("graves.worlds.overworld", true)
+            org.bukkit.World.Environment.NETHER -> plugin.config.getBoolean("graves.worlds.nether", true)
+            org.bukkit.World.Environment.THE_END -> plugin.config.getBoolean("graves.worlds.end", true)
+            else -> true
+        }
+        if (!enabledInWorld) {
+            return
+        }
+
         val playerItems = mutableMapOf<Int, ItemStack>()
 
         for (i in 0..35) {

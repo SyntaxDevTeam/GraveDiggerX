@@ -3,6 +3,12 @@ graves:
   max-per-player: 2 # Maximum graves per player
   protected-effect-cooldown: 5000 # Cooldown in milliseconds for protected grave effect (teleport + sound)
 
+  # Enable/disable graves per dimension/world environment
+  worlds:
+    overworld: true   # NORMAL
+    nether: true      # NETHER
+    end: true         # THE_END
+
   # Grave block protection
   protection:
     explosions: true
