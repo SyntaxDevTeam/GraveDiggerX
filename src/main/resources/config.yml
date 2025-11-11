@@ -21,6 +21,18 @@ graves:
 spirits:
   enabled: true
 
+# Settings for connecting to the database
+
+database:
+  # Available options: yaml, mariadb, mysql, postgresql, sqlite, h2
+  type: yaml
+  sql:
+    host: localhost
+    port: 3306 # 5432 if you use PostgreSQL; Default for MySQL is 3306.
+    dbname: my_database
+    username: root
+    password: password
+
 # Plugin language selection. Possible values: EN, PL
 # To add your own language file, please contact us on Discord: https://discord.gg/Zk6mxv7eMh
 language: "EN"

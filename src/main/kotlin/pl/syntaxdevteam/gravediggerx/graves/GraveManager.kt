@@ -14,7 +14,6 @@ import java.util.concurrent.ConcurrentHashMap
 class GraveManager(private val plugin: GraveDiggerX) {
     private val activeGraves = ConcurrentHashMap<String, Grave>()
     private val graveRemoveListeners = ConcurrentHashMap<UUID, MutableList<() -> Unit>>()
-    private val dataStore = GraveDataStore(plugin)
 
     @Volatile private var pendingSaveTask: org.bukkit.scheduler.BukkitTask? = null
     private val saveDebounceTicks: Long = 40L // ~2s at 20 TPS
@@ -46,7 +45,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
         }
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
-            val loadedGraves = dataStore.loadAllGraves()
+            val loadedGraves = plugin.databaseHandler.loadAllGraves()
             if (loadedGraves.isEmpty()) {
                 return@Runnable
             }
@@ -138,7 +137,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
     private fun performSaveAsync() {
         val snapshot = activeGraves.values.toList()
         Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
-            dataStore.saveAllGraves(snapshot)
+            plugin.databaseHandler.saveAllGraves(snapshot)
         })
     }
 
@@ -146,7 +145,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
         pendingSaveTask?.cancel()
         pendingSaveTask = null
         val snapshot = activeGraves.values.toList()
-        dataStore.saveAllGraves(snapshot)
+        plugin.databaseHandler.saveAllGraves(snapshot)
     }
 
     fun createGraveAndGetIt(player: org.bukkit.entity.Player, items: Map<Int, ItemStack>, xp: Int = 0): Grave? {
