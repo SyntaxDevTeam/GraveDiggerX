@@ -13,3 +13,9 @@ libraries:
   - com.github.ben-manes.caffeine:caffeine:3.2.3
   - pl.syntaxdevteam:messageHandler:1.0.2-SNAPSHOT
   - pl.syntaxdevteam:core:1.2.5-SNAPSHOT
+  # Datebases libraries
+  - com.zaxxer:HikariCP:7.0.2
+  - org.mariadb.jdbc:mariadb-java-client:3.5.5
+  - org.xerial:sqlite-jdbc:3.50.3.0
+  - org.postgresql:postgresql:42.7.7
+  - com.h2database:h2:2.3.232
