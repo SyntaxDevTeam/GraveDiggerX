@@ -34,13 +34,14 @@ class GraveDiggerX : JavaPlugin() {
 
 
     override fun onEnable() {
-        saveDefaultConfig()
-        pluginConfig = this.config
-        logger = SyntaxCore.logger
         SyntaxCore.registerUpdateSources(
             GitHubSource("SyntaxDevTeam/GraveDiggerX"),
             ModrinthSource("")
         )
+        SyntaxCore.init(this)
+        saveDefaultConfig()
+        pluginConfig = this.config
+        logger = SyntaxCore.logger
         timeGraveRemove = TimeGraveRemove(this)
 
         SyntaxMessages.initialize(this)
