@@ -24,7 +24,7 @@ dependencies {
     compileOnly("pl.syntaxdevteam:messageHandler:1.0.2-SNAPSHOT")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.3")
     compileOnly("com.zaxxer:HikariCP:7.0.2")
-    compileOnly("org.xerial:sqlite-jdbc:")
+    compileOnly("org.xerial:sqlite-jdbc:3.50.3.0")
     compileOnly("org.mariadb.jdbc:mariadb-java-client:3.5.5")
 
 }
