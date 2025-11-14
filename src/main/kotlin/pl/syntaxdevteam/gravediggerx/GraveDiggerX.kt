@@ -69,19 +69,19 @@ class GraveDiggerX : JavaPlugin() {
         if (this::graveManager.isInitialized) {
             graveManager.flushSavesSync()
         }
-        databaseHandler.closeConnection()
+        databaseHandler.close()
     }
 
     private fun setupDatabase() {
         databaseHandler = DatabaseHandler(this)
         if (server.name.contains("Folia")) {
             logger.debug("Detected Folia server, using sync database connection handling.")
-            databaseHandler.openConnection()
-            databaseHandler.createTables()
+            databaseHandler.connect()
+            databaseHandler.ensureSchema()
         }else{
             this.server.scheduler.runTaskAsynchronously(this, Runnable {
-                databaseHandler.openConnection()
-                databaseHandler.createTables()
+                databaseHandler.connect()
+                databaseHandler.ensureSchema()
             })
         }
 

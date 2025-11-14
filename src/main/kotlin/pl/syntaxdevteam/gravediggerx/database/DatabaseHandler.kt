@@ -14,39 +14,53 @@ import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DatabaseHandler(private val plugin: GraveDiggerX) {
+    private enum class StorageBackend { FILE, SQL }
+
     private val logger = plugin.logger
 
-    private val yamlStore = GraveDataStore(plugin)
+    private val fileStore = GraveDataStore(plugin)
     private val configuredType =
         plugin.config.getString("database.type")?.trim()?.lowercase(Locale.ROOT) ?: "yaml"
 
+    private val storageBackend = resolveBackend(configuredType)
     private val dbType: DatabaseType? = parseDatabaseType(configuredType)
-    private val dbConfig = dbType?.let {
-        DatabaseConfig(
-            type = it,
-            host = plugin.config.getString("database.sql.host") ?: "localhost",
-            port = plugin.config.getInt("database.sql.port").takeIf { port -> port != 0 } ?: defaultPort(it),
-            database = plugin.config.getString("database.sql.dbname") ?: plugin.name,
-            username = plugin.config.getString("database.sql.username") ?: "root",
-            password = plugin.config.getString("database.sql.password") ?: ""
-        )
+    private val dbConfig = if (storageBackend == StorageBackend.SQL) {
+        dbType?.let {
+            DatabaseConfig(
+                type = it,
+                host = plugin.config.getString("database.sql.host") ?: "localhost",
+                port = plugin.config.getInt("database.sql.port").takeIf { port -> port != 0 }
+                    ?: defaultPort(it),
+                database = plugin.config.getString("database.sql.dbname") ?: plugin.name,
+                username = plugin.config.getString("database.sql.username") ?: "root",
+                password = plugin.config.getString("database.sql.password") ?: "",
+            )
+        }
+    } else {
+        null
     }
     private val dbManager = dbConfig?.let { DatabaseManager(it, logger) }
     private val sqlOperational = AtomicBoolean(false)
 
-    fun openConnection() {
-        if (!ensureSqlReady()) {
-            if (dbManager == null) {
-                logger.debug("Database type set to YAML, skipping SQL connection.")
-            } else {
-                logger.err("Failed to connect to database, continuing with YAML storage.")
-            }
-        } else {
+    fun connect() {
+        if (storageBackend != StorageBackend.SQL) {
+            logger.debug("Using file-based storage backend ($configuredType), SQL connection skipped.")
+            return
+        }
+
+        if (ensureSqlReady()) {
             logger.debug("Connected to ${dbType?.name?.lowercase(Locale.ROOT)} database.")
+        } else {
+            logger.err("Failed to connect to database, continuing with file storage.")
         }
     }
 
-    fun closeConnection() {
+    fun close() {
+        if (storageBackend != StorageBackend.SQL) {
+            sqlOperational.set(false)
+            return
+        }
+
         try {
             dbManager?.close()
         } catch (e: Exception) {
@@ -56,7 +70,11 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
         }
     }
 
-    fun createTables() {
+    fun ensureSchema() {
+        if (storageBackend != StorageBackend.SQL) {
+            return
+        }
+
         val manager = dbManager ?: return
         if (!ensureSqlReady()) return
         val schema = TableSchema(
@@ -82,17 +100,22 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
             manager.createTable(schema)
         } catch (e: Exception) {
             sqlOperational.set(false)
-            logger.err("Failed to create graves table, falling back to YAML storage. ${e.message}")
+            logger.err("Failed to create graves table, falling back to file storage. ${e.message}")
         }
     }
 
-    fun saveAllGraves(graves: Collection<Grave>) {
-        if (!ensureSqlReady()) {
-            yamlStore.saveAllGraves(graves)
+    fun replaceAllGraves(graves: Collection<Grave>) {
+        if (storageBackend != StorageBackend.SQL) {
+            fileStore.saveAllGraves(graves)
             return
         }
 
         val manager = dbManager ?: return
+        if (!ensureSqlReady()) {
+            fileStore.saveAllGraves(graves)
+            return
+        }
+
         try {
             manager.execute("DELETE FROM graves")
             graves.forEach { grave ->
@@ -119,17 +142,21 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
             }
         } catch (e: Exception) {
             sqlOperational.set(false)
-            logger.err("Failed to save graves in database, switching to YAML. ${e.message}")
-            yamlStore.saveAllGraves(graves)
+            logger.err("Failed to save graves in database, switching to file storage. ${e.message}")
+            fileStore.saveAllGraves(graves)
         }
     }
 
     fun loadAllGraves(): List<Grave> {
-        if (!ensureSqlReady()) {
-            return yamlStore.loadAllGraves()
+        if (storageBackend != StorageBackend.SQL) {
+            return fileStore.loadAllGraves()
         }
 
-        val manager = dbManager ?: return yamlStore.loadAllGraves()
+        val manager = dbManager ?: return fileStore.loadAllGraves()
+        if (!ensureSqlReady()) {
+            return fileStore.loadAllGraves()
+        }
+
         return try {
             val records = manager.query("SELECT * FROM graves ORDER BY createdAt ASC") { rs ->
                 GraveRecord(
@@ -151,12 +178,26 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
             records.mapNotNull { GraveSerializer.decodeGraveFromString(it.payload) }
         } catch (e: Exception) {
             sqlOperational.set(false)
-            logger.err("Failed to load graves from database, switching to YAML. ${e.message}")
-            yamlStore.loadAllGraves()
+            logger.err("Failed to load graves from database, switching to file storage. ${e.message}")
+            fileStore.loadAllGraves()
         }
     }
 
+    fun writeGravesToJsonIfConfigured(graves: Collection<Grave>) {
+        if (isJsonBackend()) {
+            fileStore.saveAllGraves(graves)
+        } else {
+            replaceAllGraves(graves)
+        }
+    }
+
+    fun isJsonBackend(): Boolean = configuredType == "json"
+
     private fun ensureSqlReady(): Boolean {
+        if (storageBackend != StorageBackend.SQL) {
+            return false
+        }
+
         val manager = dbManager ?: return false
         if (sqlOperational.get()) return true
         return try {
@@ -167,6 +208,11 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
             logger.err("Failed to (re)connect to database: ${e.message}")
             false
         }
+    }
+
+    private fun resolveBackend(type: String): StorageBackend = when (type.lowercase(Locale.ROOT)) {
+        "mysql", "mariadb", "postgresql", "postgres", "sqlite", "h2" -> StorageBackend.SQL
+        else -> StorageBackend.FILE
     }
 
     private fun idDefinition(): String = when (dbType) {

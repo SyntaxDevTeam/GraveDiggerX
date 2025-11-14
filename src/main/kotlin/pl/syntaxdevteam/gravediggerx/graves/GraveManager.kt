@@ -137,7 +137,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
     private fun performSaveAsync() {
         val snapshot = activeGraves.values.toList()
         Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
-            plugin.databaseHandler.saveAllGraves(snapshot)
+            plugin.databaseHandler.writeGravesToJsonIfConfigured(snapshot)
         })
     }
 
@@ -145,7 +145,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
         pendingSaveTask?.cancel()
         pendingSaveTask = null
         val snapshot = activeGraves.values.toList()
-        plugin.databaseHandler.saveAllGraves(snapshot)
+        plugin.databaseHandler.writeGravesToJsonIfConfigured(snapshot)
     }
 
     fun createGraveAndGetIt(player: org.bukkit.entity.Player, items: Map<Int, ItemStack>, xp: Int = 0): Grave? {
