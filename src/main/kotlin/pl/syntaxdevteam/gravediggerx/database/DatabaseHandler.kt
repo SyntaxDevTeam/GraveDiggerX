@@ -10,6 +10,9 @@ import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import pl.syntaxdevteam.gravediggerx.graves.GraveDataStore
 import pl.syntaxdevteam.gravediggerx.graves.GraveSerializer
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -31,7 +34,10 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
                 host = plugin.config.getString("database.sql.host") ?: "localhost",
                 port = plugin.config.getInt("database.sql.port").takeIf { port -> port != 0 }
                     ?: defaultPort(it),
-                database = plugin.config.getString("database.sql.dbname") ?: plugin.name,
+                database = resolveDatabaseName(
+                    it,
+                    plugin.config.getString("database.sql.dbname")
+                ),
                 username = plugin.config.getString("database.sql.username") ?: "root",
                 password = plugin.config.getString("database.sql.password") ?: "",
             )
@@ -213,6 +219,53 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
     private fun resolveBackend(type: String): StorageBackend = when (type.lowercase(Locale.ROOT)) {
         "mysql", "mariadb", "postgresql", "postgres", "sqlite", "h2" -> StorageBackend.SQL
         else -> StorageBackend.FILE
+    }
+
+    private fun resolveDatabaseName(type: DatabaseType, configuredName: String?): String {
+        val baseName = configuredName?.takeUnless { it.isBlank() } ?: plugin.name
+        return when (type) {
+            DatabaseType.H2 -> resolveH2DatabasePath(baseName)
+            else -> baseName
+        }
+    }
+
+    private fun resolveH2DatabasePath(name: String): String {
+        val trimmed = name.trim()
+        val normalized = trimmed.replace("\\", "/")
+        val specialPrefixes = listOf("mem:", "file:", "zip:", "ssl:", "tcp:")
+        if (specialPrefixes.any { normalized.startsWith(it, ignoreCase = true) }) {
+            return trimmed
+        }
+
+        if (normalized.startsWith("~/") || normalized.startsWith("./") || normalized.startsWith("/")) {
+            return trimmed
+        }
+
+        val path = try {
+            Path.of(trimmed)
+        } catch (_: Exception) {
+            null
+        }
+        if (path?.isAbsolute == true) {
+            return path.toString()
+        }
+
+        val dataFolderPath = plugin.dataFolder.toPath()
+        createDirectoryIfMissing(dataFolderPath)
+        val databaseRoot = dataFolderPath.resolve("database")
+        createDirectoryIfMissing(databaseRoot)
+
+        val resolvedPath = databaseRoot.resolve(trimmed)
+        resolvedPath.parent?.let { createDirectoryIfMissing(it) }
+        return resolvedPath.toAbsolutePath().toString()
+    }
+
+    private fun createDirectoryIfMissing(path: Path) {
+        try {
+            Files.createDirectories(path)
+        } catch (ignored: IOException) {
+            logger.warning("Failed to create directory ${path.toAbsolutePath()}: ${ignored.message}")
+        }
     }
 
     private fun idDefinition(): String = when (dbType) {
