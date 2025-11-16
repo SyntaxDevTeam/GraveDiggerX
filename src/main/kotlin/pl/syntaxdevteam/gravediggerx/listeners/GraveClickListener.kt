@@ -1,5 +1,6 @@
 package pl.syntaxdevteam.gravediggerx.listeners
 
+import org.bukkit.event.Event.Result
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
@@ -17,7 +18,7 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
 
     @EventHandler
     fun onGraveInteract(e: PlayerInteractEvent) {
-        if (e.isCancelled) return
+        if (e.useInteractedBlock() == Result.DENY || e.useItemInHand() == Result.DENY) return
 
         val player = e.player
 
@@ -25,7 +26,8 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
         val block = e.clickedBlock ?: return
 
         val grave = plugin.graveManager.getGraveAt(block.location) ?: return
-        e.isCancelled = true
+        e.setUseInteractedBlock(Result.DENY)
+        e.setUseItemInHand(Result.DENY)
 
         if (grave.ownerId == player.uniqueId) {
             if (player.isSneaking) {

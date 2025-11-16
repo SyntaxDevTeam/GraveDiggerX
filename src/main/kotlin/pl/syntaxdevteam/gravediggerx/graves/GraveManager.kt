@@ -1,6 +1,7 @@
 package pl.syntaxdevteam.gravediggerx.graves
 
 import net.kyori.adventure.text.Component
+import com.destroystokyo.paper.profile.PlayerProfile
 import org.bukkit.*
 import org.bukkit.entity.Display
 import org.bukkit.entity.TextDisplay
@@ -68,7 +69,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
 
                             val skull = block.state as? org.bukkit.block.Skull
                             skull?.apply {
-                                this.setOwningPlayer(Bukkit.getOfflinePlayer(grave.ownerId))
+                                applyPlayerProfile(this, grave.ownerId, grave.ownerName)
                                 update(true, false)
                             }
 
@@ -158,8 +159,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
         block.type = Material.PLAYER_HEAD
         val skull = block.state as? org.bukkit.block.Skull
         skull?.apply {
-            // Use supported API in Paper 1.21.10 for block skulls
-            this.setOwningPlayer(player)
+            applyPlayerProfile(this, player.uniqueId, player.name)
             update(true, false)
         }
 
@@ -260,5 +260,58 @@ class GraveManager(private val plugin: GraveDiggerX) {
         val y = location.blockY
         val z = location.blockZ
         return "$worldName:$x:$y:$z"
+    }
+
+    private fun applyPlayerProfile(
+        skull: org.bukkit.block.Skull,
+        ownerId: UUID,
+        ownerName: String?
+    ) {
+        val profile = resolvePlayerProfile(ownerId, ownerName) ?: return
+        if (ModernProfileSupport.trySetProfile(skull, profile)) {
+            return
+        }
+
+        @Suppress("DEPRECATION")
+        skull.setOwningPlayer(Bukkit.getOfflinePlayer(ownerId))
+    }
+
+    private object ModernProfileSupport {
+        private val resolvableProfileClass: Class<*>? = try {
+            Class.forName("io.papermc.paper.datacomponent.item.ResolvableProfile")
+        } catch (_: ClassNotFoundException) {
+            null
+        }
+
+        private val resolvableProfileFactory = resolvableProfileClass?.let {
+            runCatching { it.getMethod("resolvableProfile", PlayerProfile::class.java) }.getOrNull()
+        }
+
+        private val skullSetProfileMethod = resolvableProfileClass?.let {
+            runCatching { org.bukkit.block.Skull::class.java.getMethod("setProfile", it) }.getOrNull()
+        }
+
+        fun trySetProfile(skull: org.bukkit.block.Skull, profile: PlayerProfile): Boolean {
+            val factory = resolvableProfileFactory ?: return false
+            val setter = skullSetProfileMethod ?: return false
+            return try {
+                val resolvable = factory.invoke(null, profile)
+                setter.invoke(skull, resolvable)
+                true
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+
+    private fun resolvePlayerProfile(ownerId: UUID, ownerName: String?): PlayerProfile? {
+        return try {
+            Bukkit.createProfile(ownerId, ownerName).apply {
+                complete()
+            }
+        } catch (ex: Exception) {
+            plugin.logger.warning("Failed to resolve player profile for grave owner $ownerName: ${ex.message}")
+            null
+        }
     }
 }
