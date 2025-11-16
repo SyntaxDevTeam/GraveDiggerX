@@ -6,6 +6,8 @@ import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.player.PlayerInteractEvent
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
+import pl.syntaxdevteam.gravediggerx.common.addItemOrDrop
+import pl.syntaxdevteam.gravediggerx.common.equipSafely
 import pl.syntaxdevteam.gravediggerx.gui.GraveGUI
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import java.util.UUID
@@ -82,12 +84,12 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
 
         for ((slot, item) in grave.items) {
             when (slot) {
-                36 -> player.inventory.helmet = item
-                37 -> player.inventory.chestplate = item
-                38 -> player.inventory.leggings = item
-                39 -> player.inventory.boots = item
-                40 -> player.inventory.setItemInOffHand(item)
-                else -> if (slot in 0..35) player.inventory.addItem(item)
+                36 -> player.equipSafely(player.inventory.helmet, item) { player.inventory.helmet = it }
+                37 -> player.equipSafely(player.inventory.chestplate, item) { player.inventory.chestplate = it }
+                38 -> player.equipSafely(player.inventory.leggings, item) { player.inventory.leggings = it }
+                39 -> player.equipSafely(player.inventory.boots, item) { player.inventory.boots = it }
+                40 -> player.equipSafely(player.inventory.itemInOffHand, item) { player.inventory.setItemInOffHand(it) }
+                else -> if (slot in 0..35) player.addItemOrDrop(item)
             }
         }
 
