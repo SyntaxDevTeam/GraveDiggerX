@@ -83,15 +83,16 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
         if (player.uniqueId != grave.ownerId) return
 
         for ((slot, item) in grave.items) {
-            when (slot) {
-                36 -> player.equipSafely(player.inventory.helmet, item) { player.inventory.helmet = it }
-                37 -> player.equipSafely(player.inventory.chestplate, item) { player.inventory.chestplate = it }
-                38 -> player.equipSafely(player.inventory.leggings, item) { player.inventory.leggings = it }
-                39 -> player.equipSafely(player.inventory.boots, item) { player.inventory.boots = it }
-                40 -> player.equipSafely(player.inventory.itemInOffHand, item) { player.inventory.setItemInOffHand(it) }
-                else -> if (slot in 0..35) player.addItemOrDrop(item)
+            if (slot in 0..35) {
+                player.addItemOrDrop(item)
             }
         }
+
+        grave.armorContents["helmet"]?.let { player.equipSafely(player.inventory.helmet, it) { player.inventory.helmet = it } }
+        grave.armorContents["chestplate"]?.let { player.equipSafely(player.inventory.chestplate, it) { player.inventory.chestplate = it } }
+        grave.armorContents["leggings"]?.let { player.equipSafely(player.inventory.leggings, it) { player.inventory.leggings = it } }
+        grave.armorContents["boots"]?.let { player.equipSafely(player.inventory.boots, it) { player.inventory.boots = it } }
+        grave.armorContents["offhand"]?.let { player.equipSafely(player.inventory.itemInOffHand, it) { player.inventory.setItemInOffHand(it) } }
 
         if (grave.storedXp > 0) player.giveExp(grave.storedXp)
 
