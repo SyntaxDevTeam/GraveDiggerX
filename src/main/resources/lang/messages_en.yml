@@ -5,6 +5,7 @@ prefix: "<bold><gradient:#2C2C2C:#555555>[GRX]</gradient></bold>"
 
 error:
   no-permission: "You don't have permission to perform this operation!"
+  invalid-id: "<#AAAAAA>Invalid grave ID!"
   unknown-command: "<#AAAAAA>Type <white>/grx help</white> <#AAAAAA>to see available commands."
   unknown-player: "Unknown"
 
@@ -47,6 +48,7 @@ graveh:
   hologram: "<#800020>R.I.P. <newline><#AAAAAA>Grave of <white><player></white><newline><yellow>Right-click to open"
 
 admin:
+  removed-grave: "<#AAAAAA>Deleted grave<white> <player> <id>"
   player-not-found: "<#AAAAAA>Player <white><player></white> <#AAAAAA>not found."
   no-graves-for-player: "<#AAAAAA>Player <white><player></white> <#AAAAAA>has no graves."
   list-header: "<white>List of <white><player>'s graves:</white>"
