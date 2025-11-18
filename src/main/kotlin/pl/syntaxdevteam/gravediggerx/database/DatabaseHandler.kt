@@ -56,7 +56,7 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
         }
 
         if (ensureSqlReady()) {
-            logger.debug("Connected to ${dbType?.name?.lowercase(Locale.ROOT)} database.")
+            logger.debug("[DatabaseHandler] Connected to ${dbType?.name?.lowercase(Locale.ROOT)} database.")
         } else {
             logger.err("Failed to connect to database, continuing with file storage.")
         }
