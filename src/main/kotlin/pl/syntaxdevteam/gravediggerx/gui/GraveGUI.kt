@@ -142,17 +142,14 @@ class GraveGUI(
             return
         }
 
+        // Add only inventory items (0..35). Armor/offhand will be handled exclusively from armorContents below
         for ((slot, item) in grave.items) {
-            when (slot) {
-                36 -> player.equipSafely(player.inventory.helmet, item) { player.inventory.helmet = it }
-                37 -> player.equipSafely(player.inventory.chestplate, item) { player.inventory.chestplate = it }
-                38 -> player.equipSafely(player.inventory.leggings, item) { player.inventory.leggings = it }
-                39 -> player.equipSafely(player.inventory.boots, item) { player.inventory.boots = it }
-                40 -> player.equipSafely(player.inventory.itemInOffHand, item) { player.inventory.setItemInOffHand(it) }
-                else -> if (slot in 0..35) player.addItemOrDrop(item)
+            if (slot in 0..35) {
+                player.addItemOrDrop(item)
             }
         }
 
+        // Equip armor/offhand strictly from armorContents to avoid duplication
         grave.armorContents["helmet"]?.let { player.equipSafely(player.inventory.helmet, it) { player.inventory.helmet = it } }
         grave.armorContents["chestplate"]?.let { player.equipSafely(player.inventory.chestplate, it) { player.inventory.chestplate = it } }
         grave.armorContents["leggings"]?.let { player.equipSafely(player.inventory.leggings, it) { player.inventory.leggings = it } }
