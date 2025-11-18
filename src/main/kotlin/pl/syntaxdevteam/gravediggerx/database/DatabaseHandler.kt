@@ -30,17 +30,17 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
     private val dbType: DatabaseType? = parseDatabaseType(configuredType)
     private val dbConfig = if (storageBackend == StorageBackend.SQL) {
         dbType?.let {
+            val databaseName = resolveDatabaseName(
+                plugin.config.getString("database.sql.dbname")
+            )
             DatabaseConfig(
                 type = it,
                 host = plugin.config.getString("database.sql.host") ?: "localhost",
-                port = plugin.config.getInt("database.sql.port").takeIf { port -> port != 0 }
-                    ?: defaultPort(it),
-                database = resolveDatabaseName(
-                    it,
-                    plugin.config.getString("database.sql.dbname")
-                ),
+                port = resolvePort(it, plugin.config.getInt("database.sql.port")),
+                database = databaseName,
                 username = plugin.config.getString("database.sql.username") ?: "root",
                 password = plugin.config.getString("database.sql.password") ?: "",
+                filePath = resolveDatabaseFilePath(it, databaseName)
             )
         }
     } else {
@@ -55,8 +55,8 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
             return
         }
 
-        if (ensureSqlReady()) {
-            logger.debug("[DatabaseHandler] Connected to ${dbType?.name?.lowercase(Locale.ROOT)} database.")
+        if (ensureSqlReady(logFailure = false)) {
+            logger.debug("Using ${dbType?.name?.lowercase(Locale.ROOT)} database backend.")
         } else {
             logger.err("Failed to connect to database, continuing with file storage.")
         }
@@ -177,7 +177,7 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
 
     fun isJsonBackend(): Boolean = configuredType == "json"
 
-    private fun ensureSqlReady(): Boolean {
+    private fun ensureSqlReady(logFailure: Boolean = true): Boolean {
         if (storageBackend != StorageBackend.SQL) {
             return false
         }
@@ -189,7 +189,9 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
             sqlOperational.set(true)
             true
         } catch (e: Exception) {
-            logger.err("Failed to (re)connect to database: ${e.message}")
+            if (logFailure) {
+                logger.debug("Database connection attempt failed: ${e.message}")
+            }
             false
         }
     }
@@ -199,12 +201,13 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
         else -> StorageBackend.FILE
     }
 
-    private fun resolveDatabaseName(type: DatabaseType, configuredName: String?): String {
-        val baseName = configuredName?.takeUnless { it.isBlank() } ?: plugin.name
-        return when (type) {
-            DatabaseType.H2 -> resolveH2DatabasePath(baseName)
-            else -> baseName
-        }
+    private fun resolveDatabaseName(configuredName: String?): String =
+        configuredName?.takeUnless { it.isBlank() } ?: plugin.name
+
+    private fun resolveDatabaseFilePath(type: DatabaseType, baseName: String): String? = when (type) {
+        DatabaseType.SQLITE -> resolveSqliteDatabasePath(baseName)
+        DatabaseType.H2 -> resolveH2DatabasePath(baseName)
+        else -> null
     }
 
     private fun resolveH2DatabasePath(name: String): String {
@@ -234,6 +237,18 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
         createDirectoryIfMissing(databaseRoot)
 
         val resolvedPath = databaseRoot.resolve(trimmed)
+        resolvedPath.parent?.let { createDirectoryIfMissing(it) }
+        return resolvedPath.toAbsolutePath().toString()
+    }
+
+    private fun resolveSqliteDatabasePath(name: String): String {
+        val trimmed = name.trim().removeSuffix(".db")
+        val dataFolderPath = plugin.dataFolder.toPath()
+        createDirectoryIfMissing(dataFolderPath)
+        val databaseRoot = dataFolderPath.resolve("database")
+        createDirectoryIfMissing(databaseRoot)
+
+        val resolvedPath = databaseRoot.resolve("$trimmed.db")
         resolvedPath.parent?.let { createDirectoryIfMissing(it) }
         return resolvedPath.toAbsolutePath().toString()
     }
@@ -304,11 +319,14 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
     private fun idDefinition(): String = when (dbType) {
         DatabaseType.SQLITE -> "INTEGER PRIMARY KEY AUTOINCREMENT"
         DatabaseType.POSTGRESQL -> "SERIAL PRIMARY KEY"
+        DatabaseType.MSSQL -> "INT IDENTITY(1,1) PRIMARY KEY"
+        DatabaseType.H2 -> "INT AUTO_INCREMENT PRIMARY KEY"
         else -> "INT AUTO_INCREMENT PRIMARY KEY"
     }
 
     private fun payloadColumnType(): String = when (dbType) {
-        DatabaseType.POSTGRESQL -> "TEXT"
+        DatabaseType.MYSQL, DatabaseType.MARIADB -> "LONGTEXT"
+        DatabaseType.MSSQL -> "NVARCHAR(MAX)"
         else -> "TEXT"
     }
 
@@ -324,7 +342,14 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
     private fun defaultPort(type: DatabaseType): Int = when (type) {
         DatabaseType.POSTGRESQL -> 5432
         DatabaseType.MYSQL, DatabaseType.MARIADB -> 3306
+        DatabaseType.MSSQL -> 1433
         else -> 0
+    }
+
+    private fun resolvePort(type: DatabaseType, configuredPort: Int): Int {
+        val port = configuredPort.takeIf { it > 0 }
+        if (port != null) return port
+        return defaultPort(type)
     }
 
     private fun locationKey(location: Location): String {
