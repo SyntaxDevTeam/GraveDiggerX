@@ -68,12 +68,6 @@ class GraveDiggerX : JavaPlugin() {
     }
 
     override fun onDisable() {
-        timeGraveRemove.cancelAll()
-        ghostManager.removeAllGhosts()
-        if (this::graveManager.isInitialized) {
-            graveManager.flushSavesSync()
-        }
-        databaseHandler.close()
     }
 
     private fun setupDatabase() {
