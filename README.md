@@ -2,6 +2,10 @@
 
 GraveDiggerX is an advanced plugin for Paper servers that automatically creates graves upon a player's death. The plugin secures the player's inventory, experience, and death location, providing clear visual information and easy recovery of lost items.
 
+| In game |
+| --- |
+| ![gravelook.png](https://raw.githubusercontent.com/SyntaxDevTeam/GraveDiggerX/main/assets/gravelook.png) |
+
 ## Key Features
 - **Auto Graves** – After the player’s death, their inventory and experience are transferred to a gravestone in the form of the player’s head, accompanied by an informational hologram.
 - **Interactive inventory recovery** – The owner can open the gravestone’s GUI or quickly collect its contents by holding the sneak key and clicking on the gravestone.
@@ -38,7 +42,8 @@ The main plugin command is `/gravediggerx` (shortcut `/grx`). The following subc
 | `/gravediggerx help` | Displays a list of available commands and basic information.| `grx.cmd.help` |
 | `/gravediggerx reload` | Reloads the configuration, messages, and refreshes plugin data without restarting the server.| `grx.cmd.reload` |
 | `/gravediggerx list` | Shows the owner the coordinates of all their active gravestones.| `grx.cmd.list` |
-| `/gravediggerx admin list <gracz>` | Lists all gravestones of a specific player (for administrators).| `grx.cmd.admin` |
+| `/gravediggerx admin remove <player> <id>` | Allows admin to delete player grave.| `grx.cmd.admin` |
+| `/gravediggerx admin list <player>` | Lists all gravestones of a specific player (for administrators).| `grx.cmd.admin` |
 
 Permissions:
 
@@ -46,6 +51,7 @@ Permissions:
 | --- | --- |
 | `grx.opengrave` | Allows the owner to open the gravestone GUI and collect items using the “Collect All” button. |
 | `grx.owner` | Master permission granting full access to all plugin features. |
+| `grx.cmd.admin` | Gives access to administrative GraveDiggerX commands. |
 | `grx.*` | Wildcard that provides access to all plugin permissions. |
 
 > **Tip:** Operators (OPs) have full access to all plugin features without needing any additional permissions.
@@ -53,4 +59,8 @@ Permissions:
 
 ## Support and Development
 The plugin was designed for survival, hardcore, and RPG servers. Please report suggestions and bugs on the official Discord server or in the project repository so we can continue improving GraveDiggerX.
+
+| SyntaxDevTeam |
+| --- |
+| ![syntaxdevteam_logo.png](https://raw.githubusercontent.com/SyntaxDevTeam/PunisherX/main/assets/syntaxdevteam_logo.png) |
 
