@@ -67,6 +67,65 @@ object SafeGravePlacer {
         return null
     }
 
+    fun findSafeLocationNether(
+        base: Location,
+        radius: Int,
+        hasNearbyGrave: (target: Location, minDistanceBlocks: Int) -> Boolean
+    ): Location? {
+        val world = base.world ?: return null
+        val baseX = base.blockX
+        val baseY = base.blockY
+        val baseZ = base.blockZ
+
+        for (y in baseY downTo world.minHeight) {
+            val loc = Location(world, baseX.toDouble(), y.toDouble(), baseZ.toDouble())
+            if (isSafeSpotNether(loc, hasNearbyGrave)) return loc
+        }
+        for (y in baseY + 1 until world.maxHeight) {
+            val loc = Location(world, baseX.toDouble(), y.toDouble(), baseZ.toDouble())
+            if (isSafeSpotNether(loc, hasNearbyGrave)) return loc
+        }
+
+
+        for (r in 1..radius) {
+            for (dx in -r..r) {
+                for (dz in -r..r) {
+                    if (dx != r && dx != -r && dz != r && dz != -r) continue
+
+                    val x = baseX + dx
+                    val z = baseZ + dz
+
+                    for (y in baseY downTo world.minHeight) {
+                        val loc = Location(world, x.toDouble(), y.toDouble(), z.toDouble())
+                        if (isSafeSpotNether(loc, hasNearbyGrave)) return loc
+                    }
+                    for (y in baseY + 1 until world.maxHeight) {
+                        val loc = Location(world, x.toDouble(), y.toDouble(), z.toDouble())
+                        if (isSafeSpotNether(loc, hasNearbyGrave)) return loc
+                    }
+                }
+            }
+        }
+
+        return null
+    }
+
+    private fun isSafeSpotNether(target: Location, hasNearbyGrave: (Location, Int) -> Boolean): Boolean {
+        val world = target.world ?: return false
+        val block = world.getBlockAt(target)
+        val below = block.getRelative(0, -1, 0)
+        val above = block.getRelative(0, 1, 0)
+
+        if (!isReplaceable(block.type) || !isReplaceable(above.type)) return false
+        if (!isSolidGround(below.type)) return false
+        if (isLavaOrLiquid(block.type) || isLavaOrLiquid(below.type)) return false
+        if (hasNearbyGrave(target, 2)) return false
+        val below2 = block.getRelative(0, -2, 0)
+        if (isLavaOrLiquid(below2.type)) return false
+
+        return true
+    }
+
     private fun adjustYToGround(loc: Location, maxVerticalScan: Int): Location? {
         val world = loc.world ?: return null
         val x = loc.blockX
