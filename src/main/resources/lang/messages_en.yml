@@ -35,6 +35,7 @@ gui-grave:
 
 graves:
   created-grave: "<#AAAAAA>Your grave was created at coordinates: <#D4D4D4>X=<x>, Y=<y>, Z=<z>"
+  grave-relocated: "<#AAAAAA>Your grave was moved to <#D4D4D4>X=<x>, Y=<y>, Z=<z> <#AAAAAA>because you died in a dangerous spot."
   not-your-grave: "<#AAAAAA>This is not your grave, you can only open yours!"
   collected: "<#AAAAAA>You have recovered your inventory and XP."
   reached-max-graves: "<#AAAAAA>You have reached the maximum number of graves<white> (<limit>)!"
@@ -43,6 +44,7 @@ graves:
   removal-countdown: "<#AAAAAA>Your grave will be deleted in: <white><time></white> sec"
   locate-header: "<white>Your active graves:</white>"
   locate-entry: "<white><index>.</white> <#AAAAAA>World: <white><world></white> <gray>→</gray> <white>X:<x> Y:<y> Z:<z></white>"
+
 
 graveh:
   hologram: "<#800020>R.I.P. <newline><#AAAAAA>Grave of <white><player></white><newline><yellow>Right-click to open"

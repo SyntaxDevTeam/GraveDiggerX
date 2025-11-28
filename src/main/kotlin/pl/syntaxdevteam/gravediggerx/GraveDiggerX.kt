@@ -11,6 +11,7 @@ import pl.syntaxdevteam.core.update.ModrinthSource
 import pl.syntaxdevteam.message.MessageHandler
 import pl.syntaxdevteam.message.SyntaxMessages
 import pl.syntaxdevteam.gravediggerx.commands.CommandManager
+import pl.syntaxdevteam.gravediggerx.common.ConfigHandler
 import pl.syntaxdevteam.gravediggerx.database.DatabaseHandler
 import pl.syntaxdevteam.gravediggerx.graves.GraveManager
 import pl.syntaxdevteam.gravediggerx.graves.TimeGraveRemove
@@ -22,6 +23,7 @@ import pl.syntaxdevteam.gravediggerx.spirits.GhostManager
 class GraveDiggerX : JavaPlugin() {
 
     lateinit var messageHandler: MessageHandler
+    lateinit var configHandler: ConfigHandler
     lateinit var logger: Logger
     lateinit var statsCollector: StatsCollector
     lateinit var pluginsManager: PluginManagerX
@@ -40,6 +42,8 @@ class GraveDiggerX : JavaPlugin() {
         )
         SyntaxCore.init(this)
         saveDefaultConfig()
+        configHandler = ConfigHandler(this)
+        configHandler.verifyAndUpdateConfig()
         pluginConfig = this.config
         logger = SyntaxCore.logger
         timeGraveRemove = TimeGraveRemove(this)
@@ -64,12 +68,6 @@ class GraveDiggerX : JavaPlugin() {
     }
 
     override fun onDisable() {
-        timeGraveRemove.cancelAll()
-        ghostManager.removeAllGhosts()
-        if (this::graveManager.isInitialized) {
-            graveManager.flushSavesSync()
-        }
-        databaseHandler.close()
     }
 
     private fun setupDatabase() {

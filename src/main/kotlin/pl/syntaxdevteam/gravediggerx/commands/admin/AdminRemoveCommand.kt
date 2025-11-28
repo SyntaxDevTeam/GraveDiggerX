@@ -2,7 +2,6 @@ package pl.syntaxdevteam.gravediggerx.commands.admin
 
 import io.papermc.paper.command.brigadier.BasicCommand
 import io.papermc.paper.command.brigadier.CommandSourceStack
-import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.jetbrains.annotations.NotNull
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
@@ -14,7 +13,6 @@ class AdminRemoveCommand(private val plugin: GraveDiggerX) : BasicCommand {
     override fun execute(@NotNull stack: CommandSourceStack, @NotNull args: Array<String>) {
         val sender = stack.sender
 
-        // Expected args: ["admin", "remove", <player>, <id>]
         if (!PermissionChecker.has(sender, PermissionKey.CMD_ADMIN)) {
             val message = plugin.messageHandler.stringMessageToComponent("error", "no-permission")
             sender.sendMessage(message)
@@ -46,15 +44,18 @@ class AdminRemoveCommand(private val plugin: GraveDiggerX) : BasicCommand {
         }
 
         val grave = graves[index - 1]
-        plugin.graveManager.removeGrave(grave)
+        val removed = plugin.graveManager.removeGraveAt(grave.location)
 
-        val loc = grave.location
-        val msg = plugin.messageHandler.stringMessageToComponent("admin", "removed-grave", mapOf("player" to playerName, "id" to index.toString()))
-        sender.sendMessage(msg)
+        if (removed) {
+            val msg = plugin.messageHandler.stringMessageToComponent("admin", "removed-grave", mapOf("player" to playerName, "id" to index.toString()))
+            sender.sendMessage(msg)
+        } else {
+            val msg = plugin.messageHandler.stringMessageToComponent("admin", "could-not-remove-grave", mapOf("player" to playerName, "id" to index.toString()))
+            sender.sendMessage(msg)
+        }
     }
 
     override fun suggest(@NotNull stack: CommandSourceStack, @NotNull args: Array<String>): List<String> {
-        // Args: ["admin", "remove", <player?>, <id?>]
         if (args.size == 3) {
             return Bukkit.getOnlinePlayers().map { it.name }
                 .filter { it.startsWith(args[2], ignoreCase = true) }

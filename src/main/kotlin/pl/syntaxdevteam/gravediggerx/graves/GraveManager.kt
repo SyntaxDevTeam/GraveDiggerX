@@ -1,8 +1,9 @@
 package pl.syntaxdevteam.gravediggerx.graves
 
-import net.kyori.adventure.text.Component
 import com.destroystokyo.paper.profile.PlayerProfile
+import net.kyori.adventure.text.Component
 import org.bukkit.*
+import org.bukkit.block.Skull
 import org.bukkit.entity.Display
 import org.bukkit.entity.TextDisplay
 import org.bukkit.inventory.ItemStack
@@ -16,15 +17,13 @@ class GraveManager(private val plugin: GraveDiggerX) {
     private val activeGraves = ConcurrentHashMap<String, Grave>()
     private val graveRemoveListeners = ConcurrentHashMap<UUID, MutableList<() -> Unit>>()
 
-    @Volatile private var pendingSaveTask: org.bukkit.scheduler.BukkitTask? = null
-    private val saveDebounceTicks: Long = 40L // ~2s at 20 TPS
-
     private fun notifyGraveRemoved(grave: Grave) {
         graveRemoveListeners[grave.ownerId]?.forEach { it.invoke() }
         graveRemoveListeners.remove(grave.ownerId)
     }
 
     fun loadGravesFromStorage() {
+        // Clean up any leftover entities from previous sessions
         for (world in Bukkit.getWorlds()) {
             for (entity in world.entities) {
                 if (entity is TextDisplay && entity.persistentDataContainer.has(
@@ -51,24 +50,19 @@ class GraveManager(private val plugin: GraveDiggerX) {
                 return@Runnable
             }
 
-            var restored = 0
-            var skipped = 0
-
-            Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+            Bukkit.getScheduler().runTask(plugin, Runnable {
                 for (grave in loadedGraves) {
                     val loc = grave.location
-                    val world = loc.world ?: run {
-                        skipped++
-                        return@Runnable
-                    }
+                    val world = loc.world ?: continue
 
                     world.getChunkAtAsync(loc).thenAccept {
                         Bukkit.getScheduler().runTask(plugin, Runnable {
                             val block = loc.block
                             block.type = Material.PLAYER_HEAD
 
-                            val skull = block.state as? org.bukkit.block.Skull
+                            val skull = block.state as? Skull
                             skull?.apply {
+                                this.persistentDataContainer.set(NamespacedKey(plugin, "grave"), PersistentDataType.STRING, grave.ownerId.toString())
                                 applyPlayerProfile(this, grave.ownerId, grave.ownerName)
                                 update(true, false)
                             }
@@ -98,6 +92,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
                                 ghostActive = grave.ghostActive
                             )
 
+                            // Remove old holograms if any
                             grave.hologramIds.forEach { oldId ->
                                 Bukkit.getEntity(oldId)?.remove()
                             }
@@ -105,28 +100,20 @@ class GraveManager(private val plugin: GraveDiggerX) {
                             val blockLoc = loc.toBlockLocation()
                             activeGraves[getKey(blockLoc)] = updated
                             plugin.timeGraveRemove.scheduleRemoval(updated)
-                            restored++
                         })
                     }
                 }
-
-                Bukkit.getScheduler().runTaskLater(plugin, Runnable {
-                }, 100L)
-            }, 40L)
+            })
         })
     }
 
-
     fun saveGravesToStorage() {
-        requestSave()
+        performSaveAsync()
     }
 
-    fun requestSave() {
-        pendingSaveTask?.cancel()
-        pendingSaveTask = Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, Runnable {
-            pendingSaveTask = null
-            performSaveAsync()
-        }, saveDebounceTicks)
+    fun saveOnDisable() {
+        val snapshot = activeGraves.values.toList()
+        plugin.databaseHandler.writeGravesToJsonIfConfigured(snapshot)
     }
 
     private fun performSaveAsync() {
@@ -134,13 +121,6 @@ class GraveManager(private val plugin: GraveDiggerX) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
             plugin.databaseHandler.writeGravesToJsonIfConfigured(snapshot)
         })
-    }
-
-    fun flushSavesSync() {
-        pendingSaveTask?.cancel()
-        pendingSaveTask = null
-        val snapshot = activeGraves.values.toList()
-        plugin.databaseHandler.writeGravesToJsonIfConfigured(snapshot)
     }
 
     fun createGraveAndGetIt(player: org.bukkit.entity.Player, items: Map<Int, ItemStack>, xp: Int = 0): Grave? {
@@ -153,12 +133,28 @@ class GraveManager(private val plugin: GraveDiggerX) {
             return null
         }
 
-        val location = player.location.toBlockLocation()
+        var location = player.location.toBlockLocation()
+
+        val safeEnabled = plugin.config.getBoolean("graves.safe-placement.enabled", true)
+        if (safeEnabled) {
+            val radius = plugin.config.getInt("graves.safe-placement.radius", 8)
+            val maxVert = plugin.config.getInt("graves.safe-placement.max-vertical-scan", 3)
+            SafeGravePlacer.findSafeLocationNear(location, radius, maxVert) { target, minDistance ->
+                hasNearbyGrave(target, minDistance)
+            }?.let { safeLoc ->
+                if (safeLoc != location) {
+                    runCatching { plugin.logger.debug("Relocating grave from ${location.blockX},${location.blockY},${location.blockZ} to ${safeLoc.blockX},${safeLoc.blockY},${safeLoc.blockZ}") }
+                    location = safeLoc
+                }
+            }
+        }
+
         val block = location.block
         val originalBlockData = if (block.type != Material.AIR) block.blockData.clone() else Bukkit.createBlockData(Material.AIR)
         block.type = Material.PLAYER_HEAD
-        val skull = block.state as? org.bukkit.block.Skull
+        val skull = block.state as? Skull
         skull?.apply {
+            this.persistentDataContainer.set(NamespacedKey(plugin, "grave"), PersistentDataType.STRING, player.uniqueId.toString())
             applyPlayerProfile(this, player.uniqueId, player.name)
             update(true, false)
         }
@@ -173,7 +169,6 @@ class GraveManager(private val plugin: GraveDiggerX) {
             "boots" to ((player.inventory.boots ?: ItemStack(Material.AIR)).clone()),
             "offhand" to ((player.inventory.itemInOffHand ?: ItemStack(Material.AIR)).clone())
         )
-
 
         val grave = Grave(
             ownerId = player.uniqueId,
@@ -229,20 +224,19 @@ class GraveManager(private val plugin: GraveDiggerX) {
     }
 
     fun getGraveAt(location: Location): Grave? {
-        val worldName = location.world?.name ?: return null
-        val (x, y, z) = listOf(location.blockX, location.blockY, location.blockZ)
-        return activeGraves.values.firstOrNull {
-            val loc = it.location
-            loc.world?.name == worldName && loc.blockX == x && loc.blockY == y && loc.blockZ == z
-        }
+        return activeGraves[getKey(location)]
     }
-
 
     fun removeGrave(grave: Grave) {
         plugin.timeGraveRemove.cancelRemoval(grave)
 
         val location = grave.location.toBlockLocation()
         val block = location.block
+        if (block.state is Skull) {
+            val state = block.state as Skull
+            state.persistentDataContainer.remove(NamespacedKey(plugin, "grave"))
+            state.update(true, false)
+        }
         block.blockData = grave.originalBlockData
 
         grave.hologramIds.forEach { Bukkit.getEntity(it)?.remove() }
@@ -254,6 +248,31 @@ class GraveManager(private val plugin: GraveDiggerX) {
         saveGravesToStorage()
     }
 
+    fun removeGraveAt(location: Location): Boolean {
+        val grave = getGraveAt(location)
+        if (grave != null) {
+            removeGrave(grave)
+            return true
+        }
+
+        // If grave is not in activeGraves, try to remove it manually
+        val block = location.block
+        if (block.type == Material.PLAYER_HEAD) {
+            // Find and remove hologram
+            location.world.getNearbyEntities(location.clone().add(0.5, 1.5, 0.5), 1.0, 1.0, 1.0).forEach { entity ->
+                if (entity is TextDisplay && entity.persistentDataContainer.has(NamespacedKey(plugin, "grave_hologram"), PersistentDataType.STRING)) {
+                    entity.remove()
+                }
+            }
+            block.type = Material.AIR
+            // Manually trigger a save, as the grave might not be in the active list
+            saveGravesToStorage()
+            return true
+        }
+        return false
+    }
+
+
     private fun getKey(location: Location): String {
         val worldName = location.world?.name ?: "unknown"
         val x = location.blockX
@@ -263,7 +282,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
     }
 
     private fun applyPlayerProfile(
-        skull: org.bukkit.block.Skull,
+        skull: Skull,
         ownerId: UUID,
         ownerName: String?
     ) {
@@ -288,10 +307,10 @@ class GraveManager(private val plugin: GraveDiggerX) {
         }
 
         private val skullSetProfileMethod = resolvableProfileClass?.let {
-            runCatching { org.bukkit.block.Skull::class.java.getMethod("setProfile", it) }.getOrNull()
+            runCatching { Skull::class.java.getMethod("setProfile", it) }.getOrNull()
         }
 
-        fun trySetProfile(skull: org.bukkit.block.Skull, profile: PlayerProfile): Boolean {
+        fun trySetProfile(skull: Skull, profile: PlayerProfile): Boolean {
             val factory = resolvableProfileFactory ?: return false
             val setter = skullSetProfileMethod ?: return false
             return try {
@@ -312,6 +331,22 @@ class GraveManager(private val plugin: GraveDiggerX) {
         } catch (ex: Exception) {
             plugin.logger.warning("Failed to resolve player profile for grave owner $ownerName: ${ex.message}")
             null
+        }
+    }
+
+    private fun hasNearbyGrave(target: Location, minDistanceBlocks: Int): Boolean {
+        val worldName = target.world?.name ?: return false
+        val tx = target.blockX
+        val ty = target.blockY
+        val tz = target.blockZ
+        val minDistSq = (minDistanceBlocks * minDistanceBlocks).toDouble()
+        return activeGraves.values.any { g ->
+            val loc = g.location
+            if (loc.world?.name != worldName) return@any false
+            val dx = (loc.blockX - tx).toDouble()
+            val dy = (loc.blockY - ty).toDouble()
+            val dz = (loc.blockZ - tz).toDouble()
+            (dx * dx + dy * dy + dz * dz) < minDistSq
         }
     }
 }
