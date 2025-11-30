@@ -13,7 +13,6 @@ class GraveDeathListener(private val plugin: GraveDiggerX) : Listener {
     fun onPlayerDeath(event: PlayerDeathEvent) {
         val player = event.entity
 
-        // Check dimension/world environment toggle from config and early-return if disabled
         val env = player.world.environment
         val enabledInWorld = when (env) {
             org.bukkit.World.Environment.NORMAL -> plugin.config.getBoolean("graves.worlds.overworld", true)
@@ -21,55 +20,37 @@ class GraveDeathListener(private val plugin: GraveDiggerX) : Listener {
             org.bukkit.World.Environment.THE_END -> plugin.config.getBoolean("graves.worlds.end", true)
             else -> true
         }
+
         if (!enabledInWorld) {
+            event.keepInventory = false
             return
         }
 
-        val playerItems = mutableMapOf<Int, ItemStack>()
-
-        for (i in 0..35) {
-            player.inventory.getItem(i)?.let { playerItems[i] = it.clone() }
-        }
-
-        player.inventory.helmet?.let { playerItems[36] = it.clone() }
-        player.inventory.chestplate?.let { playerItems[37] = it.clone() }
-        player.inventory.leggings?.let { playerItems[38] = it.clone() }
-        player.inventory.boots?.let { playerItems[39] = it.clone() }
-        player.inventory.itemInOffHand?.let { playerItems[40] = it.clone() }
-
-        // If inventory (including armor/offhand) has no real items, do NOT create a grave
-        val hasAnyRealItem = playerItems.values.any { it.type != Material.AIR && it.amount > 0 }
-        if (!hasAnyRealItem) {
+        if (event.keepInventory) {
             return
         }
 
-        val totalXP = player.totalExperience
+        val playerItems: Map<Int, ItemStack> = event.drops
+            .withIndex()
+            .associate { it.index to it.value }
 
-        // Only after we confirm grave creation path, consume player XP and prevent drops
-        player.totalExperience = 0
-        player.exp = 0f
-        player.level = 0
-
-        event.drops.clear()
-        event.keepInventory = false
-
+        val totalXP = event.droppedExp
         val grave = plugin.graveManager.createGraveAndGetIt(player, playerItems, totalXP)
-        if (grave == null) {
-            // If for some reason grave wasn't created (limits etc.), let vanilla behavior proceed
-            return
-        }
 
-        event.droppedExp = 0
+        if (grave != null) {
+            event.drops.clear()
+            event.droppedExp = 0
 
-        val message = plugin.messageHandler.stringMessageToComponent(
-            "graves",
-            "created-grave",
-            mapOf(
-                "x" to player.location.blockX.toString(),
-                "y" to player.location.blockY.toString(),
-                "z" to player.location.blockZ.toString()
+            val message = plugin.messageHandler.stringMessageToComponent(
+                "graves",
+                "created-grave",
+                mapOf(
+                    "x" to player.location.blockX.toString(),
+                    "y" to player.location.blockY.toString(),
+                    "z" to player.location.blockZ.toString()
+                )
             )
-        )
-        player.sendMessage(message)
+            player.sendMessage(message)
+        }
     }
 }
