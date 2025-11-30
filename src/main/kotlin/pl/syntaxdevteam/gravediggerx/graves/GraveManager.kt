@@ -23,7 +23,6 @@ class GraveManager(private val plugin: GraveDiggerX) {
     }
 
     fun loadGravesFromStorage() {
-        // Clean up any leftover entities from previous sessions
         for (world in Bukkit.getWorlds()) {
             for (entity in world.entities) {
                 if (entity is TextDisplay && entity.persistentDataContainer.has(
@@ -92,7 +91,6 @@ class GraveManager(private val plugin: GraveDiggerX) {
                                 ghostActive = grave.ghostActive
                             )
 
-                            // Remove old holograms if any
                             grave.hologramIds.forEach { oldId ->
                                 Bukkit.getEntity(oldId)?.remove()
                             }
@@ -303,18 +301,14 @@ class GraveManager(private val plugin: GraveDiggerX) {
             removeGrave(grave)
             return true
         }
-
-        // If grave is not in activeGraves, try to remove it manually
         val block = location.block
         if (block.type == Material.PLAYER_HEAD) {
-            // Find and remove hologram
             location.world.getNearbyEntities(location.clone().add(0.5, 1.5, 0.5), 1.0, 1.0, 1.0).forEach { entity ->
                 if (entity is TextDisplay && entity.persistentDataContainer.has(NamespacedKey(plugin, "grave_hologram"), PersistentDataType.STRING)) {
                     entity.remove()
                 }
             }
             block.type = Material.AIR
-            // Manually trigger a save, as the grave might not be in the active list
             saveGravesToStorage()
             return true
         }
