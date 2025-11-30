@@ -69,6 +69,7 @@ class GraveDiggerX : JavaPlugin() {
     }
 
     override fun onDisable() {
+        graveManager.removeAllGraves()
         databaseHandler.close()
         logger.err(pluginMeta.name + " " + pluginMeta.version + " has been disabled ☹️")
     }
