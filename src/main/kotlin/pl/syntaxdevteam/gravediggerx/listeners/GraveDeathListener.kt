@@ -12,8 +12,6 @@ class GraveDeathListener(private val plugin: GraveDiggerX) : Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onPlayerDeath(event: PlayerDeathEvent) {
         val player = event.entity
-
-        // Check dimension/world environment toggle from config and early-return if disabled
         val env = player.world.environment
         val enabledInWorld = when (env) {
             org.bukkit.World.Environment.NORMAL -> plugin.config.getBoolean("graves.worlds.overworld", true)
@@ -36,16 +34,11 @@ class GraveDeathListener(private val plugin: GraveDiggerX) : Listener {
         player.inventory.leggings?.let { playerItems[38] = it.clone() }
         player.inventory.boots?.let { playerItems[39] = it.clone() }
         player.inventory.itemInOffHand?.let { playerItems[40] = it.clone() }
-
-        // If inventory (including armor/offhand) has no real items, do NOT create a grave
         val hasAnyRealItem = playerItems.values.any { it.type != Material.AIR && it.amount > 0 }
         if (!hasAnyRealItem) {
             return
         }
-
         val totalXP = player.totalExperience
-
-        // Only after we confirm grave creation path, consume player XP and prevent drops
         player.totalExperience = 0
         player.exp = 0f
         player.level = 0
@@ -55,7 +48,6 @@ class GraveDeathListener(private val plugin: GraveDiggerX) : Listener {
 
         val grave = plugin.graveManager.createGraveAndGetIt(player, playerItems, totalXP)
         if (grave == null) {
-            // If for some reason grave wasn't created (limits etc.), let vanilla behavior proceed
             return
         }
 
