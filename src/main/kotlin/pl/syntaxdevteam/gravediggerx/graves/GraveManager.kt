@@ -217,7 +217,19 @@ class GraveManager(private val plugin: GraveDiggerX) {
         plugin.databaseHandler.writeGravesToJsonIfConfigured(emptyList())
     }
 
-
+    fun updateHologramWithTime(grave: Grave, time: Int) {
+        grave.hologramIds.forEach { id ->
+            val entity = Bukkit.getEntity(id)
+            if (entity is TextDisplay) {
+                val text: Component = plugin.messageHandler.stringMessageToComponentNoPrefix(
+                    "graveh",
+                    "hologram",
+                    mapOf("player" to grave.ownerName, "time" to time.toString())
+                )
+                entity.text(text)
+            }
+        }
+    }
 
     fun getGravesFor(ownerId: UUID): List<Grave> =
         activeGraves.values.filter { it.ownerId == ownerId }
