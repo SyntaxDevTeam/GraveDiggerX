@@ -192,6 +192,33 @@ class GraveManager(private val plugin: GraveDiggerX) {
         return grave
     }
 
+    fun removeAllGraves() {
+        activeGraves.values.forEach { grave ->
+            plugin.timeGraveRemove.cancelRemoval(grave)
+        }
+        activeGraves.values.forEach { grave ->
+            val location = grave.location.toBlockLocation()
+            val block = location.block
+            if (block.state is Skull) {
+                val state = block.state as Skull
+                state.persistentDataContainer.remove(NamespacedKey(plugin, "grave"))
+                state.update(true, false)
+            }
+            block.blockData = grave.originalBlockData
+            grave.hologramIds.forEach { id ->
+                Bukkit.getEntity(id)?.remove()
+            }
+            grave.ghostEntityId?.let { id ->
+                Bukkit.getEntity(id)?.remove() }
+            plugin.ghostManager.removeGhost(grave.ownerId)
+            notifyGraveRemoved(grave)
+        }
+        activeGraves.clear()
+        plugin.databaseHandler.writeGravesToJsonIfConfigured(emptyList())
+    }
+
+
+
     fun getGravesFor(ownerId: UUID): List<Grave> =
         activeGraves.values.filter { it.ownerId == ownerId }
 
