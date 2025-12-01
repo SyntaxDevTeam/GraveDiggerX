@@ -12,6 +12,7 @@ import pl.syntaxdevteam.gravediggerx.gui.GraveGUI
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import java.util.UUID
 
+@Suppress("NestedLambdaShadowedImplicitParameter")
 class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
 
     private val effectCooldowns = mutableMapOf<UUID, Long>()

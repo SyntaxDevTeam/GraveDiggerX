@@ -17,6 +17,7 @@ import pl.syntaxdevteam.gravediggerx.common.equipSafely
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker
 
+@Suppress("NestedLambdaShadowedImplicitParameter")
 class GraveGUI(
     private val grave: Grave,
     private val plugin: GraveDiggerX

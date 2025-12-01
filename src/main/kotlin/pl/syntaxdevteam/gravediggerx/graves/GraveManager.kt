@@ -68,7 +68,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
                             val totalSeconds = plugin.config.getInt("graves.grave-despawn", 60)
                             val hologramIds = createHologram(loc, grave.ownerName, totalSeconds)
 
-                            var ghostId: UUID? = null
+                            val ghostId: UUID? = null
                             if (grave.ghostActive) {
                                 Bukkit.getScheduler().runTaskLater(plugin, Runnable {
                                     val newGhostId = plugin.ghostManager.createGhostAndGetId(grave.ownerId, loc, grave.ownerName)
@@ -161,7 +161,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
             "chestplate" to ((player.inventory.chestplate ?: ItemStack(Material.AIR)).clone()),
             "leggings" to ((player.inventory.leggings ?: ItemStack(Material.AIR)).clone()),
             "boots" to ((player.inventory.boots ?: ItemStack(Material.AIR)).clone()),
-            "offhand" to ((player.inventory.itemInOffHand ?: ItemStack(Material.AIR)).clone())
+            "offhand" to (player.inventory.itemInOffHand.clone())
         )
 
         val grave = Grave(
@@ -211,6 +211,8 @@ class GraveManager(private val plugin: GraveDiggerX) {
         plugin.databaseHandler.writeGravesToJsonIfConfigured(emptyList())
     }
 
+    // TODO: Sprawdzić czy ta metoda w ogóle jest potrzebna skoro nie jest używana
+    @Suppress("unused")
     fun updateHologramWithTime(grave: Grave, time: Int) {
         grave.hologramIds.forEach { id ->
             val entity = Bukkit.getEntity(id)
@@ -254,20 +256,6 @@ class GraveManager(private val plugin: GraveDiggerX) {
         }
 
         return listOf(textDisplay.uniqueId)
-    }
-
-    fun updateHologramWithTime(grave: Grave, time: Int) {
-        grave.hologramIds.forEach { id ->
-            val entity = Bukkit.getEntity(id)
-            if (entity is TextDisplay) {
-                val text: Component = plugin.messageHandler.stringMessageToComponentNoPrefix(
-                    "graveh",
-                    "hologram",
-                    mapOf("player" to grave.ownerName, "time" to time.toString())
-                )
-                entity.text(text)
-            }
-        }
     }
 
     fun getGraveAt(location: Location): Grave? {

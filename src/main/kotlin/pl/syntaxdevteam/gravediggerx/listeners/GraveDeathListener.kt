@@ -33,7 +33,7 @@ class GraveDeathListener(private val plugin: GraveDiggerX) : Listener {
         player.inventory.chestplate?.let { playerItems[37] = it.clone() }
         player.inventory.leggings?.let { playerItems[38] = it.clone() }
         player.inventory.boots?.let { playerItems[39] = it.clone() }
-        player.inventory.itemInOffHand?.let { playerItems[40] = it.clone() }
+        player.inventory.itemInOffHand.let { playerItems[40] = it.clone() }
         val hasAnyRealItem = playerItems.values.any { it.type != Material.AIR && it.amount > 0 }
         if (!hasAnyRealItem) {
             return
@@ -46,6 +46,7 @@ class GraveDeathListener(private val plugin: GraveDiggerX) : Listener {
         event.drops.clear()
         event.keepInventory = false
 
+        // TODO: Sprawdzić to dziwne przypisanie do grave
         val grave = plugin.graveManager.createGraveAndGetIt(player, playerItems, totalXP)
         if (grave == null) {
             return

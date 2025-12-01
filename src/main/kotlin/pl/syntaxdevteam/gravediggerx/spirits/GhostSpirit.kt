@@ -1,6 +1,5 @@
 package pl.syntaxdevteam.gravediggerx.spirits
 
-import net.kyori.adventure.text.Component
 import org.bukkit.Location
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Allay
@@ -12,8 +11,7 @@ import java.util.UUID
 class GhostSpirit(
     private val plugin: GraveDiggerX,
     val graveOwnerId: UUID,
-    val graveLocation: Location,
-    val ownerName: String
+    val graveLocation: Location
 ) {
 
     var entity: Entity? = null
@@ -36,7 +34,7 @@ class GhostSpirit(
             allay.setGravity(false)
             allay.setAI(false)
             allay.canPickupItems = false
-            allay.setRemoveWhenFarAway(false)
+            allay.removeWhenFarAway = false
             allay.persistentDataContainer.set(
                 GHOST_KEY,
                 PersistentDataType.STRING,

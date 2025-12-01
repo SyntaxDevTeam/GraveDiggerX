@@ -3,7 +3,7 @@ package pl.syntaxdevteam.gravediggerx.graves
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import java.io.File
 
-class GraveDataStore(private val plugin: GraveDiggerX) {
+class GraveDataStore(plugin: GraveDiggerX) {
 
     private val dataFile = File(plugin.dataFolder, "data.json")
 
@@ -52,7 +52,7 @@ class GraveDataStore(private val plugin: GraveDiggerX) {
             }
 
             GraveSerializer.decodeGravesFromString(content)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
     }

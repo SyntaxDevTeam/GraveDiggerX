@@ -13,7 +13,7 @@ class GhostManager(private val plugin: GraveDiggerX) {
         val enabled = plugin.config.getBoolean("spirits.enabled", true)
         if (!enabled) return null
 
-        val ghost = GhostSpirit(plugin, graveOwnerId, graveLocation, ownerName)
+        val ghost = GhostSpirit(plugin, graveOwnerId, graveLocation)
         ghost.spawn()
         activeGhosts[graveOwnerId] = ghost
 

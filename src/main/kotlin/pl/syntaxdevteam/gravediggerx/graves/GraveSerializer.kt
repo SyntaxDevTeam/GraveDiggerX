@@ -37,7 +37,7 @@ object GraveSerializer {
             json.mapNotNull { element ->
                 runCatching { decodeGrave(element.asJsonObject) }.getOrNull()
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
     }
@@ -47,7 +47,7 @@ object GraveSerializer {
         return try {
             val obj = JsonParser.parseString(payload).asJsonObject
             decodeGrave(obj)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -105,7 +105,7 @@ object GraveSerializer {
         val armorContents = decodeArmor(obj.getAsJsonObject("armorContents"))
         val blockData = try {
             Bukkit.createBlockData(obj.get("originalBlockData").asString)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Bukkit.createBlockData(Material.STONE)
         }
 
@@ -172,7 +172,7 @@ object GraveSerializer {
         return try {
             val map: Map<String, Any> = itemStack.serialize()
             gson.toJsonTree(map).asJsonObject
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             JsonObject()
         }
     }
@@ -182,7 +182,7 @@ object GraveSerializer {
             val type = object : TypeToken<Map<String, Any>>() {}.type
             val map: Map<String, Any> = gson.fromJson(json, type)
             ItemStack.deserialize(map)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             ItemStack(Material.AIR)
         }
     }
@@ -199,7 +199,7 @@ object GraveSerializer {
             val itemStack = dataInput.readObject() as? ItemStack
             dataInput.close()
             itemStack ?: ItemStack(Material.AIR)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             ItemStack(Material.AIR)
         }
     }
