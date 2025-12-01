@@ -11,8 +11,8 @@ libraries:
   - net.kyori:adventure-text-serializer-ansi:4.25.0
   # Caffeine caching library necessary for SyntaxCore and SyntaxMessages
   - com.github.ben-manes.caffeine:caffeine:3.2.3
-  - pl.syntaxdevteam:messageHandler:1.0.3
-  - pl.syntaxdevteam:core:1.2.6p-SNAPSHOT
+  - pl.syntaxdevteam:messageHandler-paper:1.0.0
+  - pl.syntaxdevteam:core:1.2.6
   # Datebases libraries
   - com.zaxxer:HikariCP:7.0.2
   - org.mariadb.jdbc:mariadb-java-client:3.5.6
