@@ -1,3 +1,5 @@
+[![Build Plugin](https://github.com/SyntaxDevTeam/GraveDiggerX/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/SyntaxDevTeam/GraveDiggerX/actions/workflows/build.yml) ![GitHub issues](https://img.shields.io/github/issues/SyntaxDevTeam/GraveDiggerX) ![GitHub last commit](https://img.shields.io/github/last-commit/SyntaxDevTeam/GraveDiggerX) ![GitHub Release Date](https://img.shields.io/github/release-date/SyntaxDevTeam/GraveDiggerX)
+![GitHub commits since latest release (branch)](https://img.shields.io/github/commits-since/SyntaxDevTeam/GraveDiggerX/latest/main) [![Hangar Downloads](https://img.shields.io/hangar/dt/GraveDiggerX?style=flat)](https://hangar.papermc.io/SyntaxDevTeam/GraveDiggerX)
 # GraveDiggerX
 
 GraveDiggerX is an advanced plugin for Paper servers that automatically creates graves upon a player's death. The plugin secures the player's inventory, experience, and death location, providing clear visual information and easy recovery of lost items.
