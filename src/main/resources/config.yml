@@ -1,6 +1,14 @@
 graves:
   grave-despawn: 120 # Time in seconds when grave auto-removes
   max-per-player: 2 # Maximum graves per player
+
+  # What should happen when a grave expires?
+  # Available options:
+  #   DROP_ITEMS - items will be dropped on the ground.
+  #   BECOME_PUBLIC - the grave will become public (everyone can take the items).
+  #   DISAPPEAR - items will disappear along with the grave (default).
+  expiration-action: "DISAPPEAR"
+
   protected-effect-cooldown: 5000 # Cooldown in milliseconds for protected grave effect (teleport + sound)
 
   # Enable/disable graves per dimension/world environment
