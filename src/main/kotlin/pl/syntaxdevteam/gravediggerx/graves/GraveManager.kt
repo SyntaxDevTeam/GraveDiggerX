@@ -262,6 +262,22 @@ class GraveManager(private val plugin: GraveDiggerX) {
         return activeGraves[getKey(location)]
     }
 
+    fun dropGraveItems(grave: Grave) {
+        val location = grave.location
+        val world = location.world ?: return
+        (grave.items.values + grave.armorContents.values).forEach { item ->
+            if (item.type != Material.AIR) {
+                world.dropItemNaturally(location, item)
+            }
+        }
+    }
+
+    fun makeGravePublic(grave: Grave) {
+        plugin.timeGraveRemove.cancelRemoval(grave)
+        activeGraves.remove(getKey(grave.location))
+        saveGravesToStorage()
+    }
+
     fun removeGrave(grave: Grave) {
         plugin.timeGraveRemove.cancelRemoval(grave)
 
