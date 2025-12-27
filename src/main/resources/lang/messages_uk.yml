@@ -1,0 +1,57 @@
+# Author: Vayrund
+# Version: 1.0.0
+
+prefix: "<bold><gradient:#2C2C2C:#555555>[GRX]</gradient></bold>"
+
+error:
+  no-permission: "Тобі не дозволено це робити!"
+  invalid-id: "<#AAAAAA>Невірне ID могили!"
+  unknown-command: "<#AAAAAA>Напишіть <white>/grx help</white> <#AAAAAA>щоб побачити доступні команди."
+  unknown-player: "Невідомий"
+
+reload:
+  success: "<#AAAAAA>Конфіг завантажився успішно!"
+
+help:
+  info:
+    - ""
+    - "               <bold><gradient:#2C2C2C:#555555>[GraveDiggerX Help]</gradient></bold>"
+    - "<bold></bold>"
+    - "<white>/grx help</white> <dark_gray>- <#AAAAAA>Допомога по командах."
+    - "<white>/grx reload</white> <dark_gray>- <#AAAAAA>Перезавантаження конфігу."
+    - "<white>/grx list</white> <dark_gray>- <#AAAAAA>Показує всі ваші могили."
+    - "<white>/grx admin list <player></white> <dark_gray>- <#AAAAAA>Показує могили гравця."
+    - "<bold></bold>"
+    - "<bold><gradient:#2C2C2C:#555555>--------------------------------------</gradient></bold>"
+
+gui-grave:
+  title: "<#AAAAAA>Могила <player>"
+  collect-item-name: "<#00FF00>Забрати все"
+  collect-item-lore:
+    - "<gray>Натисніть щоб відновити інвентар та досвід.</gray>"
+    - "<dark_gray>Ваша могилка зникне після збору.</dark_gray>"
+  stats-owner: "<#AAAAAA>Власник: <white><player>"
+  stats-xp: "<#00FF00>Досвід: <white><xp>"
+
+graves:
+  created-grave: "<#AAAAAA>Координати вашої могили: <#D4D4D4>X=<x>, Y=<y>, Z=<z>"
+  grave-relocated: "<#AAAAAA>Ваша могила була перенесена на <#D4D4D4>X=<x>, Y=<y>, Z=<z> <#AAAAAA>Бо ви померли в небезпечному місці."
+  not-your-grave: "<#AAAAAA>Це не ваша могила!"
+  collected: "<#AAAAAA>Ви відновили свій інвентар та досвід."
+  reached-max-graves: "<#AAAAAA>Ви досягли ліміту могил.<white> (<limit>)!"
+  only-player: "<red>Ця команда може використовуватись тільки гравцями.</red>"
+  no-graves: "<#AAAAAA>Могил не знайдено."
+  removal-countdown: "<#AAAAAA>Ваша могила зникне через: <white><time></white> сек"
+  locate-header: "<white>Ваші активні могили:</white>"
+  locate-entry: "<white><index>.</white> <#AAAAAA>Світ: <white><world></white> <gray>→</gray> <white>X:<x> Y:<y> Z:<z></white>"
+
+
+graveh:
+  hologram: "<#800020>R.I.P.<newline><#AAAAAA>Зникне через: <white><time>с</white><newline><#AAAAAA>Могилка <white><player></white><newline><yellow>ПКМ для відкриття"
+
+admin:
+  removed-grave: "<#AAAAAA>Видалена могилка<white> <player> <id>"
+  player-not-found: "<#AAAAAA>Гравець <white><player></white> <#AAAAAA>не знайдений."
+  no-graves-for-player: "<#AAAAAA>Гравець <white><player></white> <#AAAAAA>не має могил."
+  list-header: "<white>Список <white><player> могил:</white>"
+  list-entry: "<white><index>.</white> <#AAAAAA>Світ: <white><world></white> <gray>→</gray> <white>X:<x> Y:<y> Z:<z></white>"
