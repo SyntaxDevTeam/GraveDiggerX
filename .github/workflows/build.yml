@@ -36,7 +36,7 @@ jobs:
         run: ./gradlew clean build
 
       - name: Upload JAR
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: GraveDiggerX-latest-DEV.jar
           path: build/libs/*.jar
