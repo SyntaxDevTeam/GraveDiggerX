@@ -20,8 +20,8 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly("pl.syntaxdevteam:core:1.2.6")
-    compileOnly("pl.syntaxdevteam:messageHandler-paper:1.0.0")
+    compileOnly("pl.syntaxdevteam:core:1.2.8-R0.1-SNAPSHOT")
+    compileOnly("pl.syntaxdevteam:messageHandler-paper:1.1.0-R0.1-SNAPSHOT")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.3")
     compileOnly("com.zaxxer:HikariCP:7.0.2")
     compileOnly("org.xerial:sqlite-jdbc:3.51.1.0")
@@ -70,5 +70,5 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
 
 plugindeployer {
     paper { dir = "/home/debian/poligon/Paper/1.21.11/plugins" }
-    folia { dir = "/home/debian/poligon/Folia/1.21.8/plugins" }
+    folia { dir = "/home/debian/poligon/Folia/1.21.11/plugins" }
 }
