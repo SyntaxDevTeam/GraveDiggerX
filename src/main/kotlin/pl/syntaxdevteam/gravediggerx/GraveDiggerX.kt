@@ -12,6 +12,8 @@ import pl.syntaxdevteam.message.MessageHandler
 import pl.syntaxdevteam.message.SyntaxMessages
 import pl.syntaxdevteam.gravediggerx.commands.CommandManager
 import pl.syntaxdevteam.gravediggerx.common.ConfigHandler
+import pl.syntaxdevteam.core.platform.ServerEnvironment
+import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
 import pl.syntaxdevteam.gravediggerx.database.DatabaseHandler
 import pl.syntaxdevteam.gravediggerx.graves.GraveManager
 import pl.syntaxdevteam.gravediggerx.graves.TimeGraveRemove
@@ -76,12 +78,12 @@ class GraveDiggerX : JavaPlugin() {
 
     private fun setupDatabase() {
         databaseHandler = DatabaseHandler(this)
-        if (server.name.contains("Folia")) {
+        if (ServerEnvironment.isFoliaBased()) {
             logger.debug("Detected Folia server, using sync database connection handling.")
             databaseHandler.connect()
             databaseHandler.ensureSchema()
-        }else{
-            this.server.scheduler.runTaskAsynchronously(this, Runnable {
+        } else if (ServerEnvironment.isPaperBased()) {
+            SchedulerProvider.runAsync(this, Runnable {
                 databaseHandler.connect()
                 databaseHandler.ensureSchema()
             })

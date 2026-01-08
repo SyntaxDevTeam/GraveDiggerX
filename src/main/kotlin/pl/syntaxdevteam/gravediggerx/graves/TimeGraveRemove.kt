@@ -3,21 +3,22 @@ package pl.syntaxdevteam.gravediggerx.graves
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
-import org.bukkit.scheduler.BukkitTask
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
+import pl.syntaxdevteam.gravediggerx.common.CancellableTask
+import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class TimeGraveRemove(private val plugin: GraveDiggerX) {
 
-    private val scheduledTasks = ConcurrentHashMap<UUID, BukkitTask>()
+    private val scheduledTasks = ConcurrentHashMap<UUID, CancellableTask>()
 
     fun scheduleRemoval(grave: Grave) {
         val totalSeconds = plugin.config.getInt("graves.grave-despawn", 60)
 
         scheduledTasks[grave.ownerId]?.cancel()
 
-        val task = object : BukkitRunnable() {
+        val runnable = object : BukkitRunnable() {
             var secondsLeft = totalSeconds
 
             override fun run() {
@@ -29,7 +30,7 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
                     return
                 }
 
-                Bukkit.getScheduler().runTask(plugin, Runnable {
+                SchedulerProvider.runSync(plugin, Runnable {
                     if (grave.location.block.type != org.bukkit.Material.PLAYER_HEAD) {
                         plugin.graveManager.removeGrave(grave)
                         scheduledTasks.remove(grave.ownerId)
@@ -53,7 +54,7 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
                 })
 
                 if (secondsLeft <= 0) {
-                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                    SchedulerProvider.runSync(plugin, Runnable {
                         val expirationAction = GraveExpirationAction.fromString(
                             plugin.config.getString("graves.expiration-action", "DISAPPEAR")!!
                         )
@@ -78,9 +79,9 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
 
                 secondsLeft--
             }
-        }.runTaskTimerAsynchronously(plugin, 0L, 20L)
+        }
 
-        scheduledTasks[grave.ownerId] = task
+        scheduledTasks[grave.ownerId] = SchedulerProvider.runAsyncRepeating(plugin, 0L, 20L, runnable)
     }
 
     fun cancelRemoval(grave: Grave) {

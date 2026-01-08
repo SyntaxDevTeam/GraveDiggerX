@@ -10,6 +10,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import org.joml.Vector3f
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
+import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -43,19 +44,19 @@ class GraveManager(private val plugin: GraveDiggerX) {
             }
         }
 
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+        SchedulerProvider.runAsync(plugin, Runnable {
             val loadedGraves = plugin.databaseHandler.loadAllGraves()
             if (loadedGraves.isEmpty()) {
                 return@Runnable
             }
 
-            Bukkit.getScheduler().runTask(plugin, Runnable {
+            SchedulerProvider.runSync(plugin, Runnable {
                 for (grave in loadedGraves) {
                     val loc = grave.location
                     val world = loc.world ?: continue
 
                     world.getChunkAtAsync(loc).thenAccept {
-                        Bukkit.getScheduler().runTask(plugin, Runnable {
+                        SchedulerProvider.runSyncAt(plugin, loc, Runnable {
                             val block = loc.block
                             block.type = Material.PLAYER_HEAD
 
@@ -70,7 +71,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
 
                             val ghostId: UUID? = null
                             if (grave.ghostActive) {
-                                Bukkit.getScheduler().runTaskLater(plugin, Runnable {
+                                SchedulerProvider.runSyncLaterAt(plugin, loc, 40L, Runnable {
                                     val newGhostId = plugin.ghostManager.createGhostAndGetId(grave.ownerId, loc, grave.ownerName)
                                     if (newGhostId != null) {
                                         val active = activeGraves[getKey(loc)]
@@ -82,7 +83,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
                                             activeGraves[getKey(loc)] = updated
                                         }
                                     }
-                                }, 40L)
+                                })
                             }
 
                             val updated = grave.copy(
@@ -111,7 +112,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
 
     private fun performSaveAsync() {
         val snapshot = activeGraves.values.toList()
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+        SchedulerProvider.runAsync(plugin, Runnable {
             plugin.databaseHandler.writeGravesToJsonIfConfigured(snapshot)
         })
     }
