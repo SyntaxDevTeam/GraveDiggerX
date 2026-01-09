@@ -263,6 +263,29 @@ class GraveManager(private val plugin: GraveDiggerX) {
         return activeGraves[getKey(location)]
     }
 
+    fun cleanupOrphanedHolograms(): Int {
+        var removed = 0
+        val hologramKey = NamespacedKey(plugin, "grave_hologram")
+        val graveKey = NamespacedKey(plugin, "grave")
+        for (world in Bukkit.getWorlds()) {
+            for (entity in world.entities) {
+                val display = entity as? TextDisplay ?: continue
+                if (!display.persistentDataContainer.has(hologramKey, PersistentDataType.STRING)) continue
+
+                val blockLocation = display.location.clone().subtract(0.5, 1.5, 0.5).toBlockLocation()
+                if (getGraveAt(blockLocation) != null) continue
+
+                val block = blockLocation.block
+                val state = block.state
+                if (state is Skull && state.persistentDataContainer.has(graveKey, PersistentDataType.STRING)) continue
+
+                display.remove()
+                removed++
+            }
+        }
+        return removed
+    }
+
     fun dropGraveItems(grave: Grave) {
         val location = grave.location
         val world = location.world ?: return
