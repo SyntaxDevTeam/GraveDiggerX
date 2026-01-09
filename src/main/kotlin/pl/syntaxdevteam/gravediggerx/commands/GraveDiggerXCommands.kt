@@ -62,7 +62,7 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
         }
 
         if (args.size == 4 && args[0].equals("admin", ignoreCase = true) && args[1].equals("remove", ignoreCase = true)) {
-            val player = Bukkit.getOfflinePlayer(args[2])
+            val player = Bukkit.getOfflinePlayerIfCached(args[2]) ?: return emptyList()
             val size = plugin.graveManager.getGravesFor(player.uniqueId).size
             val indices = (1..size).map { it.toString() }
             return indices.filter { it.startsWith(args[3], ignoreCase = true) }
