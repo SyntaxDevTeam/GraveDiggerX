@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "pl.syntaxdevteam.gravediggerx"
-version = "1.0.5-DEV"
+version = "1.0.6-R0.1-SNAPSHOT"
 description = "A powerful and very effective plugin for managing tombstones after players die."
 
 repositories {

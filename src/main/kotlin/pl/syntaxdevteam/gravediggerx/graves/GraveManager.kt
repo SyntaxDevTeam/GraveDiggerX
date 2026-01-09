@@ -50,19 +50,23 @@ class GraveManager(private val plugin: GraveDiggerX) {
                 return@Runnable
             }
 
-            SchedulerProvider.runSync(plugin, Runnable {
+            SchedulerProvider.runSync(plugin) {
                 for (grave in loadedGraves) {
                     val loc = grave.location
                     val world = loc.world ?: continue
 
                     world.getChunkAtAsync(loc).thenAccept {
-                        SchedulerProvider.runSyncAt(plugin, loc, Runnable {
+                        SchedulerProvider.runSyncAt(plugin, loc) {
                             val block = loc.block
                             block.type = Material.PLAYER_HEAD
 
                             val skull = block.state as? Skull
                             skull?.apply {
-                                this.persistentDataContainer.set(NamespacedKey(plugin, "grave"), PersistentDataType.STRING, grave.ownerId.toString())
+                                this.persistentDataContainer.set(
+                                    NamespacedKey(plugin, "grave"),
+                                    PersistentDataType.STRING,
+                                    grave.ownerId.toString()
+                                )
                                 applyPlayerProfile(this, grave.ownerId, grave.ownerName)
                                 update(true, false)
                             }
@@ -71,8 +75,9 @@ class GraveManager(private val plugin: GraveDiggerX) {
 
                             val ghostId: UUID? = null
                             if (grave.ghostActive) {
-                                SchedulerProvider.runSyncLaterAt(plugin, loc, 40L, Runnable {
-                                    val newGhostId = plugin.ghostManager.createGhostAndGetId(grave.ownerId, loc, grave.ownerName)
+                                SchedulerProvider.runSyncLaterAt(plugin, loc, 40L) {
+                                    val newGhostId =
+                                        plugin.ghostManager.createGhostAndGetId(grave.ownerId, loc, grave.ownerName)
                                     if (newGhostId != null) {
                                         val active = activeGraves[getKey(loc)]
                                         if (active != null) {
@@ -83,7 +88,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
                                             activeGraves[getKey(loc)] = updated
                                         }
                                     }
-                                })
+                                }
                             }
 
                             val updated = grave.copy(
@@ -99,10 +104,10 @@ class GraveManager(private val plugin: GraveDiggerX) {
                             val blockLoc = loc.toBlockLocation()
                             activeGraves[getKey(blockLoc)] = updated
                             plugin.timeGraveRemove.scheduleRemoval(updated)
-                        })
+                        }
                     }
                 }
-            })
+            }
         })
     }
 
@@ -112,9 +117,9 @@ class GraveManager(private val plugin: GraveDiggerX) {
 
     private fun performSaveAsync() {
         val snapshot = activeGraves.values.toList()
-        SchedulerProvider.runAsync(plugin, Runnable {
+        SchedulerProvider.runAsync(plugin) {
             plugin.databaseHandler.writeGravesToJsonIfConfigured(snapshot)
-        })
+        }
     }
 
     fun createGraveAndGetIt(player: org.bukkit.entity.Player, items: Map<Int, ItemStack>, xp: Int = 0): Grave? {
