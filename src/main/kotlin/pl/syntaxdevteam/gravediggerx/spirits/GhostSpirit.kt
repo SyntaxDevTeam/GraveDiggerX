@@ -6,6 +6,8 @@ import org.bukkit.entity.Allay
 import org.bukkit.entity.Entity
 import org.bukkit.persistence.PersistentDataType
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
+import pl.syntaxdevteam.gravediggerx.common.CancellableTask
+import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
 import java.util.UUID
 
 class GhostSpirit(
@@ -16,7 +18,7 @@ class GhostSpirit(
 
     var entity: Entity? = null
     var isAlive: Boolean = true
-    private var taskId: Int = -1
+    private var task: CancellableTask? = null
 
     fun spawn() {
         val world = graveLocation.world ?: return
@@ -46,13 +48,11 @@ class GhostSpirit(
 
         this.entity = ghost
 
-        taskId = plugin.server.scheduler.scheduleSyncRepeatingTask(plugin, {
+        task = SchedulerProvider.runSyncRepeatingAt(plugin, graveLocation, 1L, 1L, Runnable {
             if (!isAlive || entity == null || entity!!.isDead) {
-                if (taskId >= 0) {
-                    plugin.server.scheduler.cancelTask(taskId)
-                    taskId = -1
-                }
-                return@scheduleSyncRepeatingTask
+                task?.cancel()
+                task = null
+                return@Runnable
             }
 
             val w = entity!!.world
@@ -69,7 +69,7 @@ class GhostSpirit(
 
             w.spawnParticle(org.bukkit.Particle.SOUL, strictLoc, 2, 0.2, 0.2, 0.2, 0.05)
 
-            val allay = entity as? Allay ?: return@scheduleSyncRepeatingTask
+            val allay = entity as? Allay ?: return@Runnable
 
             val closestPlayer = w.players
                 .filter { it.world == w }
@@ -82,10 +82,12 @@ class GhostSpirit(
                 allay.teleport(lookLoc)
             }
 
-        }, 1L, 1L)
+        })
     }
 
     fun despawn() {
+        task?.cancel()
+        task = null
         entity?.remove()
     }
 

@@ -89,6 +89,35 @@ object SchedulerProvider {
         return NoopTask
     }
 
+    fun runSyncRepeatingAt(
+        plugin: Plugin,
+        location: Location,
+        initialDelayTicks: Long,
+        periodTicks: Long,
+        task: Runnable
+    ): CancellableTask {
+        val world = location.world
+        if (ServerEnvironment.isFoliaBased()) {
+            val scheduled = if (world != null) {
+                runFoliaRegionRepeating(world, plugin, location, initialDelayTicks, periodTicks, task)
+            } else {
+                null
+            }
+            if (scheduled != null) {
+                return ReflectiveTask(scheduled)
+            }
+            val bukkitTask = Bukkit.getScheduler()
+                .runTaskTimer(plugin, task, initialDelayTicks, periodTicks)
+            return BukkitTaskWrapper(bukkitTask)
+        }
+        if (ServerEnvironment.isPaperBased()) {
+            val bukkitTask = Bukkit.getScheduler()
+                .runTaskTimer(plugin, task, initialDelayTicks, periodTicks)
+            return BukkitTaskWrapper(bukkitTask)
+        }
+        return NoopTask
+    }
+
     private fun ticksToMillis(ticks: Long): Long = ticks * 50L
 
     private data class BukkitTaskWrapper(private val task: org.bukkit.scheduler.BukkitTask) : CancellableTask {
@@ -163,6 +192,29 @@ object SchedulerProvider {
             method.invoke(regionScheduler, plugin, location, Consumer<Any> { task.run() }, delayTicks)
         }
         return true
+    }
+
+    private fun runFoliaRegionRepeating(
+        world: org.bukkit.World,
+        plugin: Plugin,
+        location: Location,
+        initialDelayTicks: Long,
+        periodTicks: Long,
+        task: Runnable
+    ): Any? {
+        val regionScheduler = world.javaClass.methods.firstOrNull { it.name == "getRegionScheduler" }?.invoke(world)
+            ?: return null
+        val method = regionScheduler.javaClass.methods.firstOrNull {
+            it.name == "runAtFixedRate" && it.parameterCount == 5
+        } ?: return null
+        return method.invoke(
+            regionScheduler,
+            plugin,
+            location,
+            Consumer<Any> { task.run() },
+            initialDelayTicks,
+            periodTicks
+        )
     }
 
     private fun getServerScheduler(methodName: String): Any? {
