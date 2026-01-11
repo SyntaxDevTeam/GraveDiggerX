@@ -1,0 +1,60 @@
+# Author: ulake ds:ulake
+# Version: 1.0.0
+
+prefix: "<bold><gradient:#2C2C2C:#555555>[GRX]</gradient></bold>"
+
+error:
+  no-permission: "У тебя нет прав для выполнения данной операции!"
+  invalid-id: "<#AAAAAA>Неверный ID могилы!"
+  unknown-command: "<#AAAAAA>Введите <white>/grx help</white> <#AAAAAA>чтобы увидеть доступные команды."
+  unknown-player: "Неизвестный"
+
+reload:
+  success: "<#AAAAAA>Конфигурация успешно обновлена!"
+
+help:
+  info:
+    - ""
+    - "               <bold><gradient:#2C2C2C:#555555>[GraveDiggerX Help]</gradient></bold>"
+    - "<bold></bold>"
+    - "<white>/grx help</white> <dark_gray>- <#AAAAAA> Показывает это сообщение."
+    - "<white>/grx reload</white> <dark_gray>- <#AAAAAA> Перезагружает конфигурацию плагина."
+    - "<white>/grx list</white> <dark_gray>- <#AAAAAA>Список ваших существующих могил."
+    - "<white>/grx admin list <player></white> <dark_gray>- <#AAAAAA>Список могил выбранного игрока."
+    - "<bold></bold>"
+    - "<bold><gradient:#2C2C2C:#555555>--------------------------------------</gradient></bold>"
+
+gui-grave:
+  title: "<#AAAAAA>Могила <player>"
+  collect-item-name: "<#00FF00>Собрать все предметы"
+  collect-item-lore:
+    - "<gray>Нажмите чтобы восстановить инвентарь и опыт.</gray>"
+    - "<dark_gray>Могила будет уничтожена после использования.</dark_gray>"
+  stats-owner: "<#AAAAAA>Владелец: <white><player>"
+  stats-xp: "<#00FF00>Опыт: <white><xp>"
+
+graves:
+  created-grave: "<#AAAAAA>Могила появилась на координатах: <#D4D4D4>X=<x>, Y=<y>, Z=<z>"
+  #grave-relocated: "<#AAAAAA>Ваша могила была перенесена в <#D4D4D4>X=<x>, Y=<y>, Z=<z> <#AAAAAA>потому что вы погибли в опасном месте."
+  not-your-grave: "<#AAAAAA>Вы можете открывать только свои могилы!"
+  collected: "<#AAAAAA>Вы восстановили свои предметы и опыт."
+  reached-max-graves: "<#AAAAAA>Вы достигли максимального числа активных могил<white> (<limit>)!"
+  only-player: "<red>Эта команда может быть использована только игроками.</red>"
+  no-graves: "<#AAAAAA>Могил не найдено."
+  removal-countdown: "<#AAAAAA>Ваша могила будет уничтожена через: <white><time></white> сек"
+  locate-header: "<white>Ваши активные могилы:</white>"
+  locate-entry: "<white><index>.</white> <#AAAAAA>Измерение: <white><world></white> <gray>→</gray> <white>X:<x> Y:<y> Z:<z></white>"
+
+graveh:
+  hologram: "<#800020>R.I.P. 
+  <newline><#AAAAAA>Истекает через: <white><time>секунд</white>
+  <newline><#AAAAAA>Могила <white><player></white>
+  <newline><yellow>Щелкните правой кнопкой мыши, чтобы открыть"
+
+admin:
+  removed-grave: "<#AAAAAA>Удалена могила<white> <player> <id>"
+  #cleaned-holograms: "<#AAAAAA>Удалены 'осиротевшие' голограммы: <white><count></white>."
+  player-not-found: "<#AAAAAA>Игрок <white><player></white> <#AAAAAA>не найден."
+  no-graves-for-player: "<#AAAAAA>Игрок <white><player></white> <#AAAAAA>не имеет активных могил."
+  list-header: "<white>Список могил <white><player>'а :</white>"
+  list-entry: "<white><index>.</white> <#AAAAAA>Измерение: <white><world></white> <gray>→</gray> <white>X:<x> Y:<y> Z:<z></white>"
