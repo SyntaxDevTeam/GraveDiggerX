@@ -46,10 +46,12 @@ graves:
   locate-entry: "<white><index>.</white> <#AAAAAA>Измерение: <white><world></white> <gray>→</gray> <white>X:<x> Y:<y> Z:<z></white>"
 
 graveh:
-  hologram: "<#800020>R.I.P. 
-  <newline><#AAAAAA>Истекает через: <white><time>секунд</white>
-  <newline><#AAAAAA>Могила <white><player></white>
-  <newline><yellow>Щелкните правой кнопкой мыши, чтобы открыть"
+  hologram: "<#800020>R.I.P. <newline><#AAAAAA>Могила <white><player></white><newline><yellow>ПКМ для открытия"
+#graveh:
+#  hologram: "<#800020>R.I.P.
+#  <newline><#AAAAAA>Истекает через: <white><time>секунд</white>
+#  <newline><#AAAAAA>Могила <white><player></white>
+#  <newline><yellow>ПКМ для открытия"
 
 admin:
   removed-grave: "<#AAAAAA>Удалена могила<white> <player> <id>"
