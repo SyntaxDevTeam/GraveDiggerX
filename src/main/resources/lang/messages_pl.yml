@@ -21,6 +21,7 @@ help:
     - "<white>/grx reload</white> <dark_gray>- <#AAAAAA>Przeładowuje konfigurację pluginu."
     - "<white>/grx list</white> <dark_gray>- <#AAAAAA>Wyświetla listę twoich aktywnych grobów."
     - "<white>/grx admin list <player></white> <dark_gray>- <#AAAAAA>Wyświetla groby danego gracza."
+    - "<white>/grx admin remove <player> <id></white> <dark_gray>- <#AAAAAA>Usuwa grób wskazanego gracza."
     - "<white>/grx admin cleanupholograms</white> <dark_gray>- <#AAAAAA>Usuwa osierocone hologramy grobów."
     - "<bold></bold>"
     - "<bold><gradient:#2C2C2C:#555555>--------------------------------------</gradient></bold>"
