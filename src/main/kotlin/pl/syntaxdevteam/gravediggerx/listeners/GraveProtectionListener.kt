@@ -12,6 +12,7 @@ import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.event.inventory.InventoryMoveItemEvent
+import org.bukkit.event.player.PlayerBucketEmptyEvent
 import org.bukkit.persistence.PersistentDataType
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 
@@ -53,6 +54,14 @@ class GraveProtectionListener(
     fun onBlockFromTo(event: BlockFromToEvent) {
         if (!plugin.config.getBoolean("graves.protection.fluids", true)) return
         if (isGrave(event.toBlock)) {
+            event.isCancelled = true
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    fun onPlayerBucketEmpty(event: PlayerBucketEmptyEvent) {
+        if (!plugin.config.getBoolean("graves.protection.fluids", true)) return
+        if (isGrave(event.block)) {
             event.isCancelled = true
         }
     }
