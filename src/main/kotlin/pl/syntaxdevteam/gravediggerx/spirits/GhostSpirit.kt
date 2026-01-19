@@ -38,7 +38,7 @@ class GhostSpirit(
             allay.canPickupItems = false
             allay.removeWhenFarAway = false
             allay.persistentDataContainer.set(
-                GHOST_KEY,
+                key(plugin),
                 PersistentDataType.STRING,
                 graveOwnerId.toString()
             )
@@ -92,6 +92,10 @@ class GhostSpirit(
     }
 
     companion object {
-        val GHOST_KEY: NamespacedKey = NamespacedKey.fromString("grave_ghost")!!
+        const val KEY_NAME = "grave_ghost"
+
+        fun key(plugin: GraveDiggerX): NamespacedKey = NamespacedKey(plugin, KEY_NAME)
+
+        fun legacyKey(): NamespacedKey = NamespacedKey.fromString(KEY_NAME)!!
     }
 }

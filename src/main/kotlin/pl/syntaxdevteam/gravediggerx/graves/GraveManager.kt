@@ -11,6 +11,7 @@ import org.bukkit.persistence.PersistentDataType
 import org.joml.Vector3f
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
+import pl.syntaxdevteam.gravediggerx.spirits.GhostSpirit
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -35,7 +36,15 @@ class GraveManager(private val plugin: GraveDiggerX) {
                 }
 
                 if (entity.persistentDataContainer.has(
-                        NamespacedKey(plugin, "grave_ghost"),
+                        GhostSpirit.key(plugin),
+                        PersistentDataType.STRING
+                    )
+                ) {
+                    entity.remove()
+                }
+
+                if (entity.persistentDataContainer.has(
+                        GhostSpirit.legacyKey(),
                         PersistentDataType.STRING
                     )
                 ) {
@@ -291,6 +300,34 @@ class GraveManager(private val plugin: GraveDiggerX) {
         return removed
     }
 
+    fun cleanupOrphanedGhosts(): Int {
+        var removed = 0
+        val graveKey = NamespacedKey(plugin, "grave")
+        val ghostKey = GhostSpirit.key(plugin)
+        val legacyGhostKey = GhostSpirit.legacyKey()
+
+        for (world in Bukkit.getWorlds()) {
+            for (entity in world.entities) {
+                if (!entity.persistentDataContainer.has(ghostKey, PersistentDataType.STRING) &&
+                    !entity.persistentDataContainer.has(legacyGhostKey, PersistentDataType.STRING)
+                ) {
+                    continue
+                }
+
+                val baseLocation = entity.location.clone().subtract(0.5, 2.7, 0.5).toBlockLocation()
+                if (getGraveAt(baseLocation) != null) continue
+
+                val block = baseLocation.block
+                val state = block.state
+                if (state is Skull && state.persistentDataContainer.has(graveKey, PersistentDataType.STRING)) continue
+
+                entity.remove()
+                removed++
+            }
+        }
+        return removed
+    }
+
     fun dropGraveItems(grave: Grave) {
         val location = grave.location
         val world = location.world ?: return
@@ -341,6 +378,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
                     entity.remove()
                 }
             }
+            removeGhostsNear(location)
             block.type = Material.AIR
             saveGravesToStorage()
             return true
@@ -423,6 +461,20 @@ class GraveManager(private val plugin: GraveDiggerX) {
             val dy = (loc.blockY - ty).toDouble()
             val dz = (loc.blockZ - tz).toDouble()
             (dx * dx + dy * dy + dz * dz) < minDistSq
+        }
+    }
+
+    private fun removeGhostsNear(location: Location) {
+        val world = location.world ?: return
+        val ghostKey = GhostSpirit.key(plugin)
+        val legacyGhostKey = GhostSpirit.legacyKey()
+        val ghostLocation = location.clone().add(0.5, 2.7, 0.5)
+        world.getNearbyEntities(ghostLocation, 2.0, 2.0, 2.0).forEach { entity ->
+            if (entity.persistentDataContainer.has(ghostKey, PersistentDataType.STRING) ||
+                entity.persistentDataContainer.has(legacyGhostKey, PersistentDataType.STRING)
+            ) {
+                entity.remove()
+            }
         }
     }
 }

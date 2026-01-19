@@ -15,6 +15,7 @@ import org.bukkit.event.inventory.InventoryMoveItemEvent
 import org.bukkit.event.player.PlayerBucketEmptyEvent
 import org.bukkit.persistence.PersistentDataType
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
+import pl.syntaxdevteam.gravediggerx.spirits.GhostSpirit
 
 class GraveProtectionListener(
     private val plugin: GraveDiggerX
@@ -114,9 +115,9 @@ class GraveProtectionListener(
     }
 
     private fun isGhostSpirit(entity: org.bukkit.entity.Entity): Boolean {
-        return entity.persistentDataContainer.has(
-            NamespacedKey(plugin, "ghost_spirit"),
-            PersistentDataType.STRING
-        )
+        val ghostKey = GhostSpirit.key(plugin)
+        val legacyGhostKey = GhostSpirit.legacyKey()
+        return entity.persistentDataContainer.has(ghostKey, PersistentDataType.STRING) ||
+            entity.persistentDataContainer.has(legacyGhostKey, PersistentDataType.STRING)
     }
 }

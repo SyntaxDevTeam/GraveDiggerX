@@ -23,6 +23,7 @@ help:
     - "<white>/grx admin list <player></white> <dark_gray>- <#AAAAAA>Показує могили гравця."
     - "<white>/grx admin remove <player> <id></white> <dark_gray>- <#AAAAAA>Видаляє могилу вибраного гравця."
     - "<white>/grx admin cleanupholograms</white> <dark_gray>- <#AAAAAA>Видаляє осиротілі голограми могил."
+    - "<white>/grx admin cleanupghosts</white> <dark_gray>- <#AAAAAA>Видаляє осиротілі духи могил."
     - "<bold></bold>"
     - "<bold><gradient:#2C2C2C:#555555>--------------------------------------</gradient></bold>"
 
@@ -54,6 +55,7 @@ graveh:
 admin:
   removed-grave: "<#AAAAAA>Видалена могилка<white> <player> <id>"
   cleaned-holograms: "<#AAAAAA>Видалено осиротілі голограми: <white><count></white>."
+  cleaned-ghosts: "<#AAAAAA>Видалено осиротілі духи: <white><count></white>."
   player-not-found: "<#AAAAAA>Гравець <white><player></white> <#AAAAAA>не знайдений."
   no-graves-for-player: "<#AAAAAA>Гравець <white><player></white> <#AAAAAA>не має могил."
   list-header: "<white>Список <white><player> могил:</white>"
