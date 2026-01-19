@@ -150,15 +150,29 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
             return
         }
 
-        if (args.size < 3) {
+        if (args.size < 2) {
             val msg = plugin.messageHandler.stringMessageToComponent("error", "unknown-command")
             sender.sendMessage(msg)
             return
         }
 
         when (args[1].lowercase()) {
-            "list" -> sendAdminList(stack, args)
-            "remove" -> AdminRemoveCommand(plugin).execute(stack, args)
+            "list" -> {
+                if (args.size < 3) {
+                    val msg = plugin.messageHandler.stringMessageToComponent("error", "unknown-command")
+                    sender.sendMessage(msg)
+                    return
+                }
+                sendAdminList(stack, args)
+            }
+            "remove" -> {
+                if (args.size < 3) {
+                    val msg = plugin.messageHandler.stringMessageToComponent("error", "unknown-command")
+                    sender.sendMessage(msg)
+                    return
+                }
+                AdminRemoveCommand(plugin).execute(stack, args)
+            }
             "cleanupholograms" -> AdminCleanupHologramsCommand(plugin).execute(stack, args)
             "cleanupghosts" -> AdminCleanupGhostsCommand(plugin).execute(stack, args)
             else -> {
