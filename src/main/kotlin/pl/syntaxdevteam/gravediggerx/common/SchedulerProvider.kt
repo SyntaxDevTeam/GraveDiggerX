@@ -123,7 +123,15 @@ object SchedulerProvider {
     private data class ReflectiveTask(private val task: Any?) : CancellableTask {
         override fun cancel() {
             val cancelMethod = task?.javaClass?.methods?.firstOrNull { it.name == "cancel" && it.parameterCount == 0 }
-            cancelMethod?.invoke(task)
+                ?: return
+            try {
+                if (!cancelMethod.canAccess(task)) {
+                    cancelMethod.isAccessible = true
+                }
+                cancelMethod.invoke(task)
+            } catch (_: Exception) {
+                // Ignore reflective cancel failures to avoid breaking grave cleanup.
+            }
         }
     }
 

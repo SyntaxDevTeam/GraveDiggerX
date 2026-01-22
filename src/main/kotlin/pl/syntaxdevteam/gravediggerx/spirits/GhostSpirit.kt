@@ -5,6 +5,7 @@ import org.bukkit.NamespacedKey
 import org.bukkit.entity.Allay
 import org.bukkit.entity.Entity
 import org.bukkit.persistence.PersistentDataType
+import pl.syntaxdevteam.core.platform.ServerEnvironment
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.common.CancellableTask
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
@@ -65,7 +66,7 @@ class GhostSpirit(
             )
 
             entity!!.velocity = org.bukkit.util.Vector(0, 0, 0)
-            entity!!.teleport(strictLoc)
+            teleportEntity(entity!!, strictLoc)
 
             w.spawnParticle(org.bukkit.Particle.SOUL, strictLoc, 2, 0.2, 0.2, 0.2, 0.05)
 
@@ -79,10 +80,25 @@ class GhostSpirit(
                 val direction = closestPlayer.eyeLocation.clone()
                     .subtract(strictLoc).toVector().normalize()
                 val lookLoc = strictLoc.clone().apply { setDirection(direction) }
-                allay.teleport(lookLoc)
+                teleportEntity(allay, lookLoc)
             }
 
         })
+    }
+
+    private fun teleportEntity(entity: Entity, location: Location) {
+        if (ServerEnvironment.isFoliaBased()) {
+            entity.teleportAsync(location)
+            return
+        }
+        val teleportAsync = entity.javaClass.methods.firstOrNull {
+            it.name == "teleportAsync" && it.parameterCount == 1 && it.parameterTypes[0] == Location::class.java
+        }
+        if (teleportAsync != null) {
+            teleportAsync.invoke(entity, location)
+            return
+        }
+        entity.teleport(location)
     }
 
     fun despawn() {
