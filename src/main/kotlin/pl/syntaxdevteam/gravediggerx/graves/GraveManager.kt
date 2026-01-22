@@ -349,6 +349,28 @@ class GraveManager(private val plugin: GraveDiggerX) {
         return removed
     }
 
+    fun cleanupOrphanedGraves(): Int {
+        var removed = 0
+        val graveKey = NamespacedKey(plugin, "grave")
+
+        for (world in Bukkit.getWorlds()) {
+            for (chunk in world.loadedChunks) {
+                for (state in chunk.tileEntities) {
+                    val skull = state as? Skull ?: continue
+                    if (!skull.persistentDataContainer.has(graveKey, PersistentDataType.STRING)) continue
+
+                    val location = skull.location.toBlockLocation()
+                    if (getGraveAt(location) != null) continue
+
+                    if (removeGraveAt(location)) {
+                        removed++
+                    }
+                }
+            }
+        }
+        return removed
+    }
+
     fun dropGraveItems(grave: Grave) {
         val location = grave.location
         val world = location.world ?: return

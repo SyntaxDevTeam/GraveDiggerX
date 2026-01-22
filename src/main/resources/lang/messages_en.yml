@@ -26,6 +26,7 @@ help:
     - "<white>/grx admin backup restore <player> <id></white> <dark_gray>- <#AAAAAA>Restores a grave from backup."
     - "<white>/grx admin cleanupholograms</white> <dark_gray>- <#AAAAAA>Removes orphaned grave holograms."
     - "<white>/grx admin cleanupghosts</white> <dark_gray>- <#AAAAAA>Removes orphaned grave spirits."
+    - "<white>/grx admin cleanupgraves</white> <dark_gray>- <#AAAAAA>Removes orphaned grave blocks."
     - "<bold></bold>"
     - "<bold><gradient:#2C2C2C:#555555>--------------------------------------</gradient></bold>"
 
@@ -59,6 +60,7 @@ admin:
   removed-grave: "<#AAAAAA>Deleted grave<white> <player> <id>"
   cleaned-holograms: "<#AAAAAA>Removed orphaned holograms: <white><count></white>."
   cleaned-ghosts: "<#AAAAAA>Removed orphaned spirits: <white><count></white>."
+  cleaned-graves: "<#AAAAAA>Removed orphaned graves: <white><count></white>."
   player-not-found: "<#AAAAAA>Player <white><player></white> <#AAAAAA>not found."
   no-graves-for-player: "<#AAAAAA>Player <white><player></white> <#AAAAAA>has no graves."
   list-header: "<white>List of <white><player>'s graves:</white>"
