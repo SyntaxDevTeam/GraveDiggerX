@@ -18,9 +18,9 @@ object SchedulerProvider {
                 return
             }
             Bukkit.getScheduler().runTaskAsynchronously(plugin, task)
-        } else if (ServerEnvironment.isPaperBased()) {
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, task)
+            return
         }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, task)
     }
 
     fun runSync(plugin: Plugin, task: Runnable) {
@@ -29,9 +29,9 @@ object SchedulerProvider {
                 return
             }
             Bukkit.getScheduler().runTask(plugin, task)
-        } else if (ServerEnvironment.isPaperBased()) {
-            Bukkit.getScheduler().runTask(plugin, task)
+            return
         }
+        Bukkit.getScheduler().runTask(plugin, task)
     }
 
     fun runSyncAt(plugin: Plugin, location: Location, task: Runnable) {
@@ -43,11 +43,11 @@ object SchedulerProvider {
                 false
             }
             if (!executed) {
-                Bukkit.getScheduler().runTask(plugin, task)
+                runFoliaGlobal(plugin, task)
             }
-        } else if (ServerEnvironment.isPaperBased()) {
-            Bukkit.getScheduler().runTask(plugin, task)
+            return
         }
+        Bukkit.getScheduler().runTask(plugin, task)
     }
 
     fun runSyncLaterAt(plugin: Plugin, location: Location, delayTicks: Long, task: Runnable) {
@@ -59,11 +59,11 @@ object SchedulerProvider {
                 false
             }
             if (!executed) {
-                Bukkit.getScheduler().runTaskLater(plugin, task, delayTicks)
+                runFoliaGlobalDelayed(plugin, delayTicks, task)
             }
-        } else if (ServerEnvironment.isPaperBased()) {
-            Bukkit.getScheduler().runTaskLater(plugin, task, delayTicks)
+            return
         }
+        Bukkit.getScheduler().runTaskLater(plugin, task, delayTicks)
     }
 
     fun runAsyncRepeating(
@@ -81,12 +81,9 @@ object SchedulerProvider {
                 .runTaskTimerAsynchronously(plugin, task, initialDelayTicks, periodTicks)
             return BukkitTaskWrapper(bukkitTask)
         }
-        if (ServerEnvironment.isPaperBased()) {
-            val bukkitTask = Bukkit.getScheduler()
-                .runTaskTimerAsynchronously(plugin, task, initialDelayTicks, periodTicks)
-            return BukkitTaskWrapper(bukkitTask)
-        }
-        return NoopTask
+        val bukkitTask = Bukkit.getScheduler()
+            .runTaskTimerAsynchronously(plugin, task, initialDelayTicks, periodTicks)
+        return BukkitTaskWrapper(bukkitTask)
     }
 
     fun runSyncRepeatingAt(
@@ -106,16 +103,15 @@ object SchedulerProvider {
             if (scheduled != null) {
                 return ReflectiveTask(scheduled)
             }
-            val bukkitTask = Bukkit.getScheduler()
-                .runTaskTimer(plugin, task, initialDelayTicks, periodTicks)
-            return BukkitTaskWrapper(bukkitTask)
+            val globalScheduled = runFoliaGlobalRepeating(plugin, initialDelayTicks, periodTicks, task)
+            if (globalScheduled != null) {
+                return ReflectiveTask(globalScheduled)
+            }
+            return NoopTask
         }
-        if (ServerEnvironment.isPaperBased()) {
-            val bukkitTask = Bukkit.getScheduler()
-                .runTaskTimer(plugin, task, initialDelayTicks, periodTicks)
-            return BukkitTaskWrapper(bukkitTask)
-        }
-        return NoopTask
+        val bukkitTask = Bukkit.getScheduler()
+            .runTaskTimer(plugin, task, initialDelayTicks, periodTicks)
+        return BukkitTaskWrapper(bukkitTask)
     }
 
     private fun ticksToMillis(ticks: Long): Long = ticks * 50L
@@ -171,6 +167,28 @@ object SchedulerProvider {
         } ?: return false
         method.invoke(scheduler, plugin, Consumer<Any> { task.run() })
         return true
+    }
+
+    private fun runFoliaGlobalDelayed(plugin: Plugin, delayTicks: Long, task: Runnable): Boolean {
+        val scheduler = getServerScheduler("getGlobalRegionScheduler") ?: return false
+        val method = scheduler.javaClass.methods.firstOrNull {
+            it.name == "runDelayed" && it.parameterCount == 3
+        } ?: return false
+        method.invoke(scheduler, plugin, Consumer<Any> { task.run() }, delayTicks)
+        return true
+    }
+
+    private fun runFoliaGlobalRepeating(
+        plugin: Plugin,
+        initialDelayTicks: Long,
+        periodTicks: Long,
+        task: Runnable
+    ): Any? {
+        val scheduler = getServerScheduler("getGlobalRegionScheduler") ?: return null
+        val method = scheduler.javaClass.methods.firstOrNull {
+            it.name == "runAtFixedRate" && it.parameterCount == 4
+        } ?: return null
+        return method.invoke(scheduler, plugin, Consumer<Any> { task.run() }, initialDelayTicks, periodTicks)
     }
 
     private fun runFoliaRegion(
