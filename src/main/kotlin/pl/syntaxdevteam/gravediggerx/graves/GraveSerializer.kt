@@ -64,6 +64,7 @@ object GraveSerializer {
         graveJson.addProperty("createdAt", grave.createdAt)
         graveJson.addProperty("ghostEntityId", grave.ghostEntityId?.toString())
         graveJson.addProperty("ghostActive", grave.ghostActive)
+        graveJson.addProperty("isPublic", grave.isPublic)
         graveJson.addProperty("lastAttackerId", grave.lastAttackerId?.toString())
         graveJson.addProperty("itemsStolen", grave.itemsStolen)
         return graveJson
@@ -121,6 +122,7 @@ object GraveSerializer {
             createdAt = obj.get("createdAt")?.asLong ?: System.currentTimeMillis(),
             ghostEntityId = obj.get("ghostEntityId")?.takeIf { !it.isJsonNull }?.asString?.let(UUID::fromString),
             ghostActive = obj.get("ghostActive")?.asBoolean ?: false,
+            isPublic = obj.get("isPublic")?.asBoolean ?: false,
             lastAttackerId = obj.get("lastAttackerId")?.takeIf { !it.isJsonNull }?.asString?.let(UUID::fromString),
             itemsStolen = obj.get("itemsStolen")?.asInt ?: 0
         )

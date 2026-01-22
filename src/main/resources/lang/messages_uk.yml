@@ -51,6 +51,7 @@ graves:
 
 graveh:
   hologram: "<#800020>R.I.P.<newline><#AAAAAA>Зникне через: <white><time>с</white><newline><#AAAAAA>Могилка <white><player></white><newline><yellow>ПКМ для відкриття"
+  hologram-public: "<#800020>R.I.P.<newline><#AAAAAA>Зникне через: <white><time>с</white><newline><#AAAAAA>Могилка <white><player></white><newline><green>Доступно</green><newline><yellow>ПКМ для відкриття"
 
 admin:
   removed-grave: "<#AAAAAA>Видалена могилка<white> <player> <id>"

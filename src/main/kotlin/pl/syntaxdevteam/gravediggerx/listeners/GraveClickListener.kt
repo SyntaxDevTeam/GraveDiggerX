@@ -49,6 +49,19 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
             return
         }
 
+        if (grave.isPublic) {
+            val graveId = grave.location.toString()
+            val gui = graveGuiCache.getOrPut(graveId) {
+                GraveGUI(grave, plugin)
+            }
+            gui.open(player)
+
+            if (plugin.graveManager.getGraveAt(grave.location) == null) {
+                graveGuiCache.remove(graveId)
+            }
+            return
+        }
+
         val graveAgeSeconds = (System.currentTimeMillis() - grave.createdAt) / 1000
         val graveExpireSeconds = plugin.config.getInt("graves.grave-despawn", 120)
 
@@ -81,7 +94,7 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
     }
 
     private fun collectGraveInstantly(player: org.bukkit.entity.Player, grave: Grave) {
-        if (player.uniqueId != grave.ownerId) return
+        if (player.uniqueId != grave.ownerId && !grave.isPublic) return
 
         for ((slot, item) in grave.items) {
             if (slot in 0..35) {

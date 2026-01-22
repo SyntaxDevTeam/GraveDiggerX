@@ -128,7 +128,7 @@ class GraveGUI(
     }
 
     private fun collectAll(player: Player) {
-        if (player.uniqueId != grave.ownerId) {
+        if (player.uniqueId != grave.ownerId && !grave.isPublic) {
             val loc = grave.location.clone().add(0.5, 0.5, 0.5)
             val world = loc.world ?: return
 

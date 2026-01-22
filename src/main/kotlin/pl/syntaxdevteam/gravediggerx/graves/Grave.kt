@@ -17,6 +17,7 @@ data class Grave(
     val createdAt: Long = System.currentTimeMillis(),
     val ghostEntityId: UUID? = null,
     val ghostActive: Boolean = true,
+    val isPublic: Boolean = false,
     var lastAttackerId: UUID? = null,
     var itemsStolen: Int = 0
 )

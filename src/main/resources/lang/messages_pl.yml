@@ -50,6 +50,7 @@ graves:
 
 graveh:
   hologram: "<#800020>R.I.P.<newline><#AAAAAA>Wygasa za: <white><time>s</white><newline><#AAAAAA>Grób gracza <white><player></white><newline><yellow>Kliknij prawym przyciskiem, aby otworzyć"
+  hologram-public: "<#800020>R.I.P.<newline><#AAAAAA>Wygasa za: <white><time>s</white><newline><#AAAAAA>Grób gracza <white><player></white><newline><green>Dostępny</green><newline><yellow>Kliknij prawym przyciskiem, aby otworzyć"
 
 admin:
   removed-grave: "<#AAAAAA>Usunięto grób<white> <player> <id>"

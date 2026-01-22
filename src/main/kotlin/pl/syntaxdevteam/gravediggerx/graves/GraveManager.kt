@@ -80,7 +80,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
                                 update(true, false)
                             }
                             val totalSeconds = plugin.config.getInt("graves.grave-despawn", 60)
-                            val hologramIds = createHologram(loc, grave.ownerName, totalSeconds)
+                            val hologramIds = createHologram(loc, grave.ownerName, totalSeconds, grave.isPublic)
 
                             val ghostId: UUID? = null
                             if (grave.ghostActive) {
@@ -112,7 +112,9 @@ class GraveManager(private val plugin: GraveDiggerX) {
 
                             val blockLoc = loc.toBlockLocation()
                             activeGraves[getKey(blockLoc)] = updated
-                            plugin.timeGraveRemove.scheduleRemoval(updated)
+                            if (!updated.isPublic) {
+                                plugin.timeGraveRemove.scheduleRemoval(updated)
+                            }
                         }
                     }
                 }
@@ -168,7 +170,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
         }
 
         val totalSeconds = plugin.config.getInt("graves.grave-despawn", 60)
-        val hologramIds = createHologram(location, player.name, totalSeconds)
+        val hologramIds = createHologram(location, player.name, totalSeconds, false)
         val ghostEntityId = plugin.ghostManager.createGhostAndGetId(player.uniqueId, location, player.name)
 
         val armorContents = mapOf(
@@ -191,6 +193,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
             createdAt = System.currentTimeMillis(),
             ghostActive = ghostEntityId != null,
             ghostEntityId = ghostEntityId,
+            isPublic = false,
             itemsStolen = 0,
             lastAttackerId = null
         )
@@ -232,11 +235,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
         grave.hologramIds.forEach { id ->
             val entity = Bukkit.getEntity(id)
             if (entity is TextDisplay) {
-                val text: Component = plugin.messageHandler.stringMessageToComponentNoPrefix(
-                    "graveh",
-                    "hologram",
-                    mapOf("player" to grave.ownerName, "time" to time.toString())
-                )
+                val text: Component = buildHologramText(grave.ownerName, time, grave.isPublic)
                 entity.text(text)
             }
         }
@@ -245,8 +244,8 @@ class GraveManager(private val plugin: GraveDiggerX) {
     fun getGravesFor(ownerId: UUID): List<Grave> =
         activeGraves.values.filter { it.ownerId == ownerId }
 
-    private fun createHologram(location: Location, ownerName: String, time: Int): List<UUID> {
-        val text: Component = plugin.messageHandler.stringMessageToComponentNoPrefix("graveh", "hologram", mapOf("player" to ownerName, "time" to time.toString()))
+    private fun createHologram(location: Location, ownerName: String, time: Int, isPublic: Boolean): List<UUID> {
+        val text: Component = buildHologramText(ownerName, time, isPublic)
         val hologramLocation = location.clone().add(0.5, 1.5, 0.5)
         val world = hologramLocation.world ?: return emptyList()
 
@@ -271,6 +270,15 @@ class GraveManager(private val plugin: GraveDiggerX) {
         }
 
         return listOf(textDisplay.uniqueId)
+    }
+
+    private fun buildHologramText(ownerName: String, time: Int, isPublic: Boolean): Component {
+        val key = if (isPublic) "hologram-public" else "hologram"
+        return plugin.messageHandler.stringMessageToComponentNoPrefix(
+            "graveh",
+            key,
+            mapOf("player" to ownerName, "time" to time.toString())
+        )
     }
 
     fun getGraveAt(location: Location): Grave? {
@@ -340,7 +348,9 @@ class GraveManager(private val plugin: GraveDiggerX) {
 
     fun makeGravePublic(grave: Grave) {
         plugin.timeGraveRemove.cancelRemoval(grave)
-        activeGraves.remove(getKey(grave.location))
+        val updated = grave.copy(isPublic = true)
+        activeGraves[getKey(grave.location)] = updated
+        updateHologramWithTime(updated, 0)
         saveGravesToStorage()
     }
 
