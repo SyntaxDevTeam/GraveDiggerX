@@ -30,7 +30,7 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
                     return
                 }
 
-                SchedulerProvider.runSync(plugin, Runnable {
+                SchedulerProvider.runSyncAt(plugin, grave.location, Runnable {
                     if (grave.location.block.type != org.bukkit.Material.PLAYER_HEAD) {
                         plugin.graveManager.removeGrave(grave)
                         scheduledTasks.remove(grave.ownerId)
@@ -54,7 +54,7 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
                 })
 
                 if (secondsLeft <= 0) {
-                    SchedulerProvider.runSync(plugin, Runnable {
+                    SchedulerProvider.runSyncAt(plugin, grave.location, Runnable {
                         val expirationAction = GraveExpirationAction.fromString(
                             plugin.config.getString("graves.expiration-action", "DISAPPEAR")!!
                         )
