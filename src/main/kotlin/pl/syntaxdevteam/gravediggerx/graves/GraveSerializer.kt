@@ -81,7 +81,7 @@ object GraveSerializer {
         return locationJson
     }
 
-    private fun encodeItems(items: Map<Int, ItemStack>): JsonArray {
+    internal fun encodeItems(items: Map<Int, ItemStack>): JsonArray {
         val itemsArray = JsonArray()
         items.forEach { (slot, itemStack) ->
             val itemJson = JsonObject()
@@ -92,7 +92,7 @@ object GraveSerializer {
         return itemsArray
     }
 
-    private fun encodeArmor(armorContents: Map<String, ItemStack>): JsonObject {
+    internal fun encodeArmor(armorContents: Map<String, ItemStack>): JsonObject {
         val armor = JsonObject()
         armorContents.forEach { (slot, itemStack) ->
             armor.add(slot, serializeItemStack(itemStack))
@@ -141,7 +141,7 @@ object GraveSerializer {
         return Location(world, x, y, z, yaw, pitch)
     }
 
-    private fun decodeItems(array: JsonArray?): MutableMap<Int, ItemStack> {
+    internal fun decodeItems(array: JsonArray?): MutableMap<Int, ItemStack> {
         if (array == null) return mutableMapOf()
         val items = mutableMapOf<Int, ItemStack>()
         array.forEach { element ->
@@ -159,7 +159,7 @@ object GraveSerializer {
         return items
     }
 
-    private fun decodeArmor(obj: JsonObject?): Map<String, ItemStack> {
+    internal fun decodeArmor(obj: JsonObject?): Map<String, ItemStack> {
         if (obj == null) return emptyMap()
         val map = mutableMapOf<String, ItemStack>()
         obj.entrySet().forEach { (slot, element) ->
@@ -170,7 +170,7 @@ object GraveSerializer {
         return map
     }
 
-    private fun serializeItemStack(itemStack: ItemStack): JsonObject {
+    internal fun serializeItemStack(itemStack: ItemStack): JsonObject {
         return try {
             val map: Map<String, Any> = itemStack.serialize()
             gson.toJsonTree(map).asJsonObject

@@ -18,6 +18,15 @@ import java.util.concurrent.ConcurrentHashMap
 class GraveManager(private val plugin: GraveDiggerX) {
     private val activeGraves = ConcurrentHashMap<String, Grave>()
     private val graveRemoveListeners = ConcurrentHashMap<UUID, MutableList<() -> Unit>>()
+    private val backupStore = GraveBackupStore(plugin)
+    private val graveBackups = Collections.synchronizedList(backupStore.loadAllBackups().toMutableList())
+
+    enum class BackupRestoreResult {
+        SUCCESS,
+        LOCATION_OCCUPIED,
+        WORLD_MISSING,
+        FAILED
+    }
 
     private fun notifyGraveRemoved(grave: Grave) {
         graveRemoveListeners[grave.ownerId]?.forEach { it.invoke() }
@@ -201,6 +210,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
         activeGraves[getKey(location)] = grave
         plugin.timeGraveRemove.scheduleRemoval(grave)
         saveGravesToStorage()
+        addBackup(grave)
         return grave
     }
 
@@ -243,6 +253,9 @@ class GraveManager(private val plugin: GraveDiggerX) {
 
     fun getGravesFor(ownerId: UUID): List<Grave> =
         activeGraves.values.filter { it.ownerId == ownerId }
+
+    fun getBackupsFor(ownerId: UUID): List<GraveBackup> =
+        graveBackups.toList().filter { it.ownerId == ownerId }.sortedByDescending { it.createdAt }
 
     private fun createHologram(location: Location, ownerName: String, time: Int, isPublic: Boolean): List<UUID> {
         val text: Component = buildHologramText(ownerName, time, isPublic)
@@ -403,6 +416,123 @@ class GraveManager(private val plugin: GraveDiggerX) {
         val y = location.blockY
         val z = location.blockZ
         return "$worldName:$x:$y:$z"
+    }
+
+    fun restoreBackup(backup: GraveBackup): BackupRestoreResult {
+        val location = backup.location.toBlockLocation()
+        if (getGraveAt(location) != null) {
+            return BackupRestoreResult.LOCATION_OCCUPIED
+        }
+
+        if (location.world == null) {
+            return BackupRestoreResult.WORLD_MISSING
+        }
+        return runCatching {
+            val block = location.block
+            val originalBlockData = if (block.type != Material.AIR) block.blockData.clone() else Bukkit.createBlockData(Material.AIR)
+            block.type = Material.PLAYER_HEAD
+
+            val skull = block.state as? Skull
+            skull?.apply {
+                this.persistentDataContainer.set(
+                    NamespacedKey(plugin, "grave"),
+                    PersistentDataType.STRING,
+                    backup.ownerId.toString()
+                )
+                applyPlayerProfile(this, backup.ownerId, backup.ownerName)
+                update(true, false)
+            }
+
+            val totalSeconds = plugin.config.getInt("graves.grave-despawn", 60)
+            val hologramIds = createHologram(location, backup.ownerName, totalSeconds, false)
+            val ghostEntityId = plugin.ghostManager.createGhostAndGetId(backup.ownerId, location, backup.ownerName)
+
+            val grave = Grave(
+                ownerId = backup.ownerId,
+                ownerName = backup.ownerName,
+                location = location,
+                items = backup.items.mapValues { it.value.clone() },
+                armorContents = backup.armorContents.mapValues { it.value.clone() },
+                hologramIds = hologramIds,
+                originalBlockData = originalBlockData,
+                storedXp = backup.storedXp,
+                createdAt = backup.createdAt,
+                ghostActive = ghostEntityId != null,
+                ghostEntityId = ghostEntityId,
+                isPublic = false,
+                itemsStolen = 0,
+                lastAttackerId = null
+            )
+
+            activeGraves[getKey(location)] = grave
+            plugin.timeGraveRemove.scheduleRemoval(grave)
+            saveGravesToStorage()
+            BackupRestoreResult.SUCCESS
+        }.getOrElse { ex ->
+            plugin.logger.warning("Failed to restore grave backup for ${backup.ownerName}: ${ex.message}")
+            BackupRestoreResult.FAILED
+        }
+    }
+
+    private fun addBackup(grave: Grave) {
+        if (!plugin.config.getBoolean("graves.backups.enabled", true)) {
+            return
+        }
+
+        val alreadyStored = graveBackups.any {
+            it.ownerId == grave.ownerId && it.createdAt == grave.createdAt &&
+                it.location.blockX == grave.location.blockX &&
+                it.location.blockY == grave.location.blockY &&
+                it.location.blockZ == grave.location.blockZ &&
+                it.location.world?.name == grave.location.world?.name
+        }
+        if (alreadyStored) {
+            return
+        }
+
+        val backup = GraveBackup(
+            ownerId = grave.ownerId,
+            ownerName = grave.ownerName,
+            location = grave.location.clone(),
+            items = grave.items.mapValues { it.value.clone() },
+            armorContents = grave.armorContents.mapValues { it.value.clone() },
+            storedXp = grave.storedXp,
+            createdAt = grave.createdAt
+        )
+
+        graveBackups.add(backup)
+        trimBackupsIfNeeded(grave.ownerId)
+        saveBackupsAsync()
+    }
+
+    private fun trimBackupsIfNeeded(ownerId: UUID) {
+        val maxPerPlayer = plugin.config.getInt("graves.backups.max-per-player", 50)
+        if (maxPerPlayer > 0) {
+            val playerBackups = graveBackups.filter { it.ownerId == ownerId }
+                .sortedBy { it.createdAt }
+            val toRemove = (playerBackups.size - maxPerPlayer).coerceAtLeast(0)
+            if (toRemove > 0) {
+                val removeSet = playerBackups.take(toRemove).map { it.id }.toSet()
+                graveBackups.removeIf { it.id in removeSet }
+            }
+        }
+
+        val maxTotal = plugin.config.getInt("graves.backups.max-total", 5000)
+        if (maxTotal > 0 && graveBackups.size > maxTotal) {
+            val sorted = graveBackups.sortedBy { it.backedUpAt }
+            val toRemove = (graveBackups.size - maxTotal).coerceAtLeast(0)
+            if (toRemove > 0) {
+                val removeSet = sorted.take(toRemove).map { it.id }.toSet()
+                graveBackups.removeIf { it.id in removeSet }
+            }
+        }
+    }
+
+    private fun saveBackupsAsync() {
+        val snapshot = graveBackups.toList()
+        SchedulerProvider.runAsync(plugin) {
+            backupStore.saveAllBackups(snapshot)
+        }
     }
 
     private fun applyPlayerProfile(

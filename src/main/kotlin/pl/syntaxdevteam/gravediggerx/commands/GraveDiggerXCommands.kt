@@ -13,6 +13,8 @@ import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker
 import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker.PermissionKey
 import pl.syntaxdevteam.gravediggerx.commands.admin.AdminCleanupGhostsCommand
 import pl.syntaxdevteam.gravediggerx.commands.admin.AdminCleanupHologramsCommand
+import pl.syntaxdevteam.gravediggerx.commands.admin.AdminBackupListCommand
+import pl.syntaxdevteam.gravediggerx.commands.admin.AdminBackupRestoreCommand
 import pl.syntaxdevteam.gravediggerx.commands.admin.AdminRemoveCommand
 
 class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
@@ -49,7 +51,7 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
         }
 
         if (args.size == 2 && args[0].equals("admin", ignoreCase = true)) {
-            val subcommands = listOf("list", "remove", "cleanupholograms", "cleanupghosts")
+            val subcommands = listOf("list", "remove", "backup", "cleanupholograms", "cleanupghosts")
             return subcommands.filter { it.startsWith(args[1], ignoreCase = true) }
         }
 
@@ -59,15 +61,33 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
                     .filter { it.startsWith(args[2], ignoreCase = true) }
                 args[1].equals("remove", ignoreCase = true) -> Bukkit.getOnlinePlayers().map { it.name }
                     .filter { it.startsWith(args[2], ignoreCase = true) }
+                args[1].equals("backup", ignoreCase = true) -> listOf("list", "restore")
+                    .filter { it.startsWith(args[2], ignoreCase = true) }
                 else -> emptyList()
             }
         }
 
-        if (args.size == 4 && args[0].equals("admin", ignoreCase = true) && args[1].equals("remove", ignoreCase = true)) {
-            val player = Bukkit.getOfflinePlayerIfCached(args[2]) ?: return emptyList()
-            val size = plugin.graveManager.getGravesFor(player.uniqueId).size
+        if (args.size == 4 && args[0].equals("admin", ignoreCase = true)) {
+            if (args[1].equals("remove", ignoreCase = true)) {
+                val player = Bukkit.getOfflinePlayerIfCached(args[2]) ?: return emptyList()
+                val size = plugin.graveManager.getGravesFor(player.uniqueId).size
+                val indices = (1..size).map { it.toString() }
+                return indices.filter { it.startsWith(args[3], ignoreCase = true) }
+            }
+            if (args[1].equals("backup", ignoreCase = true)) {
+                return Bukkit.getOnlinePlayers().map { it.name }
+                    .filter { it.startsWith(args[3], ignoreCase = true) }
+            }
+        }
+
+        if (args.size == 5 && args[0].equals("admin", ignoreCase = true) &&
+            args[1].equals("backup", ignoreCase = true) &&
+            args[2].equals("restore", ignoreCase = true)
+        ) {
+            val player = Bukkit.getOfflinePlayerIfCached(args[3]) ?: return emptyList()
+            val size = plugin.graveManager.getBackupsFor(player.uniqueId).size
             val indices = (1..size).map { it.toString() }
-            return indices.filter { it.startsWith(args[3], ignoreCase = true) }
+            return indices.filter { it.startsWith(args[4], ignoreCase = true) }
         }
 
         return emptyList()
@@ -172,6 +192,21 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
                     return
                 }
                 AdminRemoveCommand(plugin).execute(stack, args)
+            }
+            "backup" -> {
+                if (args.size < 4) {
+                    val msg = plugin.messageHandler.stringMessageToComponent("error", "unknown-command")
+                    sender.sendMessage(msg)
+                    return
+                }
+                when (args[2].lowercase()) {
+                    "list" -> AdminBackupListCommand(plugin).execute(stack, args)
+                    "restore" -> AdminBackupRestoreCommand(plugin).execute(stack, args)
+                    else -> {
+                        val msg = plugin.messageHandler.stringMessageToComponent("error", "unknown-command")
+                        sender.sendMessage(msg)
+                    }
+                }
             }
             "cleanupholograms" -> AdminCleanupHologramsCommand(plugin).execute(stack, args)
             "cleanupghosts" -> AdminCleanupGhostsCommand(plugin).execute(stack, args)
