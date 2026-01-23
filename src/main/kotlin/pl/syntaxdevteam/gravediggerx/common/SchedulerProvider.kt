@@ -73,7 +73,8 @@ object SchedulerProvider {
         task: Runnable
     ): CancellableTask {
         if (ServerEnvironment.isFoliaBased()) {
-            val scheduled = runFoliaAsyncRepeating(plugin, initialDelayTicks, periodTicks, task)
+            val foliaInitialDelayTicks = initialDelayTicks.coerceAtLeast(1L)
+            val scheduled = runFoliaAsyncRepeating(plugin, foliaInitialDelayTicks, periodTicks, task)
             if (scheduled != null) {
                 return ReflectiveTask(scheduled)
             }
@@ -95,15 +96,16 @@ object SchedulerProvider {
     ): CancellableTask {
         val world = location.world
         if (ServerEnvironment.isFoliaBased()) {
+            val foliaInitialDelayTicks = initialDelayTicks.coerceAtLeast(1L)
             val scheduled = if (world != null) {
-                runFoliaRegionRepeating(world, plugin, location, initialDelayTicks, periodTicks, task)
+                runFoliaRegionRepeating(world, plugin, location, foliaInitialDelayTicks, periodTicks, task)
             } else {
                 null
             }
             if (scheduled != null) {
                 return ReflectiveTask(scheduled)
             }
-            val globalScheduled = runFoliaGlobalRepeating(plugin, initialDelayTicks, periodTicks, task)
+            val globalScheduled = runFoliaGlobalRepeating(plugin, foliaInitialDelayTicks, periodTicks, task)
             if (globalScheduled != null) {
                 return ReflectiveTask(globalScheduled)
             }
