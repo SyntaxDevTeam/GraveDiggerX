@@ -23,6 +23,13 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
 
             override fun run() {
                 val player: Player? = Bukkit.getPlayer(grave.ownerId)
+                val world = grave.location.world
+
+                if (world == null) {
+                    scheduledTasks.remove(grave.ownerId)
+                    cancel()
+                    return
+                }
 
                 if (plugin.graveManager.getGraveAt(grave.location) == null) {
                     scheduledTasks.remove(grave.ownerId)
@@ -30,48 +37,48 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
                     return
                 }
 
-                SchedulerProvider.runSyncAt(plugin, grave.location, Runnable {
-                    if (grave.location.block.type != org.bukkit.Material.PLAYER_HEAD) {
-                        plugin.graveManager.removeGrave(grave)
-                        scheduledTasks.remove(grave.ownerId)
-                        cancel()
-                        return@Runnable
-                    }
+                if (grave.location.block.type != org.bukkit.Material.PLAYER_HEAD) {
+                    plugin.graveManager.removeGrave(grave)
+                    scheduledTasks.remove(grave.ownerId)
+                    cancel()
+                    return
+                }
 
-                    if (player != null && player.isOnline) {
-                        val msg = plugin.messageHandler.stringMessageToComponent(
-                            "graves",
-                            "removal-countdown",
-                            mapOf(
-                                "time" to secondsLeft.toString(),
-                                "x" to grave.location.blockX.toString(),
-                                "y" to grave.location.blockY.toString(),
-                                "z" to grave.location.blockZ.toString()
-                            )
+                plugin.graveManager.updateHologramWithTime(grave, secondsLeft)
+
+                if (player != null && player.isOnline) {
+                    val msg = plugin.messageHandler.stringMessageToComponent(
+                        "graves",
+                        "removal-countdown",
+                        mapOf(
+                            "time" to secondsLeft.toString(),
+                            "x" to grave.location.blockX.toString(),
+                            "y" to grave.location.blockY.toString(),
+                            "z" to grave.location.blockZ.toString()
                         )
+                    )
+                    SchedulerProvider.runSyncAt(plugin, player.location, Runnable {
                         player.sendActionBar(msg)
-                    }
-                })
+                    })
+                }
 
                 if (secondsLeft <= 0) {
-                    SchedulerProvider.runSyncAt(plugin, grave.location, Runnable {
-                        val expirationAction = GraveExpirationAction.fromString(
-                            plugin.config.getString("graves.expiration-action", "DISAPPEAR")!!
-                        )
-                        plugin.ghostManager.removeGhost(grave.ownerId)
-                        when (expirationAction) {
-                            GraveExpirationAction.DROP_ITEMS -> {
-                                plugin.graveManager.dropGraveItems(grave)
-                                plugin.graveManager.removeGrave(grave)
-                            }
-                            GraveExpirationAction.BECOME_PUBLIC -> {
-                                plugin.graveManager.makeGravePublic(grave)
-                            }
-                            GraveExpirationAction.DISAPPEAR -> {
-                                plugin.graveManager.removeGrave(grave)
-                            }
+                    val expirationAction = GraveExpirationAction.fromString(
+                        plugin.config.getString("graves.expiration-action", "DISAPPEAR")!!
+                    )
+                    plugin.ghostManager.removeGhost(grave.ownerId)
+                    when (expirationAction) {
+                        GraveExpirationAction.DROP_ITEMS -> {
+                            plugin.graveManager.dropGraveItems(grave)
+                            plugin.graveManager.removeGrave(grave)
                         }
-                    })
+                        GraveExpirationAction.BECOME_PUBLIC -> {
+                            plugin.graveManager.makeGravePublic(grave)
+                        }
+                        GraveExpirationAction.DISAPPEAR -> {
+                            plugin.graveManager.removeGrave(grave)
+                        }
+                    }
                     scheduledTasks.remove(grave.ownerId)
                     cancel()
                     return
@@ -81,7 +88,7 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
             }
         }
 
-        scheduledTasks[grave.ownerId] = SchedulerProvider.runAsyncRepeating(plugin, 0L, 20L, runnable)
+        scheduledTasks[grave.ownerId] = SchedulerProvider.runSyncRepeatingAt(plugin, grave.location, 0L, 20L, runnable)
     }
 
     fun cancelRemoval(grave: Grave) {

@@ -240,8 +240,6 @@ class GraveManager(private val plugin: GraveDiggerX) {
         plugin.databaseHandler.writeGravesToJsonIfConfigured(emptyList())
     }
 
-    // TODO: Sprawdzić czy ta metoda w ogóle jest potrzebna skoro nie jest używana
-    @Suppress("unused")
     fun updateHologramWithTime(grave: Grave, time: Int) {
         grave.hologramIds.forEach { id ->
             val entity = Bukkit.getEntity(id)
