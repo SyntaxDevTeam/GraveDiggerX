@@ -105,7 +105,16 @@ object SchedulerProvider {
             if (scheduled != null) {
                 return ReflectiveTask(scheduled)
             }
-            val globalScheduled = runFoliaGlobalRepeating(plugin, foliaInitialDelayTicks, periodTicks, task)
+            val globalScheduled = if (world != null) {
+                runFoliaGlobalRepeating(plugin, foliaInitialDelayTicks, periodTicks, Runnable {
+                    val executed = runFoliaRegion(world, plugin, location, task, null)
+                    if (!executed) {
+                        task.run()
+                    }
+                })
+            } else {
+                runFoliaGlobalRepeating(plugin, foliaInitialDelayTicks, periodTicks, task)
+            }
             if (globalScheduled != null) {
                 return ReflectiveTask(globalScheduled)
             }
