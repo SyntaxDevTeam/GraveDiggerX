@@ -68,62 +68,60 @@ class GraveManager(private val plugin: GraveDiggerX) {
                 return@Runnable
             }
 
-            SchedulerProvider.runSync(plugin) {
-                for (grave in loadedGraves) {
-                    val loc = grave.location
-                    val world = loc.world ?: continue
+            for (grave in loadedGraves) {
+                val loc = grave.location
+                val world = loc.world ?: continue
 
-                    world.getChunkAtAsync(loc).thenAccept {
-                        SchedulerProvider.runSyncAt(plugin, loc) {
-                            val block = loc.block
-                            block.type = Material.PLAYER_HEAD
+                world.getChunkAtAsync(loc).thenAccept {
+                    SchedulerProvider.runSyncAt(plugin, loc) {
+                        val block = loc.block
+                        block.type = Material.PLAYER_HEAD
 
-                            val skull = block.state as? Skull
-                            skull?.apply {
-                                this.persistentDataContainer.set(
-                                    NamespacedKey(plugin, "grave"),
-                                    PersistentDataType.STRING,
-                                    grave.ownerId.toString()
-                                )
-                                applyPlayerProfile(this, grave.ownerId, grave.ownerName)
-                                update(true, false)
-                            }
-                            val totalSeconds = plugin.config.getInt("graves.grave-despawn", 60)
-                            val hologramIds = createHologram(loc, grave.ownerName, totalSeconds, grave.isPublic)
+                        val skull = block.state as? Skull
+                        skull?.apply {
+                            this.persistentDataContainer.set(
+                                NamespacedKey(plugin, "grave"),
+                                PersistentDataType.STRING,
+                                grave.ownerId.toString()
+                            )
+                            applyPlayerProfile(this, grave.ownerId, grave.ownerName)
+                            update(true, false)
+                        }
+                        val totalSeconds = plugin.config.getInt("graves.grave-despawn", 60)
+                        val hologramIds = createHologram(loc, grave.ownerName, totalSeconds, grave.isPublic)
 
-                            val ghostId: UUID? = null
-                            if (grave.ghostActive) {
-                                SchedulerProvider.runSyncLaterAt(plugin, loc, 40L) {
-                                    val newGhostId =
-                                        plugin.ghostManager.createGhostAndGetId(grave.ownerId, loc, grave.ownerName)
-                                    if (newGhostId != null) {
-                                        val active = activeGraves[getKey(loc)]
-                                        if (active != null) {
-                                            val updated = active.copy(
-                                                ghostEntityId = newGhostId,
-                                                ghostActive = true
-                                            )
-                                            activeGraves[getKey(loc)] = updated
-                                        }
+                        val ghostId: UUID? = null
+                        if (grave.ghostActive) {
+                            SchedulerProvider.runSyncLaterAt(plugin, loc, 40L) {
+                                val newGhostId =
+                                    plugin.ghostManager.createGhostAndGetId(grave.ownerId, loc, grave.ownerName)
+                                if (newGhostId != null) {
+                                    val active = activeGraves[getKey(loc)]
+                                    if (active != null) {
+                                        val updated = active.copy(
+                                            ghostEntityId = newGhostId,
+                                            ghostActive = true
+                                        )
+                                        activeGraves[getKey(loc)] = updated
                                     }
                                 }
                             }
+                        }
 
-                            val updated = grave.copy(
-                                hologramIds = hologramIds,
-                                ghostEntityId = ghostId,
-                                ghostActive = grave.ghostActive
-                            )
+                        val updated = grave.copy(
+                            hologramIds = hologramIds,
+                            ghostEntityId = ghostId,
+                            ghostActive = grave.ghostActive
+                        )
 
-                            grave.hologramIds.forEach { oldId ->
-                                Bukkit.getEntity(oldId)?.remove()
-                            }
+                        grave.hologramIds.forEach { oldId ->
+                            Bukkit.getEntity(oldId)?.remove()
+                        }
 
-                            val blockLoc = loc.toBlockLocation()
-                            activeGraves[getKey(blockLoc)] = updated
-                            if (!updated.isPublic) {
-                                plugin.timeGraveRemove.scheduleRemoval(updated)
-                            }
+                        val blockLoc = loc.toBlockLocation()
+                        activeGraves[getKey(blockLoc)] = updated
+                        if (!updated.isPublic) {
+                            plugin.timeGraveRemove.scheduleRemoval(updated)
                         }
                     }
                 }

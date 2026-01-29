@@ -105,16 +105,21 @@ object SchedulerProvider {
             if (scheduled != null) {
                 return ReflectiveTask(scheduled)
             }
-            val globalScheduled = if (world != null) {
-                runFoliaGlobalRepeating(plugin, foliaInitialDelayTicks, periodTicks, Runnable {
-                    val executed = runFoliaRegion(world, plugin, location, task, null)
-                    if (!executed) {
-                        task.run()
-                    }
-                })
-            } else {
-                runFoliaGlobalRepeating(plugin, foliaInitialDelayTicks, periodTicks, task)
+            if (world != null) {
+                val fallbackTask = scheduleFoliaRegionRepeatingFallback(
+                    world,
+                    plugin,
+                    location,
+                    foliaInitialDelayTicks,
+                    periodTicks,
+                    task
+                )
+                if (fallbackTask != null) {
+                    return fallbackTask
+                }
+                return NoopTask
             }
+            val globalScheduled = runFoliaGlobalRepeating(plugin, foliaInitialDelayTicks, periodTicks, task)
             if (globalScheduled != null) {
                 return ReflectiveTask(globalScheduled)
             }
@@ -148,6 +153,32 @@ object SchedulerProvider {
 
     private object NoopTask : CancellableTask {
         override fun cancel() = Unit
+    }
+
+    private class FoliaRepeatingFallbackTask(
+        private val schedule: (Runnable, Long) -> Boolean
+    ) : CancellableTask {
+        @Volatile
+        private var cancelled: Boolean = false
+
+        fun start(initialDelayTicks: Long, periodTicks: Long, task: Runnable): Boolean {
+            val runner = object : Runnable {
+                override fun run() {
+                    if (cancelled) {
+                        return
+                    }
+                    task.run()
+                    if (!cancelled) {
+                        schedule(this, periodTicks)
+                    }
+                }
+            }
+            return schedule(runner, initialDelayTicks)
+        }
+
+        override fun cancel() {
+            cancelled = true
+        }
     }
 
     private fun runFoliaAsyncNow(plugin: Plugin, task: Runnable): Boolean {
@@ -204,10 +235,38 @@ object SchedulerProvider {
         task: Runnable
     ): Any? {
         val scheduler = getServerScheduler("getGlobalRegionScheduler") ?: return null
-        val method = scheduler.javaClass.methods.firstOrNull {
+        val ticksMethod = scheduler.javaClass.methods.firstOrNull {
             it.name == "runAtFixedRate" && it.parameterCount == 4
+        }
+        if (ticksMethod != null) {
+            return try {
+                ticksMethod.invoke(scheduler, plugin, Consumer<Any> { task.run() }, initialDelayTicks, periodTicks)
+            } catch (_: IllegalArgumentException) {
+                ticksMethod.invoke(scheduler, plugin, Runnable { task.run() }, initialDelayTicks, periodTicks)
+            }
+        }
+        val millisMethod = scheduler.javaClass.methods.firstOrNull {
+            it.name == "runAtFixedRate" && it.parameterCount == 5
         } ?: return null
-        return method.invoke(scheduler, plugin, Consumer<Any> { task.run() }, initialDelayTicks, periodTicks)
+        return try {
+            millisMethod.invoke(
+                scheduler,
+                plugin,
+                Consumer<Any> { task.run() },
+                ticksToMillis(initialDelayTicks),
+                ticksToMillis(periodTicks),
+                TimeUnit.MILLISECONDS
+            )
+        } catch (_: IllegalArgumentException) {
+            millisMethod.invoke(
+                scheduler,
+                plugin,
+                Runnable { task.run() },
+                ticksToMillis(initialDelayTicks),
+                ticksToMillis(periodTicks),
+                TimeUnit.MILLISECONDS
+            )
+        }
     }
 
     private fun runFoliaRegion(
@@ -219,14 +278,120 @@ object SchedulerProvider {
     ): Boolean {
         val regionScheduler = world.javaClass.methods.firstOrNull { it.name == "getRegionScheduler" }?.invoke(world)
             ?: return false
-        val methodName = if (delayTicks == null) "run" else "runDelayed"
-        val method = regionScheduler.javaClass.methods.firstOrNull {
-            it.name == methodName && it.parameterCount == if (delayTicks == null) 3 else 4
-        } ?: return false
+        val regionX = location.blockX shr 4
+        val regionZ = location.blockZ shr 4
         if (delayTicks == null) {
-            method.invoke(regionScheduler, plugin, location, Consumer<Any> { task.run() })
+            val executeMethod = regionScheduler.javaClass.methods.firstOrNull {
+                it.name == "execute" && it.parameterCount == 3
+            } ?: regionScheduler.javaClass.methods.firstOrNull {
+                it.name == "execute" && it.parameterCount == 5
+            }
+            if (executeMethod != null) {
+                return try {
+                    if (executeMethod.parameterCount == 5) {
+                        executeMethod.invoke(regionScheduler, plugin, world, regionX, regionZ, task)
+                    } else {
+                        executeMethod.invoke(regionScheduler, plugin, location, task)
+                    }
+                    true
+                } catch (_: IllegalArgumentException) {
+                    false
+                }
+            }
+        }
+        val methodName = if (delayTicks == null) "run" else "runDelayed"
+        val delayMethod = if (delayTicks == null) {
+            regionScheduler.javaClass.methods.firstOrNull {
+                it.name == methodName && it.parameterCount == 3
+            } ?: regionScheduler.javaClass.methods.firstOrNull {
+                it.name == methodName && it.parameterCount == 5
+            }
         } else {
-            method.invoke(regionScheduler, plugin, location, Consumer<Any> { task.run() }, delayTicks)
+            regionScheduler.javaClass.methods.firstOrNull {
+                it.name == methodName && it.parameterCount == 4
+            } ?: regionScheduler.javaClass.methods.firstOrNull {
+                it.name == methodName && it.parameterCount == 5
+            } ?: regionScheduler.javaClass.methods.firstOrNull {
+                it.name == methodName && it.parameterCount == 6
+            }
+        } ?: return false
+        val useWorldParams = delayMethod.parameterTypes.getOrNull(1)?.name == "org.bukkit.World"
+        if (delayTicks == null) {
+            try {
+                if (useWorldParams) {
+                    delayMethod.invoke(
+                        regionScheduler,
+                        plugin,
+                        world,
+                        regionX,
+                        regionZ,
+                        Consumer<Any> { task.run() }
+                    )
+                } else {
+                    delayMethod.invoke(regionScheduler, plugin, location, Consumer<Any> { task.run() })
+                }
+            } catch (_: IllegalArgumentException) {
+                if (useWorldParams) {
+                    delayMethod.invoke(
+                        regionScheduler,
+                        plugin,
+                        world,
+                        regionX,
+                        regionZ,
+                        Runnable { task.run() }
+                    )
+                } else {
+                    delayMethod.invoke(regionScheduler, plugin, location, Runnable { task.run() })
+                }
+            }
+        } else {
+            try {
+                if (useWorldParams) {
+                    delayMethod.invoke(
+                        regionScheduler,
+                        plugin,
+                        world,
+                        regionX,
+                        regionZ,
+                        Consumer<Any> { task.run() },
+                        delayTicks
+                    )
+                } else if (delayMethod.parameterCount == 4) {
+                    delayMethod.invoke(regionScheduler, plugin, location, Consumer<Any> { task.run() }, delayTicks)
+                } else {
+                    delayMethod.invoke(
+                        regionScheduler,
+                        plugin,
+                        location,
+                        Consumer<Any> { task.run() },
+                        ticksToMillis(delayTicks),
+                        TimeUnit.MILLISECONDS
+                    )
+                }
+            } catch (_: IllegalArgumentException) {
+                if (useWorldParams) {
+                    delayMethod.invoke(
+                        regionScheduler,
+                        plugin,
+                        world,
+                        regionX,
+                        regionZ,
+                        Runnable { task.run() },
+                        delayTicks
+                    )
+                } else if (delayMethod.parameterCount == 4) {
+                    delayMethod.invoke(regionScheduler, plugin, location, Runnable { task.run() }, delayTicks)
+                } else {
+                    delayMethod.invoke(
+                        regionScheduler,
+                        plugin,
+                        location,
+                        Runnable { task.run() },
+                        ticksToMillis(delayTicks),
+                        TimeUnit.MILLISECONDS
+                    )
+                }
+            }
         }
         return true
     }
@@ -241,17 +406,102 @@ object SchedulerProvider {
     ): Any? {
         val regionScheduler = world.javaClass.methods.firstOrNull { it.name == "getRegionScheduler" }?.invoke(world)
             ?: return null
-        val method = regionScheduler.javaClass.methods.firstOrNull {
+        val regionX = location.blockX shr 4
+        val regionZ = location.blockZ shr 4
+        val ticksMethod = regionScheduler.javaClass.methods.firstOrNull {
             it.name == "runAtFixedRate" && it.parameterCount == 5
+        }
+        if (ticksMethod != null) {
+            return try {
+                ticksMethod.invoke(
+                    regionScheduler,
+                    plugin,
+                    location,
+                    Consumer<Any> { task.run() },
+                    initialDelayTicks,
+                    periodTicks
+                )
+            } catch (_: IllegalArgumentException) {
+                ticksMethod.invoke(
+                    regionScheduler,
+                    plugin,
+                    location,
+                    Runnable { task.run() },
+                    initialDelayTicks,
+                    periodTicks
+                )
+            }
+        }
+        val worldTicksMethod = regionScheduler.javaClass.methods.firstOrNull {
+            it.name == "runAtFixedRate" && it.parameterCount == 7
+        }
+        if (worldTicksMethod != null) {
+            return try {
+                worldTicksMethod.invoke(
+                    regionScheduler,
+                    plugin,
+                    world,
+                    regionX,
+                    regionZ,
+                    Consumer<Any> { task.run() },
+                    initialDelayTicks,
+                    periodTicks
+                )
+            } catch (_: IllegalArgumentException) {
+                worldTicksMethod.invoke(
+                    regionScheduler,
+                    plugin,
+                    world,
+                    regionX,
+                    regionZ,
+                    Runnable { task.run() },
+                    initialDelayTicks,
+                    periodTicks
+                )
+            }
+        }
+        val millisMethod = regionScheduler.javaClass.methods.firstOrNull {
+            it.name == "runAtFixedRate" && it.parameterCount == 6
         } ?: return null
-        return method.invoke(
-            regionScheduler,
-            plugin,
-            location,
-            Consumer<Any> { task.run() },
-            initialDelayTicks,
-            periodTicks
-        )
+        return try {
+            millisMethod.invoke(
+                regionScheduler,
+                plugin,
+                location,
+                Consumer<Any> { task.run() },
+                ticksToMillis(initialDelayTicks),
+                ticksToMillis(periodTicks),
+                TimeUnit.MILLISECONDS
+            )
+        } catch (_: IllegalArgumentException) {
+            millisMethod.invoke(
+                regionScheduler,
+                plugin,
+                location,
+                Runnable { task.run() },
+                ticksToMillis(initialDelayTicks),
+                ticksToMillis(periodTicks),
+                TimeUnit.MILLISECONDS
+            )
+        }
+    }
+
+    private fun scheduleFoliaRegionRepeatingFallback(
+        world: org.bukkit.World,
+        plugin: Plugin,
+        location: Location,
+        initialDelayTicks: Long,
+        periodTicks: Long,
+        task: Runnable
+    ): CancellableTask? {
+        val fallbackTask = FoliaRepeatingFallbackTask { runnable, delay ->
+            runFoliaRegion(world, plugin, location, runnable, delay)
+        }
+        return if (fallbackTask.start(initialDelayTicks, periodTicks, task)) {
+            fallbackTask
+        } else {
+            null
+        }
     }
 
     private fun getServerScheduler(methodName: String): Any? {
