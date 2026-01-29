@@ -2,7 +2,6 @@ package pl.syntaxdevteam.gravediggerx.graves
 
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.bukkit.scheduler.BukkitRunnable
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.common.CancellableTask
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
@@ -18,7 +17,7 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
 
         scheduledTasks[grave.ownerId]?.cancel()
 
-        val runnable = object : BukkitRunnable() {
+        val runnable = object : Runnable {
             var secondsLeft = totalSeconds
 
             override fun run() {
@@ -26,21 +25,18 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
                 val world = grave.location.world
 
                 if (world == null) {
-                    scheduledTasks.remove(grave.ownerId)
-                    cancel()
+                    cancelScheduledRemoval(grave.ownerId)
                     return
                 }
 
                 if (plugin.graveManager.getGraveAt(grave.location) == null) {
-                    scheduledTasks.remove(grave.ownerId)
-                    cancel()
+                    cancelScheduledRemoval(grave.ownerId)
                     return
                 }
 
                 if (grave.location.block.type != org.bukkit.Material.PLAYER_HEAD) {
                     plugin.graveManager.removeGrave(grave)
-                    scheduledTasks.remove(grave.ownerId)
-                    cancel()
+                    cancelScheduledRemoval(grave.ownerId)
                     return
                 }
 
@@ -79,8 +75,7 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
                             plugin.graveManager.removeGrave(grave)
                         }
                     }
-                    scheduledTasks.remove(grave.ownerId)
-                    cancel()
+                    cancelScheduledRemoval(grave.ownerId)
                     return
                 }
 
@@ -92,12 +87,15 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
     }
 
     fun cancelRemoval(grave: Grave) {
-        scheduledTasks[grave.ownerId]?.cancel()
-        scheduledTasks.remove(grave.ownerId)
+        cancelScheduledRemoval(grave.ownerId)
     }
 
     fun cancelAll() {
         scheduledTasks.values.forEach { it.cancel() }
         scheduledTasks.clear()
+    }
+
+    private fun cancelScheduledRemoval(ownerId: UUID) {
+        scheduledTasks.remove(ownerId)?.cancel()
     }
 }
