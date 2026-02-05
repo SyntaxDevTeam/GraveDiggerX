@@ -6,6 +6,7 @@ import org.bukkit.Particle
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
+import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
@@ -106,6 +107,10 @@ class GraveGUI(
         openedBy = player
         player.openInventory(inventory)
         player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1f, 1f)
+    }
+
+    fun destroy() {
+        HandlerList.unregisterAll(this)
     }
 
     @EventHandler

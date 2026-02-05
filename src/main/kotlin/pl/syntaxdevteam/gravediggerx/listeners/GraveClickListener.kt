@@ -17,7 +17,9 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
 
     private val effectCooldowns = mutableMapOf<UUID, Long>()
 
-    private val graveGuiCache = mutableMapOf<String, GraveGUI>()
+    private data class GraveGuiEntry(val ownerId: UUID, val createdAt: Long, val gui: GraveGUI)
+
+    private val graveGuiCache = mutableMapOf<String, GraveGuiEntry>()
 
     @EventHandler
     fun onGraveInteract(e: PlayerInteractEvent) {
@@ -37,27 +39,23 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
                 collectGraveInstantly(player, grave)
                 return
             }
-            val graveId = grave.location.toString()
-            val gui = graveGuiCache.getOrPut(graveId) {
-                GraveGUI(grave, plugin)
-            }
+            val graveId = grave.location.toBlockLocation().toString()
+            val gui = getOrCreateGui(graveId, grave)
             gui.open(player)
 
             if (plugin.graveManager.getGraveAt(grave.location) == null) {
-                graveGuiCache.remove(graveId)
+                graveGuiCache.remove(graveId)?.gui?.destroy()
             }
             return
         }
 
         if (grave.isPublic) {
-            val graveId = grave.location.toString()
-            val gui = graveGuiCache.getOrPut(graveId) {
-                GraveGUI(grave, plugin)
-            }
+            val graveId = grave.location.toBlockLocation().toString()
+            val gui = getOrCreateGui(graveId, grave)
             gui.open(player)
 
             if (plugin.graveManager.getGraveAt(grave.location) == null) {
-                graveGuiCache.remove(graveId)
+                graveGuiCache.remove(graveId)?.gui?.destroy()
             }
             return
         }
@@ -91,6 +89,20 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
 
         val graveExpiredMsg = plugin.messageHandler.stringMessageToComponent("graves", "not-your-grave", emptyMap())
         player.sendMessage(graveExpiredMsg)
+    }
+
+
+    private fun getOrCreateGui(graveId: String, grave: Grave): GraveGUI {
+        val cached = graveGuiCache[graveId]
+        if (cached != null && cached.ownerId == grave.ownerId && cached.createdAt == grave.createdAt) {
+            return cached.gui
+        }
+
+        cached?.gui?.destroy()
+
+        val gui = GraveGUI(grave, plugin)
+        graveGuiCache[graveId] = GraveGuiEntry(grave.ownerId, grave.createdAt, gui)
+        return gui
     }
 
     private fun collectGraveInstantly(player: org.bukkit.entity.Player, grave: Grave) {
