@@ -17,9 +17,6 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
 
     private val effectCooldowns = mutableMapOf<UUID, Long>()
 
-    private data class GraveGuiEntry(val ownerId: UUID, val createdAt: Long, val gui: GraveGUI)
-
-    private val graveGuiCache = mutableMapOf<String, GraveGuiEntry>()
 
     @EventHandler
     fun onGraveInteract(e: PlayerInteractEvent) {
@@ -39,24 +36,12 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
                 collectGraveInstantly(player, grave)
                 return
             }
-            val graveId = grave.location.toBlockLocation().toString()
-            val gui = getOrCreateGui(graveId, grave)
-            gui.open(player)
-
-            if (plugin.graveManager.getGraveAt(grave.location) == null) {
-                graveGuiCache.remove(graveId)?.gui?.destroy()
-            }
+            GraveGUI(grave, plugin).open(player)
             return
         }
 
         if (grave.isPublic) {
-            val graveId = grave.location.toBlockLocation().toString()
-            val gui = getOrCreateGui(graveId, grave)
-            gui.open(player)
-
-            if (plugin.graveManager.getGraveAt(grave.location) == null) {
-                graveGuiCache.remove(graveId)?.gui?.destroy()
-            }
+            GraveGUI(grave, plugin).open(player)
             return
         }
 
@@ -91,19 +76,6 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
         player.sendMessage(graveExpiredMsg)
     }
 
-
-    private fun getOrCreateGui(graveId: String, grave: Grave): GraveGUI {
-        val cached = graveGuiCache[graveId]
-        if (cached != null && cached.ownerId == grave.ownerId && cached.createdAt == grave.createdAt) {
-            return cached.gui
-        }
-
-        cached?.gui?.destroy()
-
-        val gui = GraveGUI(grave, plugin)
-        graveGuiCache[graveId] = GraveGuiEntry(grave.ownerId, grave.createdAt, gui)
-        return gui
-    }
 
     private fun collectGraveInstantly(player: org.bukkit.entity.Player, grave: Grave) {
         if (player.uniqueId != grave.ownerId && !grave.isPublic) return

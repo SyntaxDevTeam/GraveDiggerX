@@ -109,9 +109,6 @@ class GraveGUI(
         player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1f, 1f)
     }
 
-    fun destroy() {
-        HandlerList.unregisterAll(this)
-    }
 
     @EventHandler
     fun onInventoryClick(event: InventoryClickEvent) {
@@ -130,6 +127,7 @@ class GraveGUI(
     fun onInventoryClose(event: InventoryCloseEvent) {
         if (event.inventory != inventory) return
         openedBy = null
+        HandlerList.unregisterAll(this)
     }
 
     private fun collectAll(player: Player) {
