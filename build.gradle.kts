@@ -1,12 +1,12 @@
 plugins {
-    kotlin("jvm") version "2.3.0"
-    id("com.gradleup.shadow") version "9.3.0"
+    kotlin("jvm") version "2.3.10"
+    id("com.gradleup.shadow") version "9.3.1"
     id("xyz.jpenilla.run-paper") version "3.0.2"
     id("pl.syntaxdevteam.plugindeployer") version "1.0.4"
 }
 
 group = "pl.syntaxdevteam.gravediggerx"
-version = "1.0.6-R0.2-SNAPSHOT"
+version = "1.0.6-R0.3-SNAPSHOT"
 description = "A powerful and very effective plugin for managing tombstones after players die."
 
 repositories {
@@ -20,7 +20,7 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly("pl.syntaxdevteam:core:1.2.8-R0.1-SNAPSHOT")
+    compileOnly("pl.syntaxdevteam:core:1.2.8-R0.2-SNAPSHOT")
     compileOnly("pl.syntaxdevteam:messageHandler-paper:1.1.0-R0.2-SNAPSHOT")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.3")
     compileOnly("com.zaxxer:HikariCP:7.0.2")
