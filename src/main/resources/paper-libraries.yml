@@ -12,7 +12,7 @@ libraries:
   # Caffeine caching library necessary for SyntaxCore and SyntaxMessages
   - com.github.ben-manes.caffeine:caffeine:3.2.3
   - pl.syntaxdevteam:messageHandler-paper:1.1.0-R0.2-SNAPSHOT
-  - pl.syntaxdevteam:core:1.2.8-R0.1-SNAPSHOT
+  - pl.syntaxdevteam:core:1.2.8-R0.2-SNAPSHOT
   # Datebases libraries
   - com.zaxxer:HikariCP:7.0.2
   - org.mariadb.jdbc:mariadb-java-client:3.5.7
