@@ -6,6 +6,7 @@ import org.bukkit.Particle
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
+import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
@@ -108,6 +109,7 @@ class GraveGUI(
         player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1f, 1f)
     }
 
+
     @EventHandler
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
@@ -125,6 +127,7 @@ class GraveGUI(
     fun onInventoryClose(event: InventoryCloseEvent) {
         if (event.inventory != inventory) return
         openedBy = null
+        HandlerList.unregisterAll(this)
     }
 
     private fun collectAll(player: Player) {

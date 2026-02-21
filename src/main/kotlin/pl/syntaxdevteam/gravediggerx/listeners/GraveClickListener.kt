@@ -17,7 +17,6 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
 
     private val effectCooldowns = mutableMapOf<UUID, Long>()
 
-    private val graveGuiCache = mutableMapOf<String, GraveGUI>()
 
     @EventHandler
     fun onGraveInteract(e: PlayerInteractEvent) {
@@ -37,28 +36,12 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
                 collectGraveInstantly(player, grave)
                 return
             }
-            val graveId = grave.location.toString()
-            val gui = graveGuiCache.getOrPut(graveId) {
-                GraveGUI(grave, plugin)
-            }
-            gui.open(player)
-
-            if (plugin.graveManager.getGraveAt(grave.location) == null) {
-                graveGuiCache.remove(graveId)
-            }
+            GraveGUI(grave, plugin).open(player)
             return
         }
 
         if (grave.isPublic) {
-            val graveId = grave.location.toString()
-            val gui = graveGuiCache.getOrPut(graveId) {
-                GraveGUI(grave, plugin)
-            }
-            gui.open(player)
-
-            if (plugin.graveManager.getGraveAt(grave.location) == null) {
-                graveGuiCache.remove(graveId)
-            }
+            GraveGUI(grave, plugin).open(player)
             return
         }
 
@@ -92,6 +75,7 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
         val graveExpiredMsg = plugin.messageHandler.stringMessageToComponent("graves", "not-your-grave", emptyMap())
         player.sendMessage(graveExpiredMsg)
     }
+
 
     private fun collectGraveInstantly(player: org.bukkit.entity.Player, grave: Grave) {
         if (player.uniqueId != grave.ownerId && !grave.isPublic) return

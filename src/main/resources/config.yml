@@ -11,6 +11,11 @@ graves:
 
   protected-effect-cooldown: 5000 # Cooldown in milliseconds for protected grave effect (teleport + sound)
 
+  backups:
+    enabled: true # Save backups of grave inventories for admin restores
+    max-per-player: 50 # Maximum backups kept per player (0 = unlimited)
+    max-total: 5000 # Maximum backups kept in total (0 = unlimited)
+
   # Enable/disable graves per dimension/world environment
   worlds:
     overworld: true   # NORMAL

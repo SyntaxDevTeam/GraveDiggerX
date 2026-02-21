@@ -2,7 +2,6 @@ package pl.syntaxdevteam.gravediggerx.graves
 
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.bukkit.scheduler.BukkitRunnable
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.common.CancellableTask
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
@@ -18,62 +17,65 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
 
         scheduledTasks[grave.ownerId]?.cancel()
 
-        val runnable = object : BukkitRunnable() {
+        val runnable = object : Runnable {
             var secondsLeft = totalSeconds
 
             override fun run() {
                 val player: Player? = Bukkit.getPlayer(grave.ownerId)
+                val world = grave.location.world
 
-                if (plugin.graveManager.getGraveAt(grave.location) == null) {
-                    scheduledTasks.remove(grave.ownerId)
-                    cancel()
+                if (world == null) {
+                    cancelScheduledRemoval(grave.ownerId)
                     return
                 }
 
-                SchedulerProvider.runSync(plugin, Runnable {
-                    if (grave.location.block.type != org.bukkit.Material.PLAYER_HEAD) {
-                        plugin.graveManager.removeGrave(grave)
-                        scheduledTasks.remove(grave.ownerId)
-                        cancel()
-                        return@Runnable
-                    }
+                if (plugin.graveManager.getGraveAt(grave.location) == null) {
+                    cancelScheduledRemoval(grave.ownerId)
+                    return
+                }
 
-                    if (player != null && player.isOnline) {
-                        val msg = plugin.messageHandler.stringMessageToComponent(
-                            "graves",
-                            "removal-countdown",
-                            mapOf(
-                                "time" to secondsLeft.toString(),
-                                "x" to grave.location.blockX.toString(),
-                                "y" to grave.location.blockY.toString(),
-                                "z" to grave.location.blockZ.toString()
-                            )
+                if (grave.location.block.type != org.bukkit.Material.PLAYER_HEAD) {
+                    plugin.graveManager.removeGrave(grave)
+                    cancelScheduledRemoval(grave.ownerId)
+                    return
+                }
+
+                plugin.graveManager.updateHologramWithTime(grave, secondsLeft)
+
+                if (player != null && player.isOnline) {
+                    val msg = plugin.messageHandler.stringMessageToComponent(
+                        "graves",
+                        "removal-countdown",
+                        mapOf(
+                            "time" to secondsLeft.toString(),
+                            "x" to grave.location.blockX.toString(),
+                            "y" to grave.location.blockY.toString(),
+                            "z" to grave.location.blockZ.toString()
                         )
+                    )
+                    SchedulerProvider.runSyncAt(plugin, player.location, Runnable {
                         player.sendActionBar(msg)
-                    }
-                })
+                    })
+                }
 
                 if (secondsLeft <= 0) {
-                    SchedulerProvider.runSync(plugin, Runnable {
-                        val expirationAction = GraveExpirationAction.fromString(
-                            plugin.config.getString("graves.expiration-action", "DISAPPEAR")!!
-                        )
-                        plugin.ghostManager.removeGhost(grave.ownerId)
-                        when (expirationAction) {
-                            GraveExpirationAction.DROP_ITEMS -> {
-                                plugin.graveManager.dropGraveItems(grave)
-                                plugin.graveManager.removeGrave(grave)
-                            }
-                            GraveExpirationAction.BECOME_PUBLIC -> {
-                                plugin.graveManager.makeGravePublic(grave)
-                            }
-                            GraveExpirationAction.DISAPPEAR -> {
-                                plugin.graveManager.removeGrave(grave)
-                            }
+                    val expirationAction = GraveExpirationAction.fromString(
+                        plugin.config.getString("graves.expiration-action", "DISAPPEAR")!!
+                    )
+                    plugin.ghostManager.removeGhost(grave.ownerId)
+                    when (expirationAction) {
+                        GraveExpirationAction.DROP_ITEMS -> {
+                            plugin.graveManager.dropGraveItems(grave)
+                            plugin.graveManager.removeGrave(grave)
                         }
-                    })
-                    scheduledTasks.remove(grave.ownerId)
-                    cancel()
+                        GraveExpirationAction.BECOME_PUBLIC -> {
+                            plugin.graveManager.makeGravePublic(grave)
+                        }
+                        GraveExpirationAction.DISAPPEAR -> {
+                            plugin.graveManager.removeGrave(grave)
+                        }
+                    }
+                    cancelScheduledRemoval(grave.ownerId)
                     return
                 }
 
@@ -81,16 +83,19 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
             }
         }
 
-        scheduledTasks[grave.ownerId] = SchedulerProvider.runAsyncRepeating(plugin, 0L, 20L, runnable)
+        scheduledTasks[grave.ownerId] = SchedulerProvider.runSyncRepeatingAt(plugin, grave.location, 0L, 20L, runnable)
     }
 
     fun cancelRemoval(grave: Grave) {
-        scheduledTasks[grave.ownerId]?.cancel()
-        scheduledTasks.remove(grave.ownerId)
+        cancelScheduledRemoval(grave.ownerId)
     }
 
     fun cancelAll() {
         scheduledTasks.values.forEach { it.cancel() }
         scheduledTasks.clear()
+    }
+
+    private fun cancelScheduledRemoval(ownerId: UUID) {
+        scheduledTasks.remove(ownerId)?.cancel()
     }
 }
