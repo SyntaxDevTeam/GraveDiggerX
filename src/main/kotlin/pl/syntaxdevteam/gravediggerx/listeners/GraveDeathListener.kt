@@ -39,18 +39,18 @@ class GraveDeathListener(private val plugin: GraveDiggerX) : Listener {
             return
         }
         val totalXP = player.totalExperience
+
+        val grave = plugin.graveManager.createGraveAndGetIt(player, playerItems, totalXP)
+        if (grave == null) {
+            return
+        }
+
         player.totalExperience = 0
         player.exp = 0f
         player.level = 0
 
         event.drops.clear()
         event.keepInventory = false
-
-        // TODO: Sprawdzić to dziwne przypisanie do grave
-        val grave = plugin.graveManager.createGraveAndGetIt(player, playerItems, totalXP)
-        if (grave == null) {
-            return
-        }
 
         event.droppedExp = 0
 
