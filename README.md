@@ -41,22 +41,30 @@ The main plugin command is `/gravediggerx` (shortcut `/grx`). The following subc
 
 | Command | Description | Permission |
 | --- | --- | --- |
-| `/gravediggerx help` | Displays a list of available commands and basic information.| `grx.cmd.help` |
-| `/gravediggerx reload` | Reloads the configuration, messages, and refreshes plugin data without restarting the server.| `grx.cmd.reload` |
-| `/gravediggerx list` | Shows the owner the coordinates of all their active gravestones.| `grx.cmd.list` |
-| `/gravediggerx admin remove <player> <id>` | Allows admin to delete player grave.| `grx.cmd.admin` |
-| `/gravediggerx admin list <player>` | Lists all gravestones of a specific player (for administrators).| `grx.cmd.admin` |
+| `/gravediggerx help` | Displays the plugin help and available command usage. | `grx.cmd.help` |
+| `/gravediggerx reload` | Reloads configuration and language messages without restarting the server. | `grx.cmd.reload` |
+| `/gravediggerx list` | Shows the executing player a numbered list of their active graves with coordinates. | `grx.cmd.list` |
+| `/gravediggerx admin list <player>` | Lists all active graves for the selected player. | `grx.cmd.admin` |
+| `/gravediggerx admin remove <player> <id>` | Removes one grave (by list index) for the selected player. | `grx.cmd.admin` |
+| `/gravediggerx admin backup list <player>` | Lists saved grave backups for the selected player. | `grx.cmd.admin` |
+| `/gravediggerx admin backup restore <player> <id>` | Restores one backup (by list index) as an active grave. | `grx.cmd.admin` |
+| `/gravediggerx admin cleanupholograms` | Removes orphaned grave holograms. | `grx.cmd.admin` |
+| `/gravediggerx admin cleanupghosts` | Removes orphaned guardian spirits (ghosts/allays). | `grx.cmd.admin` |
+| `/gravediggerx admin cleanupgraves` | Removes orphaned grave blocks tracked by the plugin. | `grx.cmd.admin` |
 
 Permissions:
 
-| Permission | Description |
-| --- | --- |
-| `grx.opengrave` | Allows the owner to open the gravestone GUI and collect items using the “Collect All” button. |
-| `grx.owner` | Master permission granting full access to all plugin features. |
-| `grx.cmd.admin` | Gives access to administrative GraveDiggerX commands. |
-| `grx.*` | Wildcard that provides access to all plugin permissions. |
+| Permission | Default | Description |
+| --- | --- | --- |
+| `grx.cmd.help` | `true` | Permission to use the help command. |
+| `grx.cmd.reload` | `op` | Permission to reload plugin configuration and messages. |
+| `grx.cmd.list` | `true` | Permission to list your own graves. |
+| `grx.cmd.admin` | `op` | Permission to use all admin subcommands. |
+| `grx.opengrave` | `true` | Permission to open grave GUI and collect grave contents. |
+| `grx.owner` | `false` | Master node that grants all core GraveDiggerX permissions. |
+| `grx.*` | `false` | Wildcard node for all GraveDiggerX permissions. |
 
-> **Tip:** Operators (OPs) have full access to all plugin features without needing any additional permissions.
+> **Note:** OP players are always allowed by the runtime permission checker.
 
 
 ## Support and Development
