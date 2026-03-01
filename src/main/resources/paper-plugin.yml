@@ -18,6 +18,12 @@ has-open-classloader: false
 features:
   debug: true
 
+dependencies:
+  server:
+    WorldGuard:
+      load: BEFORE
+      required: false
+
 
 permissions:
   grx.owner:

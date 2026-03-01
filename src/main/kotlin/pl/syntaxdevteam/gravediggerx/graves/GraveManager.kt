@@ -11,6 +11,7 @@ import org.bukkit.persistence.PersistentDataType
 import org.joml.Vector3f
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
+import pl.syntaxdevteam.gravediggerx.integrations.RegionOwnershipChecker
 import pl.syntaxdevteam.gravediggerx.spirits.GhostSpirit
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -19,6 +20,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
     private val activeGraves = ConcurrentHashMap<String, Grave>()
     private val graveRemoveListeners = ConcurrentHashMap<UUID, MutableList<() -> Unit>>()
     private val backupStore = GraveBackupStore(plugin)
+    private val regionOwnershipChecker = RegionOwnershipChecker.create(plugin)
     private val graveBackups = Collections.synchronizedList(backupStore.loadAllBackups().toMutableList())
 
     enum class BackupRestoreResult {
@@ -151,19 +153,28 @@ class GraveManager(private val plugin: GraveDiggerX) {
         }
 
         var location = player.location.toBlockLocation()
-
         val safeEnabled = plugin.config.getBoolean("graves.safe-placement.enabled", true)
         if (safeEnabled) {
             val radius = plugin.config.getInt("graves.safe-placement.radius", 8)
             val maxVert = plugin.config.getInt("graves.safe-placement.max-vertical-scan", 3)
-            SafeGravePlacer.findSafeLocationNear(location, radius, maxVert) { target, minDistance ->
-                hasNearbyGrave(target, minDistance)
-            }?.let { safeLoc ->
+            SafeGravePlacer.findSafeLocationNear(
+                location,
+                radius,
+                maxVert,
+                hasNearbyGrave = { target, minDistance -> hasNearbyGrave(target, minDistance) },
+                isAllowedLocation = { target -> regionOwnershipChecker.canPlaceGrave(player, target) }
+            )?.let { safeLoc ->
                 if (safeLoc != location) {
                     runCatching { plugin.logger.debug("Relocating grave from ${location.blockX},${location.blockY},${location.blockZ} to ${safeLoc.blockX},${safeLoc.blockY},${safeLoc.blockZ}") }
                     location = safeLoc
                 }
             }
+        }
+
+        if (!regionOwnershipChecker.canPlaceGrave(player, location)) {
+            val message = plugin.messageHandler.stringMessageToComponent("graves", "blocked-by-region")
+            player.sendMessage(message)
+            return null
         }
 
         val block = location.block

@@ -45,6 +45,7 @@ graves:
   not-your-grave: "<#AAAAAA>To nie jest twój grób, możesz otworzyć tylko swój!"
   collected: "<#AAAAAA>Odzyskałeś swój ekwipunek i XP."
   reached-max-graves: "<#AAAAAA>Osiągnąłeś maksymalną liczbę grobów<white> (<limit>)!"
+  blocked-by-region: "<#AAAAAA>Nie można utworzyć grobu na regionie, do którego nie należysz."
   only-player: "<red>Ta komenda może być użyta tylko przez graczy.</red>"
   no-graves: "<#AAAAAA>Nie znaleziono grobów."
   removal-countdown: "<#AAAAAA>Twój grób zostanie usunięty za: <white><time></white> s"

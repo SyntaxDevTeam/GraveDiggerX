@@ -16,6 +16,7 @@ repositories {
     }
     maven("https://nexus.syntaxdevteam.pl/repository/maven-snapshots/")
     maven("https://nexus.syntaxdevteam.pl/repository/maven-releases/")
+    maven("https://maven.enginehub.org/repo/")
 }
 
 dependencies {
@@ -26,6 +27,7 @@ dependencies {
     compileOnly("com.zaxxer:HikariCP:7.0.2")
     compileOnly("org.xerial:sqlite-jdbc:3.51.1.0")
     compileOnly("org.mariadb.jdbc:mariadb-java-client:3.5.7")
+    compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.16-SNAPSHOT")
 
 }
 

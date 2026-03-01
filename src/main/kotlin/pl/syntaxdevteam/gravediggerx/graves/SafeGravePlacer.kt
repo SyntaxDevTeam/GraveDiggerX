@@ -32,7 +32,8 @@ object SafeGravePlacer {
         base: Location,
         radius: Int,
         maxVerticalScan: Int,
-        hasNearbyGrave: (target: Location, minDistanceBlocks: Int) -> Boolean
+        hasNearbyGrave: (target: Location, minDistanceBlocks: Int) -> Boolean,
+        isAllowedLocation: (target: Location) -> Boolean = { true }
     ): Location? {
         val world = base.world ?: return null
         val baseX = base.blockX
@@ -40,7 +41,7 @@ object SafeGravePlacer {
         val baseZ = base.blockZ
 
         adjustYToGround(Location(world, baseX.toDouble(), baseY.toDouble(), baseZ.toDouble()), maxVerticalScan)?.let { cand ->
-            if (isSafeSpot(cand, hasNearbyGrave)) return cand
+            if (isSafeSpot(cand, hasNearbyGrave, isAllowedLocation)) return cand
         }
 
         for (r in 1..radius) {
@@ -48,28 +49,28 @@ object SafeGravePlacer {
                 val x = baseX + dx
                 val z = baseZ - r
                 adjustYToGround(Location(world, x + 0.0, baseY + 0.0, z + 0.0), maxVerticalScan)?.let { cand ->
-                    if (isSafeSpot(cand, hasNearbyGrave)) return cand
+                    if (isSafeSpot(cand, hasNearbyGrave, isAllowedLocation)) return cand
                 }
             }
             for (dz in (-r + 1)..r) {
                 val x = baseX + r
                 val z = baseZ + dz
                 adjustYToGround(Location(world, x + 0.0, baseY + 0.0, z + 0.0), maxVerticalScan)?.let { cand ->
-                    if (isSafeSpot(cand, hasNearbyGrave)) return cand
+                    if (isSafeSpot(cand, hasNearbyGrave, isAllowedLocation)) return cand
                 }
             }
             for (dx in (r - 1) downTo -r) {
                 val x = baseX + dx
                 val z = baseZ + r
                 adjustYToGround(Location(world, x + 0.0, baseY + 0.0, z + 0.0), maxVerticalScan)?.let { cand ->
-                    if (isSafeSpot(cand, hasNearbyGrave)) return cand
+                    if (isSafeSpot(cand, hasNearbyGrave, isAllowedLocation)) return cand
                 }
             }
             for (dz in (r - 1) downTo (-r + 1)) {
                 val x = baseX - r
                 val z = baseZ + dz
                 adjustYToGround(Location(world, x + 0.0, baseY + 0.0, z + 0.0), maxVerticalScan)?.let { cand ->
-                    if (isSafeSpot(cand, hasNearbyGrave)) return cand
+                    if (isSafeSpot(cand, hasNearbyGrave, isAllowedLocation)) return cand
                 }
             }
         }
@@ -202,7 +203,11 @@ object SafeGravePlacer {
      * - brak stromego urwiska (max drop 2),
      * - brak pobliskiego grobu (min distance 2).
      */
-    private fun isSafeSpot(target: Location, hasNearbyGrave: (Location, Int) -> Boolean): Boolean {
+    private fun isSafeSpot(
+        target: Location,
+        hasNearbyGrave: (Location, Int) -> Boolean,
+        isAllowedLocation: (Location) -> Boolean
+    ): Boolean {
         val world = target.world ?: return false
         val block = world.getBlockAt(target)
         val below = block.getRelative(0, -1, 0)
@@ -211,6 +216,7 @@ object SafeGravePlacer {
         if (isLavaOrLiquid(block.type) || isLavaOrLiquid(below.type)) return false
         if (hasSteepDrop(target, 2)) return false
         if (hasNearbyGrave(target, 2)) return false
+        if (!isAllowedLocation(target)) return false
         return true
     }
 

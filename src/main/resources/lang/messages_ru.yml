@@ -45,6 +45,7 @@ graves:
   not-your-grave: "<#AAAAAA>Вы можете открывать только свои могилы!"
   collected: "<#AAAAAA>Вы восстановили свои предметы и опыт."
   reached-max-graves: "<#AAAAAA>Вы достигли максимального числа активных могил<white> (<limit>)!"
+  blocked-by-region: "<#AAAAAA>Вашу могилу нельзя создать в регионе, который вам не принадлежит."
   only-player: "<red>Эта команда может быть использована только игроками.</red>"
   no-graves: "<#AAAAAA>Могил не найдено."
   removal-countdown: "<#AAAAAA>Ваша могила будет уничтожена через: <white><time></white> сек"

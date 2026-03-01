@@ -45,6 +45,7 @@ graves:
   not-your-grave: "<#AAAAAA>This is not your grave, you can only open yours!"
   collected: "<#AAAAAA>You have recovered your inventory and XP."
   reached-max-graves: "<#AAAAAA>You have reached the maximum number of graves<white> (<limit>)!"
+  blocked-by-region: "<#AAAAAA>Your grave cannot be created in a region you do not own."
   only-player: "<red>This command can only be used by players.</red>"
   no-graves: "<#AAAAAA>No graves found."
   removal-countdown: "<#AAAAAA>Your grave will be deleted in: <white><time></white> sec"
