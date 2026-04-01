@@ -1,12 +1,12 @@
 plugins {
-    kotlin("jvm") version "2.3.10"
-    id("com.gradleup.shadow") version "9.3.1"
+    kotlin("jvm") version "2.3.20"
+    id("com.gradleup.shadow") version "9.4.1"
     id("xyz.jpenilla.run-paper") version "3.0.2"
-    id("pl.syntaxdevteam.plugindeployer") version "1.0.4"
+    id("pl.syntaxdevteam.plugindeployer") version "1.0.5-R0.1-SNAPSHOT"
 }
 
 group = "pl.syntaxdevteam.gravediggerx"
-version = "1.0.6-R0.3-SNAPSHOT"
+version = "1.0.6-SNAPSHOT"
 description = "A powerful and very effective plugin for managing tombstones after players die."
 
 repositories {
@@ -21,8 +21,8 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly("pl.syntaxdevteam:core:1.2.8-R0.2-SNAPSHOT")
-    compileOnly("pl.syntaxdevteam:messageHandler-paper:1.1.0-R0.2-SNAPSHOT")
+    compileOnly("pl.syntaxdevteam:core:1.3.0-R0.2-SNAPSHOT")
+    compileOnly("pl.syntaxdevteam:messageHandler-paper:1.1.2-R0.1-SNAPSHOT")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.3")
     compileOnly("com.zaxxer:HikariCP:7.0.2")
     compileOnly("org.xerial:sqlite-jdbc:3.51.1.0")
@@ -71,6 +71,7 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
 }
 
 plugindeployer {
-    paper { dir = "/home/debian/poligon/Paper/1.21.11/plugins" }
-    folia { dir = "/home/debian/poligon/Folia/1.21.11/plugins" }
+    paper { dir = "/home/debian/server/Paper/1.21.11/plugins" }
+    folia { dir = "/home/debian/server/Folia/1.21.11/plugins" }
+    spigot { dir = "/home/debian/server/Spigot/26.1/plugins" }
 }

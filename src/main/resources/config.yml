@@ -44,7 +44,7 @@ database:
     port: 3306 # 5432 if you use PostgreSQL; Default for MySQL is 3306.
     dbname: my_database
     username: root
-    password: password
+    password: sUpErSrOnGP@ssword
 
 # Plugin language selection. Possible values: EN, PL
 # To add your own language file, please contact us on Discord: https://discord.gg/Zk6mxv7eMh
