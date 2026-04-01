@@ -5,6 +5,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.player.PlayerInteractEvent
+import net.kyori.adventure.text.Component
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.common.addItemOrDrop
 import pl.syntaxdevteam.gravediggerx.common.equipSafely
@@ -92,6 +93,7 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
             return
         }
 
+        var releaseLock = false
         try {
             for ((slot, item) in grave.items) {
                 if (slot in 0..35) {
@@ -107,8 +109,13 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
 
             if (grave.storedXp > 0) player.giveExp(grave.storedXp)
 
+            val markedCollected = plugin.graveManager.markCollected(grave, ticket)
+            if (!markedCollected) {
+                player.sendMessage(Component.text("Błąd zapisu transakcji odbioru. Grób pozostaje zablokowany do czasu interwencji administracji."))
+                return
+            }
             plugin.graveManager.removeGrave(grave)
-            plugin.graveManager.markCollected(grave, ticket)
+            releaseLock = true
             val world = player.world
             val loc = grave.location.clone().add(0.5, 0.5, 0.5)
             world.playSound(loc, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.3f)
@@ -119,7 +126,9 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
             plugin.graveManager.markCollectionFailed(grave, ticket, ex.message)
             throw ex
         } finally {
-            plugin.graveManager.releaseCollectionLock(grave)
+            if (releaseLock) {
+                plugin.graveManager.releaseCollectionLock(grave)
+            }
         }
     }
 }

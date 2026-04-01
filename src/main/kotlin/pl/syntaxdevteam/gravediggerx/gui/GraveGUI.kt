@@ -4,6 +4,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.Particle
 import org.bukkit.Sound
+import net.kyori.adventure.text.Component
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.HandlerList
@@ -158,6 +159,7 @@ class GraveGUI(
             return
         }
 
+        var releaseLock = false
         try {
             for ((slot, item) in grave.items) {
                 if (slot in 0..35) {
@@ -189,13 +191,20 @@ class GraveGUI(
             player.sendMessage(successMsg)
 
             plugin.ghostManager.removeGhost(grave.ownerId)
+            val markedCollected = plugin.graveManager.markCollected(grave, ticket)
+            if (!markedCollected) {
+                player.sendMessage(Component.text("Błąd zapisu transakcji odbioru. Grób pozostaje zablokowany do czasu interwencji administracji."))
+                return
+            }
             plugin.graveManager.removeGrave(grave)
-            plugin.graveManager.markCollected(grave, ticket)
+            releaseLock = true
         } catch (ex: Exception) {
             plugin.graveManager.markCollectionFailed(grave, ticket, ex.message)
             throw ex
         } finally {
-            plugin.graveManager.releaseCollectionLock(grave)
+            if (releaseLock) {
+                plugin.graveManager.releaseCollectionLock(grave)
+            }
         }
     }
 }
