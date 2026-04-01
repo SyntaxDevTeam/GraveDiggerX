@@ -10,12 +10,13 @@ import java.util.concurrent.ConcurrentHashMap
 
 class TimeGraveRemove(private val plugin: GraveDiggerX) {
 
-    private val scheduledTasks = ConcurrentHashMap<UUID, CancellableTask>()
+    private val scheduledTasks = ConcurrentHashMap<String, CancellableTask>()
 
     fun scheduleRemoval(grave: Grave) {
         val totalSeconds = plugin.config.getInt("graves.grave-despawn", 60)
+        val taskKey = graveTaskKey(grave)
 
-        scheduledTasks[grave.ownerId]?.cancel()
+        scheduledTasks[taskKey]?.cancel()
 
         val runnable = object : Runnable {
             var secondsLeft = totalSeconds
@@ -25,18 +26,18 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
                 val world = grave.location.world
 
                 if (world == null) {
-                    cancelScheduledRemoval(grave.ownerId)
+                    cancelScheduledRemoval(taskKey)
                     return
                 }
 
                 if (plugin.graveManager.getGraveAt(grave.location) == null) {
-                    cancelScheduledRemoval(grave.ownerId)
+                    cancelScheduledRemoval(taskKey)
                     return
                 }
 
                 if (grave.location.block.type != org.bukkit.Material.PLAYER_HEAD) {
                     plugin.graveManager.removeGrave(grave)
-                    cancelScheduledRemoval(grave.ownerId)
+                    cancelScheduledRemoval(taskKey)
                     return
                 }
 
@@ -75,7 +76,7 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
                             plugin.graveManager.removeGrave(grave)
                         }
                     }
-                    cancelScheduledRemoval(grave.ownerId)
+                    cancelScheduledRemoval(taskKey)
                     return
                 }
 
@@ -83,11 +84,11 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
             }
         }
 
-        scheduledTasks[grave.ownerId] = SchedulerProvider.runSyncRepeatingAt(plugin, grave.location, 0L, 20L, runnable)
+        scheduledTasks[taskKey] = SchedulerProvider.runSyncRepeatingAt(plugin, grave.location, 0L, 20L, runnable)
     }
 
     fun cancelRemoval(grave: Grave) {
-        cancelScheduledRemoval(grave.ownerId)
+        cancelScheduledRemoval(graveTaskKey(grave))
     }
 
     fun cancelAll() {
@@ -95,7 +96,13 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
         scheduledTasks.clear()
     }
 
-    private fun cancelScheduledRemoval(ownerId: UUID) {
-        scheduledTasks.remove(ownerId)?.cancel()
+    private fun cancelScheduledRemoval(taskKey: String) {
+        scheduledTasks.remove(taskKey)?.cancel()
+    }
+
+    private fun graveTaskKey(grave: Grave): String {
+        val loc = grave.location.toBlockLocation()
+        val worldName = loc.world?.name ?: "unknown"
+        return "$worldName:${loc.blockX}:${loc.blockY}:${loc.blockZ}:${grave.createdAt}"
     }
 }
