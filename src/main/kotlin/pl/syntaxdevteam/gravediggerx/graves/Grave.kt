@@ -6,6 +6,7 @@ import org.bukkit.inventory.ItemStack
 import java.util.UUID
 
 data class Grave(
+    val graveId: UUID = UUID.randomUUID(),
     val ownerId: UUID,
     val ownerName: String = "Unknown",
     val location: Location,

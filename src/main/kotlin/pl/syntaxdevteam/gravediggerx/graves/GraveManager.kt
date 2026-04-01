@@ -462,11 +462,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
 
 
     private fun getKey(location: Location): String {
-        val worldName = location.world?.name ?: "unknown"
-        val x = location.blockX
-        val y = location.blockY
-        val z = location.blockZ
-        return "$worldName:$x:$y:$z"
+        return GraveIdentity.locationKey(location)
     }
 
     fun restoreBackup(backup: GraveBackup): BackupRestoreResult {

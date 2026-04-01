@@ -11,6 +11,7 @@ import pl.syntaxdevteam.core.database.TableSchema
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import pl.syntaxdevteam.gravediggerx.graves.GraveDataStore
+import pl.syntaxdevteam.gravediggerx.graves.GraveIdentity
 import pl.syntaxdevteam.gravediggerx.graves.GraveSerializer
 import java.io.IOException
 import java.nio.file.Files
@@ -406,15 +407,11 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
     }
 
     private fun locationKey(location: Location): String {
-        val worldName = location.world?.name ?: "unknown"
-        val x = location.blockX
-        val y = location.blockY
-        val z = location.blockZ
-        return "$worldName:$x:$y:$z"
+        return GraveIdentity.locationKey(location)
     }
 
     private fun collectionClaimKey(grave: Grave): String =
-        "${locationKey(grave.location)}:${grave.createdAt}"
+        GraveIdentity.collectionClaimKey(grave)
 
     private fun tryAcquireCollectionClaimSql(claimKey: String, graveKey: String): Boolean {
         val manager = dbManager ?: return false

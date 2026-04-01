@@ -101,8 +101,6 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
     }
 
     private fun graveTaskKey(grave: Grave): String {
-        val loc = grave.location.toBlockLocation()
-        val worldName = loc.world?.name ?: "unknown"
-        return "$worldName:${loc.blockX}:${loc.blockY}:${loc.blockZ}:${grave.createdAt}"
+        return GraveIdentity.taskKey(grave)
     }
 }

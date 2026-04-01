@@ -28,6 +28,8 @@ dependencies {
     compileOnly("org.xerial:sqlite-jdbc:3.51.1.0")
     compileOnly("org.mariadb.jdbc:mariadb-java-client:3.5.7")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.16-SNAPSHOT")
+    testImplementation(kotlin("test"))
+    testImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
 
 }
 

@@ -56,6 +56,7 @@ object GraveSerializer {
 
     private fun encodeGrave(grave: Grave): JsonObject {
         val graveJson = JsonObject()
+        graveJson.addProperty("graveId", grave.graveId.toString())
         graveJson.addProperty("ownerId", grave.ownerId.toString())
         graveJson.addProperty("ownerName", grave.ownerName)
         graveJson.add("location", encodeLocation(grave.location))
@@ -113,6 +114,7 @@ object GraveSerializer {
         }
 
         return Grave(
+            graveId = GraveIdentity.graveIdOrRandom(obj.get("graveId")?.takeIf { !it.isJsonNull }?.asString),
             ownerId = UUID.fromString(obj.get("ownerId").asString),
             ownerName = obj.get("ownerName")?.asString ?: "Unknown",
             location = location,
