@@ -1,6 +1,8 @@
 package pl.syntaxdevteam.gravediggerx.database
 
 import org.bukkit.Location
+import com.google.gson.JsonParser
+import com.google.gson.reflect.TypeToken
 import pl.syntaxdevteam.core.database.Column
 import pl.syntaxdevteam.core.database.DatabaseConfig
 import pl.syntaxdevteam.core.database.DatabaseManager
@@ -15,6 +17,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.SQLException
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DatabaseHandler(private val plugin: GraveDiggerX) {
@@ -48,6 +51,9 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
     }
     private val dbManager = dbConfig?.let { DatabaseManager(it, logger) }
     private val sqlOperational = AtomicBoolean(false)
+    private val claimsFilePath = plugin.dataFolder.toPath().resolve("collection_claims.json")
+    private val fileClaimsLock = Any()
+    private val fileClaims = ConcurrentHashMap.newKeySet<String>()
 
     fun connect() {
         if (storageBackend != StorageBackend.SQL) {
@@ -105,6 +111,17 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
 
         try {
             manager.createTable(schema)
+            manager.createTable(
+                TableSchema(
+                    "grave_collection_claims",
+                    listOf(
+                        Column("id", idDefinition()),
+                        Column("claimKey", "VARCHAR(192) UNIQUE"),
+                        Column("graveKey", "VARCHAR(128)"),
+                        Column("claimedAt", "BIGINT")
+                    )
+                )
+            )
         } catch (e: Exception) {
             sqlOperational.set(false)
             logger.err("Failed to create graves table, falling back to file storage. ${e.message}")
@@ -176,6 +193,42 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
     }
 
     fun isJsonBackend(): Boolean = configuredType == "json"
+
+    fun tryAcquireCollectionClaim(grave: Grave): Boolean {
+        val claimKey = collectionClaimKey(grave)
+        return if (storageBackend == StorageBackend.SQL) {
+            tryAcquireCollectionClaimSql(claimKey, locationKey(grave.location))
+        } else {
+            tryAcquireCollectionClaimFile(claimKey)
+        }
+    }
+
+    fun releaseCollectionClaim(grave: Grave) {
+        val claimKey = collectionClaimKey(grave)
+        if (storageBackend == StorageBackend.SQL) {
+            releaseCollectionClaimSql(claimKey)
+        } else {
+            releaseCollectionClaimFile(claimKey)
+        }
+    }
+
+    fun clearAllCollectionClaims() {
+        if (storageBackend == StorageBackend.SQL) {
+            val manager = dbManager ?: return
+            if (!ensureSqlReady(logFailure = false)) return
+            try {
+                manager.execute("DELETE FROM grave_collection_claims")
+            } catch (e: Exception) {
+                logger.warning("Failed to clear SQL collection claims: ${e.message}")
+            }
+            return
+        }
+
+        synchronized(fileClaimsLock) {
+            fileClaims.clear()
+            saveClaimsToFile()
+        }
+    }
 
     private fun ensureSqlReady(logFailure: Boolean = true): Boolean {
         if (storageBackend != StorageBackend.SQL) {
@@ -358,6 +411,98 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
         val y = location.blockY
         val z = location.blockZ
         return "$worldName:$x:$y:$z"
+    }
+
+    private fun collectionClaimKey(grave: Grave): String =
+        "${locationKey(grave.location)}:${grave.createdAt}"
+
+    private fun tryAcquireCollectionClaimSql(claimKey: String, graveKey: String): Boolean {
+        val manager = dbManager ?: return false
+        if (!ensureSqlReady()) return false
+        return try {
+            manager.execute(
+                "INSERT INTO grave_collection_claims (claimKey, graveKey, claimedAt) VALUES (?, ?, ?)",
+                claimKey,
+                graveKey,
+                System.currentTimeMillis()
+            )
+            true
+        } catch (e: Exception) {
+            val message = e.message?.lowercase(Locale.ROOT).orEmpty()
+            if ("unique" in message || "duplicate" in message || "constraint" in message) {
+                return false
+            }
+            logger.warning("Failed to acquire SQL collection claim for $claimKey: ${e.message}")
+            false
+        }
+    }
+
+    private fun releaseCollectionClaimSql(claimKey: String) {
+        val manager = dbManager ?: return
+        if (!ensureSqlReady(logFailure = false)) return
+        try {
+            manager.execute("DELETE FROM grave_collection_claims WHERE claimKey = ?", claimKey)
+        } catch (e: Exception) {
+            logger.warning("Failed to release SQL collection claim for $claimKey: ${e.message}")
+        }
+    }
+
+    private fun tryAcquireCollectionClaimFile(claimKey: String): Boolean {
+        synchronized(fileClaimsLock) {
+            loadClaimsFromFileIfNeeded()
+            if (!fileClaims.add(claimKey)) {
+                return false
+            }
+            if (!saveClaimsToFile()) {
+                fileClaims.remove(claimKey)
+                return false
+            }
+            return true
+        }
+    }
+
+    private fun releaseCollectionClaimFile(claimKey: String) {
+        synchronized(fileClaimsLock) {
+            loadClaimsFromFileIfNeeded()
+            if (fileClaims.remove(claimKey)) {
+                saveClaimsToFile()
+            }
+        }
+    }
+
+    private fun loadClaimsFromFileIfNeeded() {
+        if (fileClaims.isNotEmpty() || !Files.exists(claimsFilePath)) return
+        runCatching {
+            val content = Files.readString(claimsFilePath)
+            if (content.isBlank()) return@runCatching
+            val type = object : TypeToken<List<String>>() {}.type
+            val values: List<String> = GraveSerializer.gson.fromJson(JsonParser.parseString(content), type)
+            fileClaims.addAll(values)
+        }.onFailure {
+            logger.warning("Failed to load collection claims from ${claimsFilePath.toAbsolutePath()}: ${it.message}")
+        }
+    }
+
+    private fun saveClaimsToFile(): Boolean {
+        return try {
+            createDirectoryIfMissing(claimsFilePath.parent)
+            val tmpPath = claimsFilePath.resolveSibling(claimsFilePath.fileName.toString() + ".tmp")
+            Files.writeString(tmpPath, GraveSerializer.gson.toJson(fileClaims.toList()))
+            try {
+                Files.move(
+                    tmpPath,
+                    claimsFilePath,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE
+                )
+            } catch (_: Exception) {
+                Files.move(tmpPath, claimsFilePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            }
+            true
+        } catch (e: Exception) {
+            logger.warning("Failed to save collection claims to ${claimsFilePath.toAbsolutePath()}: ${e.message}")
+            false
+        }
     }
 
     private fun Grave.toRecord(): GraveRecord {

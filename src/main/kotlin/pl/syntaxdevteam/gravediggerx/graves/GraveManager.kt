@@ -443,11 +443,21 @@ class GraveManager(private val plugin: GraveDiggerX) {
         return false
     }
 
-    fun tryAcquireCollectionLock(grave: Grave): Boolean =
-        collectionLocks.add(getKey(grave.location.toBlockLocation()))
+    fun tryAcquireCollectionLock(grave: Grave): Boolean {
+        val lockKey = getKey(grave.location.toBlockLocation())
+        if (!collectionLocks.add(lockKey)) {
+            return false
+        }
+        if (!plugin.databaseHandler.tryAcquireCollectionClaim(grave)) {
+            collectionLocks.remove(lockKey)
+            return false
+        }
+        return true
+    }
 
     fun releaseCollectionLock(grave: Grave) {
         collectionLocks.remove(getKey(grave.location.toBlockLocation()))
+        plugin.databaseHandler.releaseCollectionClaim(grave)
     }
 
 
