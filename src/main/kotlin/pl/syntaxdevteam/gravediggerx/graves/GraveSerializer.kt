@@ -21,6 +21,8 @@ object GraveSerializer {
         .setPrettyPrinting()
         .disableHtmlEscaping()
         .create()
+    @Volatile
+    var allowLegacyBase64Deserialize: Boolean = false
 
     fun encodeGraves(graves: Collection<Grave>): JsonArray {
         val array = JsonArray()
@@ -150,7 +152,7 @@ object GraveSerializer {
             val itemStack = when {
                 itemObj.has("item") && itemObj.get("item").isJsonObject ->
                     deserializeItemFromJson(itemObj.getAsJsonObject("item"))
-                itemObj.has("data") && itemObj.get("data").isJsonPrimitive ->
+                itemObj.has("data") && itemObj.get("data").isJsonPrimitive && allowLegacyBase64Deserialize ->
                     deserializeItemLegacyBase64(itemObj.get("data").asString)
                 else -> ItemStack(Material.AIR)
             }

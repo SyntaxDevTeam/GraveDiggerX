@@ -117,6 +117,7 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
         }
         // TODO: Add reloading database connection
         plugin.reloadConfig()
+        plugin.applySecurityConfig()
         ReloadPlugin(plugin).reloadAll()
         plugin.messageHandler.reloadMessages()
 

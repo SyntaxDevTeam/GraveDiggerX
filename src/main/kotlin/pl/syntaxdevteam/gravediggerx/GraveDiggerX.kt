@@ -16,6 +16,7 @@ import pl.syntaxdevteam.core.platform.ServerEnvironment
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
 import pl.syntaxdevteam.gravediggerx.database.DatabaseHandler
 import pl.syntaxdevteam.gravediggerx.graves.GraveManager
+import pl.syntaxdevteam.gravediggerx.graves.GraveSerializer
 import pl.syntaxdevteam.gravediggerx.graves.TimeGraveRemove
 import pl.syntaxdevteam.gravediggerx.listeners.GraveClickListener
 import pl.syntaxdevteam.gravediggerx.listeners.GraveDeathListener
@@ -48,6 +49,7 @@ class GraveDiggerX : JavaPlugin() {
         pluginConfig = this.config
         configHandler = ConfigHandler(this)
         configHandler.verifyAndUpdateConfig()
+        applySecurityConfig()
 
         timeGraveRemove = TimeGraveRemove(this)
 
@@ -89,6 +91,14 @@ class GraveDiggerX : JavaPlugin() {
                 databaseHandler.ensureSchema()
                 databaseHandler.clearAllCollectionClaims()
             })
+        }
+    }
+
+    fun applySecurityConfig() {
+        val allowLegacy = config.getBoolean("graves.serialization.allow-legacy-base64-deserialization", false)
+        GraveSerializer.allowLegacyBase64Deserialize = allowLegacy
+        if (allowLegacy) {
+            logger.warning("Legacy base64 deserialization is ENABLED. Use only for migration windows due to security risk.")
         }
     }
 }
