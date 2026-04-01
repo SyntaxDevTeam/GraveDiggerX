@@ -10,6 +10,8 @@ graves:
   expiration-action: "DISAPPEAR"
 
   protected-effect-cooldown: 5000 # Cooldown in milliseconds for protected grave effect (teleport + sound)
+  collection:
+    claim-ttl-ms: 15000 # TTL for CLAIMED/COLLECTING collection transaction states
 
   backups:
     enabled: true # Save backups of grave inventories for admin restores
@@ -65,3 +67,7 @@ debug: false
 # Should StatsCollector be enabled? Recommended: true.
 stats:
   enabled: true
+
+performance:
+  cleanup:
+    limit-per-tick: 250 # Max orphaned entities/blocks processed per tick in admin cleanup commands

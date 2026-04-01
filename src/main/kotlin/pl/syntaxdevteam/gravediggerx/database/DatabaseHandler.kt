@@ -2,6 +2,7 @@ package pl.syntaxdevteam.gravediggerx.database
 
 import org.bukkit.Location
 import com.google.gson.JsonParser
+import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 import pl.syntaxdevteam.core.database.Column
 import pl.syntaxdevteam.core.database.DatabaseConfig
@@ -13,11 +14,14 @@ import pl.syntaxdevteam.gravediggerx.graves.Grave
 import pl.syntaxdevteam.gravediggerx.graves.GraveDataStore
 import pl.syntaxdevteam.gravediggerx.graves.GraveIdentity
 import pl.syntaxdevteam.gravediggerx.graves.GraveSerializer
+import pl.syntaxdevteam.gravediggerx.graves.CollectionState
+import pl.syntaxdevteam.gravediggerx.graves.CollectionTx
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.SQLException
 import java.util.Locale
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -53,8 +57,11 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
     private val dbManager = dbConfig?.let { DatabaseManager(it, logger) }
     private val sqlOperational = AtomicBoolean(false)
     private val claimsFilePath = plugin.dataFolder.toPath().resolve("collection_claims.json")
+    private val collectionTxFilePath = plugin.dataFolder.toPath().resolve("collection_tx.json")
     private val fileClaimsLock = Any()
     private val fileClaims = ConcurrentHashMap.newKeySet<String>()
+    private val fileTxLock = Any()
+    private val fileCollectionTx = ConcurrentHashMap<UUID, CollectionTx>()
 
     fun connect() {
         if (storageBackend != StorageBackend.SQL) {
@@ -120,6 +127,22 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
                         Column("claimKey", "VARCHAR(192) UNIQUE"),
                         Column("graveKey", "VARCHAR(128)"),
                         Column("claimedAt", "BIGINT")
+                    )
+                )
+            )
+            manager.createTable(
+                TableSchema(
+                    "grave_collection_tx",
+                    listOf(
+                        Column("id", idDefinition()),
+                        Column("txId", "VARCHAR(36) UNIQUE"),
+                        Column("graveId", "VARCHAR(36)"),
+                        Column("collectorId", "VARCHAR(36)"),
+                        Column("state", "VARCHAR(16)"),
+                        Column("version", "INT"),
+                        Column("updatedAt", "BIGINT"),
+                        Column("expiresAt", "BIGINT"),
+                        Column("lastError", "TEXT")
                     )
                 )
             )
@@ -228,6 +251,55 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
         synchronized(fileClaimsLock) {
             fileClaims.clear()
             saveClaimsToFile()
+        }
+    }
+
+    fun beginCollectionTx(grave: Grave, collectorId: UUID, ttlMillis: Long): CollectionTx? {
+        val now = System.currentTimeMillis()
+        val tx = CollectionTx(
+            txId = UUID.randomUUID(),
+            graveId = grave.graveId,
+            collectorId = collectorId,
+            state = CollectionState.CLAIMED,
+            version = 1,
+            updatedAt = now,
+            expiresAt = now + ttlMillis
+        )
+        return if (storageBackend == StorageBackend.SQL) {
+            beginCollectionTxSql(tx)
+        } else {
+            beginCollectionTxFile(tx)
+        }
+    }
+
+    fun transitionCollectionTx(graveId: UUID, txId: UUID, from: CollectionState, to: CollectionState, error: String? = null): Boolean {
+        return if (storageBackend == StorageBackend.SQL) {
+            transitionCollectionTxSql(graveId, txId, from, to, error)
+        } else {
+            transitionCollectionTxFile(graveId, txId, from, to, error)
+        }
+    }
+
+    fun markCollectedTx(graveId: UUID, txId: UUID): Boolean {
+        return transitionCollectionTx(graveId, txId, CollectionState.COLLECTING, CollectionState.COLLECTED)
+    }
+
+    fun clearCollectionState(grave: Grave) {
+        if (storageBackend == StorageBackend.SQL) {
+            val manager = dbManager ?: return
+            if (!ensureSqlReady(logFailure = false)) return
+            runCatching {
+                manager.execute("DELETE FROM grave_collection_tx WHERE graveId = ?", grave.graveId.toString())
+            }.onFailure {
+                logger.warning("Failed to clear collection tx for grave ${grave.graveId}: ${it.message}")
+            }
+            return
+        }
+
+        synchronized(fileTxLock) {
+            loadTxFromFileIfNeeded()
+            fileCollectionTx.entries.removeIf { it.value.graveId == grave.graveId }
+            saveTxToFile()
         }
     }
 
@@ -498,6 +570,177 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
             true
         } catch (e: Exception) {
             logger.warning("Failed to save collection claims to ${claimsFilePath.toAbsolutePath()}: ${e.message}")
+            false
+        }
+    }
+
+    private fun beginCollectionTxSql(tx: CollectionTx): CollectionTx? {
+        val manager = dbManager ?: return null
+        if (!ensureSqlReady()) return null
+        val now = System.currentTimeMillis()
+        return try {
+            manager.execute("DELETE FROM grave_collection_tx WHERE graveId = ? AND state != ? AND expiresAt < ?",
+                tx.graveId.toString(),
+                CollectionState.COLLECTED.name,
+                now
+            )
+            val existing = manager.query(
+                "SELECT txId FROM grave_collection_tx WHERE graveId = ? AND state IN (?, ?, ?)",
+                tx.graveId.toString(),
+                CollectionState.CLAIMED.name,
+                CollectionState.COLLECTING.name,
+                CollectionState.COLLECTED.name
+            ) { rs -> rs.getString("txId") }
+            if (existing.isNotEmpty()) {
+                return null
+            }
+            manager.execute(
+                """
+                    INSERT INTO grave_collection_tx
+                    (txId, graveId, collectorId, state, version, updatedAt, expiresAt, lastError)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """.trimIndent(),
+                tx.txId.toString(),
+                tx.graveId.toString(),
+                tx.collectorId.toString(),
+                tx.state.name,
+                tx.version,
+                tx.updatedAt,
+                tx.expiresAt,
+                tx.lastError ?: ""
+            )
+            tx
+        } catch (e: Exception) {
+            logger.warning("Failed to begin SQL collection tx for grave ${tx.graveId}: ${e.message}")
+            null
+        }
+    }
+
+    private fun transitionCollectionTxSql(graveId: UUID, txId: UUID, from: CollectionState, to: CollectionState, error: String?): Boolean {
+        val manager = dbManager ?: return false
+        if (!ensureSqlReady()) return false
+        return try {
+            val current = manager.query(
+                "SELECT state FROM grave_collection_tx WHERE graveId = ? AND txId = ?",
+                graveId.toString(),
+                txId.toString()
+            ) { rs -> rs.getString("state") }.firstOrNull() ?: return false
+            if (current != from.name) return false
+            manager.execute(
+                """
+                    UPDATE grave_collection_tx
+                    SET state = ?, version = version + 1, updatedAt = ?, lastError = ?
+                    WHERE graveId = ? AND txId = ? AND state = ?
+                """.trimIndent(),
+                to.name,
+                System.currentTimeMillis(),
+                error ?: "",
+                graveId.toString(),
+                txId.toString(),
+                from.name
+            )
+            true
+        } catch (e: Exception) {
+            logger.warning("Failed to transition SQL collection tx ${txId}: ${e.message}")
+            false
+        }
+    }
+
+    private fun beginCollectionTxFile(tx: CollectionTx): CollectionTx? {
+        synchronized(fileTxLock) {
+            loadTxFromFileIfNeeded()
+            val now = System.currentTimeMillis()
+            fileCollectionTx.entries.removeIf {
+                it.value.graveId == tx.graveId && it.value.state != CollectionState.COLLECTED && it.value.expiresAt < now
+            }
+            val locked = fileCollectionTx.values.any {
+                it.graveId == tx.graveId && (it.state == CollectionState.CLAIMED || it.state == CollectionState.COLLECTING || it.state == CollectionState.COLLECTED)
+            }
+            if (locked) return null
+            fileCollectionTx[tx.txId] = tx
+            if (!saveTxToFile()) {
+                fileCollectionTx.remove(tx.txId)
+                return null
+            }
+            return tx
+        }
+    }
+
+    private fun transitionCollectionTxFile(graveId: UUID, txId: UUID, from: CollectionState, to: CollectionState, error: String?): Boolean {
+        synchronized(fileTxLock) {
+            loadTxFromFileIfNeeded()
+            val current = fileCollectionTx[txId] ?: return false
+            if (current.graveId != graveId || current.state != from) return false
+            val updated = current.copy(
+                state = to,
+                version = current.version + 1,
+                updatedAt = System.currentTimeMillis(),
+                lastError = error
+            )
+            fileCollectionTx[txId] = updated
+            if (!saveTxToFile()) {
+                fileCollectionTx[txId] = current
+                return false
+            }
+            return true
+        }
+    }
+
+    private fun loadTxFromFileIfNeeded() {
+        if (fileCollectionTx.isNotEmpty() || !Files.exists(collectionTxFilePath)) return
+        runCatching {
+            val content = Files.readString(collectionTxFilePath)
+            if (content.isBlank()) return@runCatching
+            val values = JsonParser.parseString(content).asJsonArray
+            values.forEach { element ->
+                val obj = element.asJsonObject
+                val tx = CollectionTx(
+                    txId = UUID.fromString(obj.get("txId").asString),
+                    graveId = UUID.fromString(obj.get("graveId").asString),
+                    collectorId = UUID.fromString(obj.get("collectorId").asString),
+                    state = CollectionState.valueOf(obj.get("state").asString),
+                    version = obj.get("version").asInt,
+                    updatedAt = obj.get("updatedAt").asLong,
+                    expiresAt = obj.get("expiresAt").asLong,
+                    lastError = obj.get("lastError")?.takeIf { !it.isJsonNull }?.asString
+                )
+                fileCollectionTx[tx.txId] = tx
+            }
+        }.onFailure {
+            logger.warning("Failed to load collection tx from ${collectionTxFilePath.toAbsolutePath()}: ${it.message}")
+        }
+    }
+
+    private fun saveTxToFile(): Boolean {
+        return try {
+            createDirectoryIfMissing(collectionTxFilePath.parent)
+            val tmpPath = collectionTxFilePath.resolveSibling(collectionTxFilePath.fileName.toString() + ".tmp")
+            val array = fileCollectionTx.values.map { tx ->
+                JsonObject().apply {
+                    addProperty("txId", tx.txId.toString())
+                    addProperty("graveId", tx.graveId.toString())
+                    addProperty("collectorId", tx.collectorId.toString())
+                    addProperty("state", tx.state.name)
+                    addProperty("version", tx.version)
+                    addProperty("updatedAt", tx.updatedAt)
+                    addProperty("expiresAt", tx.expiresAt)
+                    addProperty("lastError", tx.lastError)
+                }
+            }
+            Files.writeString(tmpPath, GraveSerializer.gson.toJson(array))
+            try {
+                Files.move(
+                    tmpPath,
+                    collectionTxFilePath,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE
+                )
+            } catch (_: Exception) {
+                Files.move(tmpPath, collectionTxFilePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            }
+            true
+        } catch (e: Exception) {
+            logger.warning("Failed to save collection tx to ${collectionTxFilePath.toAbsolutePath()}: ${e.message}")
             false
         }
     }

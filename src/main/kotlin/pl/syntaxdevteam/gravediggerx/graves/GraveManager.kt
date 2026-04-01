@@ -8,6 +8,7 @@ import org.bukkit.entity.Display
 import org.bukkit.entity.TextDisplay
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
+import org.bukkit.scheduler.BukkitTask
 import org.joml.Vector3f
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
@@ -23,6 +24,8 @@ class GraveManager(private val plugin: GraveDiggerX) {
     private val backupStore = GraveBackupStore(plugin)
     private val regionOwnershipChecker = RegionOwnershipChecker.create(plugin)
     private val graveBackups = Collections.synchronizedList(backupStore.loadAllBackups().toMutableList())
+    @Volatile
+    private var cleanupTask: BukkitTask? = null
 
     enum class BackupRestoreResult {
         SUCCESS,
@@ -245,6 +248,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
                 Bukkit.getEntity(id)?.remove() }
             plugin.ghostManager.removeGhost(grave.ownerId)
             releaseCollectionLock(grave)
+            plugin.databaseHandler.clearCollectionState(grave)
             notifyGraveRemoved(grave)
         }
         activeGraves.clear()
@@ -331,6 +335,22 @@ class GraveManager(private val plugin: GraveDiggerX) {
         return removed
     }
 
+    fun cleanupOrphanedHologramsBatched(limitPerTick: Int, onComplete: (Int) -> Unit): Boolean {
+        val snapshot = Bukkit.getWorlds().flatMap { world -> world.entities.filterIsInstance<TextDisplay>() }.toMutableList()
+        return runEntityCleanupBatch(snapshot, limitPerTick, onComplete) { display ->
+            val hologramKey = NamespacedKey(plugin, "grave_hologram")
+            val graveKey = NamespacedKey(plugin, "grave")
+            if (!display.persistentDataContainer.has(hologramKey, PersistentDataType.STRING)) return@runEntityCleanupBatch false
+            val blockLocation = display.location.clone().subtract(0.5, 1.5, 0.5).toBlockLocation()
+            if (getGraveAt(blockLocation) != null) return@runEntityCleanupBatch false
+            val block = blockLocation.block
+            val state = block.state
+            if (state is Skull && state.persistentDataContainer.has(graveKey, PersistentDataType.STRING)) return@runEntityCleanupBatch false
+            display.remove()
+            true
+        }
+    }
+
     fun cleanupOrphanedGhosts(): Int {
         var removed = 0
         val graveKey = NamespacedKey(plugin, "grave")
@@ -359,6 +379,25 @@ class GraveManager(private val plugin: GraveDiggerX) {
         return removed
     }
 
+    fun cleanupOrphanedGhostsBatched(limitPerTick: Int, onComplete: (Int) -> Unit): Boolean {
+        val snapshot = Bukkit.getWorlds().flatMap { it.entities }.toMutableList()
+        return runEntityCleanupBatch(snapshot, limitPerTick, onComplete) { entity ->
+            val graveKey = NamespacedKey(plugin, "grave")
+            val ghostKey = GhostSpirit.key(plugin)
+            val legacyGhostKey = GhostSpirit.legacyKey()
+            if (!entity.persistentDataContainer.has(ghostKey, PersistentDataType.STRING) &&
+                !entity.persistentDataContainer.has(legacyGhostKey, PersistentDataType.STRING)
+            ) return@runEntityCleanupBatch false
+            val baseLocation = entity.location.clone().subtract(0.5, 2.7, 0.5).toBlockLocation()
+            if (getGraveAt(baseLocation) != null) return@runEntityCleanupBatch false
+            val block = baseLocation.block
+            val state = block.state
+            if (state is Skull && state.persistentDataContainer.has(graveKey, PersistentDataType.STRING)) return@runEntityCleanupBatch false
+            entity.remove()
+            true
+        }
+    }
+
     fun cleanupOrphanedGraves(): Int {
         var removed = 0
         val graveKey = NamespacedKey(plugin, "grave")
@@ -379,6 +418,61 @@ class GraveManager(private val plugin: GraveDiggerX) {
             }
         }
         return removed
+    }
+
+    fun cleanupOrphanedGravesBatched(limitPerTick: Int, onComplete: (Int) -> Unit): Boolean {
+        val skulls = Bukkit.getWorlds()
+            .flatMap { it.loadedChunks.toList() }
+            .flatMap { chunk -> chunk.tileEntities.filterIsInstance<Skull>() }
+            .toMutableList()
+        if (cleanupTask != null) return false
+        var removed = 0
+        val iterator = skulls.iterator()
+        val graveKey = NamespacedKey(plugin, "grave")
+        cleanupTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
+            var processed = 0
+            while (iterator.hasNext() && processed < limitPerTick) {
+                val skull = iterator.next()
+                processed++
+                if (!skull.persistentDataContainer.has(graveKey, PersistentDataType.STRING)) continue
+                val location = skull.location.toBlockLocation()
+                if (getGraveAt(location) != null) continue
+                if (removeGraveAt(location)) removed++
+            }
+            if (!iterator.hasNext()) {
+                cleanupTask?.cancel()
+                cleanupTask = null
+                onComplete(removed)
+            }
+        }, 1L, 1L)
+        return true
+    }
+
+    private fun <T> runEntityCleanupBatch(
+        snapshot: MutableList<T>,
+        limitPerTick: Int,
+        onComplete: (Int) -> Unit,
+        remover: (T) -> Boolean
+    ): Boolean {
+        if (cleanupTask != null) return false
+        var removed = 0
+        val iterator = snapshot.iterator()
+        cleanupTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
+            var processed = 0
+            while (iterator.hasNext() && processed < limitPerTick) {
+                val entity = iterator.next()
+                processed++
+                if (remover(entity)) {
+                    removed++
+                }
+            }
+            if (!iterator.hasNext()) {
+                cleanupTask?.cancel()
+                cleanupTask = null
+                onComplete(removed)
+            }
+        }, 1L, 1L)
+        return true
     }
 
     fun dropGraveItems(grave: Grave) {
@@ -416,6 +510,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
 
         plugin.ghostManager.removeGhost(grave.ownerId)
         releaseCollectionLock(grave)
+        plugin.databaseHandler.clearCollectionState(grave)
         activeGraves.remove(getKey(location))
         notifyGraveRemoved(grave)
         saveGravesToStorage()
@@ -443,16 +538,46 @@ class GraveManager(private val plugin: GraveDiggerX) {
         return false
     }
 
-    fun tryAcquireCollectionLock(grave: Grave): Boolean {
+    fun beginCollection(grave: Grave, collectorId: UUID): CollectionTicket? {
         val lockKey = getKey(grave.location.toBlockLocation())
         if (!collectionLocks.add(lockKey)) {
-            return false
+            return null
         }
         if (!plugin.databaseHandler.tryAcquireCollectionClaim(grave)) {
             collectionLocks.remove(lockKey)
-            return false
+            return null
         }
-        return true
+        val ttlMillis = plugin.config.getLong("graves.collection.claim-ttl-ms", 15000L).coerceAtLeast(3000L)
+        val tx = plugin.databaseHandler.beginCollectionTx(grave, collectorId, ttlMillis)
+        if (tx == null) {
+            collectionLocks.remove(lockKey)
+            plugin.databaseHandler.releaseCollectionClaim(grave)
+            return null
+        }
+        return CollectionTicket(tx.txId, tx.graveId, collectorId)
+    }
+
+    fun markCollecting(grave: Grave, ticket: CollectionTicket): Boolean {
+        return plugin.databaseHandler.transitionCollectionTx(
+            graveId = grave.graveId,
+            txId = ticket.txId,
+            from = CollectionState.CLAIMED,
+            to = CollectionState.COLLECTING
+        )
+    }
+
+    fun markCollected(grave: Grave, ticket: CollectionTicket): Boolean {
+        return plugin.databaseHandler.markCollectedTx(grave.graveId, ticket.txId)
+    }
+
+    fun markCollectionFailed(grave: Grave, ticket: CollectionTicket, error: String?) {
+        plugin.databaseHandler.transitionCollectionTx(
+            graveId = grave.graveId,
+            txId = ticket.txId,
+            from = CollectionState.COLLECTING,
+            to = CollectionState.FAILED,
+            error = error
+        )
     }
 
     fun releaseCollectionLock(grave: Grave) {

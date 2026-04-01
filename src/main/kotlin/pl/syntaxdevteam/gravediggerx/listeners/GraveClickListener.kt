@@ -79,7 +79,14 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
 
     private fun collectGraveInstantly(player: org.bukkit.entity.Player, grave: Grave) {
         if (player.uniqueId != grave.ownerId && !grave.isPublic) return
-        if (!plugin.graveManager.tryAcquireCollectionLock(grave)) {
+        val ticket = plugin.graveManager.beginCollection(grave, player.uniqueId)
+        if (ticket == null) {
+            val alreadyCollectedMsg = plugin.messageHandler.stringMessageToComponent("graves", "already-collected", emptyMap())
+            player.sendMessage(alreadyCollectedMsg)
+            return
+        }
+        if (!plugin.graveManager.markCollecting(grave, ticket)) {
+            plugin.graveManager.releaseCollectionLock(grave)
             val alreadyCollectedMsg = plugin.messageHandler.stringMessageToComponent("graves", "already-collected", emptyMap())
             player.sendMessage(alreadyCollectedMsg)
             return
@@ -101,12 +108,16 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
             if (grave.storedXp > 0) player.giveExp(grave.storedXp)
 
             plugin.graveManager.removeGrave(grave)
+            plugin.graveManager.markCollected(grave, ticket)
             val world = player.world
             val loc = grave.location.clone().add(0.5, 0.5, 0.5)
             world.playSound(loc, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.3f)
             world.spawnParticle(org.bukkit.Particle.SOUL, loc, 30, 0.3, 0.3, 0.3, 0.02)
             val msg = plugin.messageHandler.stringMessageToComponent("graves", "collected", mapOf("player" to player.name))
             player.sendMessage(msg)
+        } catch (ex: Exception) {
+            plugin.graveManager.markCollectionFailed(grave, ticket, ex.message)
+            throw ex
         } finally {
             plugin.graveManager.releaseCollectionLock(grave)
         }

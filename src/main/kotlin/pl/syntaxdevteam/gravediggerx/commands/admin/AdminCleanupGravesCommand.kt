@@ -2,6 +2,7 @@ package pl.syntaxdevteam.gravediggerx.commands.admin
 
 import io.papermc.paper.command.brigadier.BasicCommand
 import io.papermc.paper.command.brigadier.CommandSourceStack
+import net.kyori.adventure.text.Component
 import org.jetbrains.annotations.NotNull
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker
@@ -18,12 +19,19 @@ class AdminCleanupGravesCommand(private val plugin: GraveDiggerX) : BasicCommand
             return
         }
 
-        val removed = plugin.graveManager.cleanupOrphanedGraves()
-        val message = plugin.messageHandler.stringMessageToComponent(
-            "admin",
-            "cleaned-graves",
-            mapOf("count" to removed.toString())
-        )
-        sender.sendMessage(message)
+        val limitPerTick = plugin.config.getInt("performance.cleanup.limit-per-tick", 250).coerceAtLeast(25)
+        val started = plugin.graveManager.cleanupOrphanedGravesBatched(limitPerTick) { removed ->
+            val message = plugin.messageHandler.stringMessageToComponent(
+                "admin",
+                "cleaned-graves",
+                mapOf("count" to removed.toString())
+            )
+            sender.sendMessage(message)
+        }
+        if (!started) {
+            sender.sendMessage(Component.text("Cleanup już działa, poczekaj aż obecny cykl się zakończy."))
+            return
+        }
+        sender.sendMessage(Component.text("Uruchomiono cleanup grobów w batchach (limit/tick: $limitPerTick)."))
     }
 }
