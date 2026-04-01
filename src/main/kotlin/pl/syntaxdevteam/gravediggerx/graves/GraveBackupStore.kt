@@ -6,6 +6,7 @@ import java.io.File
 class GraveBackupStore(plugin: GraveDiggerX) {
 
     private val dataFile = File(plugin.dataFolder, "backups.json")
+    private val logger = plugin.logger
 
     init {
         if (!plugin.dataFolder.exists()) {
@@ -32,12 +33,17 @@ class GraveBackupStore(plugin: GraveDiggerX) {
                     java.nio.file.StandardCopyOption.REPLACE_EXISTING,
                     java.nio.file.StandardCopyOption.ATOMIC_MOVE
                 )
-            } catch (_: Exception) {
-                if (dataFile.exists()) dataFile.delete()
-                tmpFile.renameTo(dataFile)
+            } catch (moveError: Exception) {
+                logger.warning("Atomic write failed for ${dataFile.absolutePath}, fallback rename will be used: ${moveError.message}")
+                if (dataFile.exists() && !dataFile.delete()) {
+                    logger.warning("Could not delete old backup file before rename: ${dataFile.absolutePath}")
+                }
+                if (!tmpFile.renameTo(dataFile)) {
+                    logger.err("Fallback rename failed while saving backups to ${dataFile.absolutePath}")
+                }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            logger.err("Failed to save backups to ${dataFile.absolutePath}: ${e.message}")
         }
     }
 
@@ -51,8 +57,13 @@ class GraveBackupStore(plugin: GraveDiggerX) {
                 return emptyList()
             }
 
-            GraveBackupSerializer.decodeBackupsFromString(content)
-        } catch (_: Exception) {
+            val decoded = GraveBackupSerializer.decodeBackupsFromString(content)
+            if (decoded.isEmpty() && content.isNotBlank() && content.trim() != "[]") {
+                logger.warning("Failed to decode backups from ${dataFile.absolutePath}; returning empty list.")
+            }
+            decoded
+        } catch (e: Exception) {
+            logger.err("Failed to load backups from ${dataFile.absolutePath}: ${e.message}")
             emptyList()
         }
     }

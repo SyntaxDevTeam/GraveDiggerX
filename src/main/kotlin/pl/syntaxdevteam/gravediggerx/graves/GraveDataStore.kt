@@ -6,6 +6,7 @@ import java.io.File
 class GraveDataStore(plugin: GraveDiggerX) {
 
     private val dataFile = File(plugin.dataFolder, "data.json")
+    private val logger = plugin.logger
 
     init {
         if (!plugin.dataFolder.exists()) {
@@ -32,12 +33,17 @@ class GraveDataStore(plugin: GraveDiggerX) {
                     java.nio.file.StandardCopyOption.REPLACE_EXISTING,
                     java.nio.file.StandardCopyOption.ATOMIC_MOVE
                 )
-            } catch (_: Exception) {
-                if (dataFile.exists()) dataFile.delete()
-                tmpFile.renameTo(dataFile)
+            } catch (moveError: Exception) {
+                logger.warning("Atomic write failed for ${dataFile.absolutePath}, fallback rename will be used: ${moveError.message}")
+                if (dataFile.exists() && !dataFile.delete()) {
+                    logger.warning("Could not delete old grave file before rename: ${dataFile.absolutePath}")
+                }
+                if (!tmpFile.renameTo(dataFile)) {
+                    logger.err("Fallback rename failed while saving graves to ${dataFile.absolutePath}")
+                }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            logger.err("Failed to save graves to ${dataFile.absolutePath}: ${e.message}")
         }
     }
 
@@ -51,8 +57,13 @@ class GraveDataStore(plugin: GraveDiggerX) {
                 return emptyList()
             }
 
-            GraveSerializer.decodeGravesFromString(content)
-        } catch (_: Exception) {
+            val decoded = GraveSerializer.decodeGravesFromString(content)
+            if (decoded.isEmpty() && content.isNotBlank() && content.trim() != "[]") {
+                logger.warning("Failed to decode graves from ${dataFile.absolutePath}; returning empty list.")
+            }
+            decoded
+        } catch (e: Exception) {
+            logger.err("Failed to load graves from ${dataFile.absolutePath}: ${e.message}")
             emptyList()
         }
     }
