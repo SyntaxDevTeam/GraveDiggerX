@@ -44,6 +44,7 @@ graves:
   grave-relocated: "<#AAAAAA>Your grave was moved to <#D4D4D4>X=<x>, Y=<y>, Z=<z> <#AAAAAA>because you died in a dangerous spot."
   not-your-grave: "<#AAAAAA>This is not your grave, you can only open yours!"
   collected: "<#AAAAAA>You have recovered your inventory and XP."
+  already-collected: "<#AAAAAA>This grave is already being collected."
   reached-max-graves: "<#AAAAAA>You have reached the maximum number of graves<white> (<limit>)!"
   blocked-by-region: "<#AAAAAA>Your grave cannot be created in a region you do not own."
   only-player: "<red>This command can only be used by players.</red>"

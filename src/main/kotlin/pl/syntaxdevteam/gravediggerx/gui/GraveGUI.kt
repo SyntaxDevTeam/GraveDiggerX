@@ -145,36 +145,46 @@ class GraveGUI(
             player.closeInventory()
             return
         }
-        for ((slot, item) in grave.items) {
-            if (slot in 0..35) {
-                player.addItemOrDrop(item)
+        if (!plugin.graveManager.tryAcquireCollectionLock(grave)) {
+            val alreadyCollectedMsg = plugin.messageHandler.stringMessageToComponent("graves", "already-collected", emptyMap())
+            player.sendMessage(alreadyCollectedMsg)
+            return
+        }
+
+        try {
+            for ((slot, item) in grave.items) {
+                if (slot in 0..35) {
+                    player.addItemOrDrop(item)
+                }
             }
+            grave.armorContents["helmet"]?.let { player.equipSafely(player.inventory.helmet, it) { player.inventory.helmet = it } }
+            grave.armorContents["chestplate"]?.let { player.equipSafely(player.inventory.chestplate, it) { player.inventory.chestplate = it } }
+            grave.armorContents["leggings"]?.let { player.equipSafely(player.inventory.leggings, it) { player.inventory.leggings = it } }
+            grave.armorContents["boots"]?.let { player.equipSafely(player.inventory.boots, it) { player.inventory.boots = it } }
+            grave.armorContents["offhand"]?.let { player.equipSafely(player.inventory.itemInOffHand, it) { player.inventory.setItemInOffHand(it) } }
+
+            if (grave.storedXp > 0) {
+                player.giveExp(grave.storedXp)
+            }
+
+            val loc = grave.location.clone().add(0.5, 0.5, 0.5)
+            val world = loc.world ?: return
+            world.spawnParticle(Particle.SOUL, loc, 30, 0.3, 0.3, 0.3, 0.02)
+            world.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.3f)
+            world.playSound(loc, Sound.BLOCK_SOUL_SAND_BREAK, 0.7f, 0.9f)
+            player.playSound(player.location, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f)
+
+            val successMsg = plugin.messageHandler.stringMessageToComponent(
+                "graves",
+                "collected",
+                mapOf("player" to player.name)
+            )
+            player.sendMessage(successMsg)
+
+            plugin.ghostManager.removeGhost(grave.ownerId)
+            plugin.graveManager.removeGrave(grave)
+        } finally {
+            plugin.graveManager.releaseCollectionLock(grave)
         }
-        grave.armorContents["helmet"]?.let { player.equipSafely(player.inventory.helmet, it) { player.inventory.helmet = it } }
-        grave.armorContents["chestplate"]?.let { player.equipSafely(player.inventory.chestplate, it) { player.inventory.chestplate = it } }
-        grave.armorContents["leggings"]?.let { player.equipSafely(player.inventory.leggings, it) { player.inventory.leggings = it } }
-        grave.armorContents["boots"]?.let { player.equipSafely(player.inventory.boots, it) { player.inventory.boots = it } }
-        grave.armorContents["offhand"]?.let { player.equipSafely(player.inventory.itemInOffHand, it) { player.inventory.setItemInOffHand(it) } }
-
-        if (grave.storedXp > 0) {
-            player.giveExp(grave.storedXp)
-        }
-
-        val loc = grave.location.clone().add(0.5, 0.5, 0.5)
-        val world = loc.world ?: return
-        world.spawnParticle(Particle.SOUL, loc, 30, 0.3, 0.3, 0.3, 0.02)
-        world.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.3f)
-        world.playSound(loc, Sound.BLOCK_SOUL_SAND_BREAK, 0.7f, 0.9f)
-        player.playSound(player.location, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f)
-
-        val successMsg = plugin.messageHandler.stringMessageToComponent(
-            "graves",
-            "collected",
-            mapOf("player" to player.name)
-        )
-        player.sendMessage(successMsg)
-
-        plugin.ghostManager.removeGhost(grave.ownerId)
-        plugin.graveManager.removeGrave(grave)
     }
 }

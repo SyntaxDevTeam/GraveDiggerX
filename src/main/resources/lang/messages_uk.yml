@@ -44,6 +44,7 @@ graves:
   grave-relocated: "<#AAAAAA>Ваша могила була перенесена на <#D4D4D4>X=<x>, Y=<y>, Z=<z> <#AAAAAA>Бо ви померли в небезпечному місці."
   not-your-grave: "<#AAAAAA>Це не ваша могила!"
   collected: "<#AAAAAA>Ви відновили свій інвентар та досвід."
+  already-collected: "<#AAAAAA>Цю могилу вже зараз хтось спорожнює."
   reached-max-graves: "<#AAAAAA>Ви досягли ліміту могил.<white> (<limit>)!"
   blocked-by-region: "<#AAAAAA>Вашу могилу не можна створити в регіоні, який вам не належить."
   only-player: "<red>Ця команда може використовуватись тільки гравцями.</red>"

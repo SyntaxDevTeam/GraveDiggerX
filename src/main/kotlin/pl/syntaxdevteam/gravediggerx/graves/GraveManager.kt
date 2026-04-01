@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class GraveManager(private val plugin: GraveDiggerX) {
     private val activeGraves = ConcurrentHashMap<String, Grave>()
+    private val collectionLocks = ConcurrentHashMap.newKeySet<String>()
     private val graveRemoveListeners = ConcurrentHashMap<UUID, MutableList<() -> Unit>>()
     private val backupStore = GraveBackupStore(plugin)
     private val regionOwnershipChecker = RegionOwnershipChecker.create(plugin)
@@ -243,6 +244,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
             grave.ghostEntityId?.let { id ->
                 Bukkit.getEntity(id)?.remove() }
             plugin.ghostManager.removeGhost(grave.ownerId)
+            releaseCollectionLock(grave)
             notifyGraveRemoved(grave)
         }
         activeGraves.clear()
@@ -413,6 +415,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
         grave.ghostEntityId?.let { Bukkit.getEntity(it)?.remove() }
 
         plugin.ghostManager.removeGhost(grave.ownerId)
+        releaseCollectionLock(grave)
         activeGraves.remove(getKey(location))
         notifyGraveRemoved(grave)
         saveGravesToStorage()
@@ -433,10 +436,18 @@ class GraveManager(private val plugin: GraveDiggerX) {
             }
             removeGhostsNear(location)
             block.type = Material.AIR
+            collectionLocks.remove(getKey(location))
             saveGravesToStorage()
             return true
         }
         return false
+    }
+
+    fun tryAcquireCollectionLock(grave: Grave): Boolean =
+        collectionLocks.add(getKey(grave.location.toBlockLocation()))
+
+    fun releaseCollectionLock(grave: Grave) {
+        collectionLocks.remove(getKey(grave.location.toBlockLocation()))
     }
 
 

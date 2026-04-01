@@ -79,27 +79,36 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
 
     private fun collectGraveInstantly(player: org.bukkit.entity.Player, grave: Grave) {
         if (player.uniqueId != grave.ownerId && !grave.isPublic) return
-
-        for ((slot, item) in grave.items) {
-            if (slot in 0..35) {
-                player.addItemOrDrop(item)
-            }
+        if (!plugin.graveManager.tryAcquireCollectionLock(grave)) {
+            val alreadyCollectedMsg = plugin.messageHandler.stringMessageToComponent("graves", "already-collected", emptyMap())
+            player.sendMessage(alreadyCollectedMsg)
+            return
         }
 
-        grave.armorContents["helmet"]?.let { player.equipSafely(player.inventory.helmet, it) { player.inventory.helmet = it } }
-        grave.armorContents["chestplate"]?.let { player.equipSafely(player.inventory.chestplate, it) { player.inventory.chestplate = it } }
-        grave.armorContents["leggings"]?.let { player.equipSafely(player.inventory.leggings, it) { player.inventory.leggings = it } }
-        grave.armorContents["boots"]?.let { player.equipSafely(player.inventory.boots, it) { player.inventory.boots = it } }
-        grave.armorContents["offhand"]?.let { player.equipSafely(player.inventory.itemInOffHand, it) { player.inventory.setItemInOffHand(it) } }
+        try {
+            for ((slot, item) in grave.items) {
+                if (slot in 0..35) {
+                    player.addItemOrDrop(item)
+                }
+            }
 
-        if (grave.storedXp > 0) player.giveExp(grave.storedXp)
+            grave.armorContents["helmet"]?.let { player.equipSafely(player.inventory.helmet, it) { player.inventory.helmet = it } }
+            grave.armorContents["chestplate"]?.let { player.equipSafely(player.inventory.chestplate, it) { player.inventory.chestplate = it } }
+            grave.armorContents["leggings"]?.let { player.equipSafely(player.inventory.leggings, it) { player.inventory.leggings = it } }
+            grave.armorContents["boots"]?.let { player.equipSafely(player.inventory.boots, it) { player.inventory.boots = it } }
+            grave.armorContents["offhand"]?.let { player.equipSafely(player.inventory.itemInOffHand, it) { player.inventory.setItemInOffHand(it) } }
 
-        plugin.graveManager.removeGrave(grave)
-        val world = player.world
-        val loc = grave.location.clone().add(0.5, 0.5, 0.5)
-        world.playSound(loc, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.3f)
-        world.spawnParticle(org.bukkit.Particle.SOUL, loc, 30, 0.3, 0.3, 0.3, 0.02)
-        val msg = plugin.messageHandler.stringMessageToComponent("graves", "collected", mapOf("player" to player.name))
-        player.sendMessage(msg)
+            if (grave.storedXp > 0) player.giveExp(grave.storedXp)
+
+            plugin.graveManager.removeGrave(grave)
+            val world = player.world
+            val loc = grave.location.clone().add(0.5, 0.5, 0.5)
+            world.playSound(loc, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.3f)
+            world.spawnParticle(org.bukkit.Particle.SOUL, loc, 30, 0.3, 0.3, 0.3, 0.02)
+            val msg = plugin.messageHandler.stringMessageToComponent("graves", "collected", mapOf("player" to player.name))
+            player.sendMessage(msg)
+        } finally {
+            plugin.graveManager.releaseCollectionLock(grave)
+        }
     }
 }
