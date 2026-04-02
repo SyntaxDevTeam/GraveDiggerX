@@ -50,6 +50,11 @@ class DatabaseHandler private constructor(
         val expiresAt: Long
     )
 
+    private data class TxUpdateResult(
+        val changed: Int,
+        val graveIds: Set<UUID>
+    )
+
     constructor(plugin: GraveDiggerX) : this(
         coreLogger = plugin.logger,
         logger = LogSink(
@@ -290,7 +295,11 @@ class DatabaseHandler private constructor(
     }
 
     fun releaseCollectionClaim(grave: Grave) {
-        val claimKey = collectionClaimKey(grave)
+        releaseCollectionClaimByGraveId(grave.graveId)
+    }
+
+    fun releaseCollectionClaimByGraveId(graveId: UUID) {
+        val claimKey = graveId.toString()
         if (storageBackend == StorageBackend.SQL) {
             releaseCollectionClaimSql(claimKey)
         } else {
@@ -403,41 +412,43 @@ class DatabaseHandler private constructor(
     fun unlockCollectionTx(identifier: String, actor: String, reason: String): Int {
         val normalized = identifier.trim()
         val now = System.currentTimeMillis()
-        val transitioned = if (storageBackend == StorageBackend.SQL) {
+        val result = if (storageBackend == StorageBackend.SQL) {
             unlockCollectionTxSql(normalized, now)
         } else {
             unlockCollectionTxFile(normalized, now)
         }
-        if (transitioned > 0) {
+        result.graveIds.forEach { releaseCollectionClaimByGraveId(it) }
+        if (result.changed > 0) {
             appendTxAudit(
                 actor = actor,
                 action = "UNLOCK",
                 target = normalized,
                 reason = reason,
-                changed = transitioned
+                changed = result.changed
             )
         }
-        return transitioned
+        return result.changed
     }
 
     fun recoverExpiredCollectionTx(): Int {
         val now = System.currentTimeMillis()
         val retryThreshold = now - configInt("graves.collection.claim-ttl-ms").toLong().coerceAtLeast(3000L)
-        val changed = if (storageBackend == StorageBackend.SQL) {
+        val result = if (storageBackend == StorageBackend.SQL) {
             recoverExpiredCollectionTxSql(now, retryThreshold)
         } else {
             recoverExpiredCollectionTxFile(now, retryThreshold)
         }
-        if (changed > 0) {
+        result.graveIds.forEach { releaseCollectionClaimByGraveId(it) }
+        if (result.changed > 0) {
             appendTxAudit(
                 actor = "system:recovery-job",
                 action = "RECOVER_EXPIRED",
                 target = "expired-claimed-collecting",
                 reason = "TTL expiration moved tx to FAILED_RECOVERABLE",
-                changed = changed
+                changed = result.changed
             )
         }
-        return changed
+        return result.changed
     }
 
     fun countStuckCollectionTx(stuckThresholdMs: Long): Int {
@@ -861,17 +872,18 @@ class DatabaseHandler private constructor(
         }
     }
 
-    private fun unlockCollectionTxSql(identifier: String, now: Long): Int {
-        val manager = dbManager ?: return 0
-        if (!ensureSqlReady(logFailure = false)) return 0
+    private fun unlockCollectionTxSql(identifier: String, now: Long): TxUpdateResult {
+        val manager = dbManager ?: return TxUpdateResult(0, emptySet())
+        if (!ensureSqlReady(logFailure = false)) return TxUpdateResult(0, emptySet())
         return runCatching {
-            val (query, params) = parseIdentifierToQuery(identifier)
+            val uuid = UUID.fromString(identifier).toString()
             val targets = manager.query(
                 """
                     SELECT txId, graveId, state FROM grave_collection_tx
-                    WHERE $query AND state IN (?, ?, ?)
+                    WHERE (graveId = ? OR txId = ?) AND state IN (?, ?, ?)
                 """.trimIndent(),
-                *params,
+                uuid,
+                uuid,
                 CollectionState.CLAIMED.name,
                 CollectionState.COLLECTING.name,
                 CollectionState.FAILED.name
@@ -893,37 +905,42 @@ class DatabaseHandler private constructor(
                     graveId
                 )
             }
-            targets.size
+            TxUpdateResult(
+                changed = targets.size,
+                graveIds = targets.map { UUID.fromString(it.second) }.toSet()
+            )
         }.getOrElse {
             logger.warning("Failed to unlock SQL collection tx $identifier: ${it.message}")
-            0
+            TxUpdateResult(0, emptySet())
         }
     }
 
-    private fun unlockCollectionTxFile(identifier: String, now: Long): Int {
-        val uuid = runCatching { UUID.fromString(identifier) }.getOrNull() ?: return 0
+    private fun unlockCollectionTxFile(identifier: String, now: Long): TxUpdateResult {
+        val uuid = runCatching { UUID.fromString(identifier) }.getOrNull() ?: return TxUpdateResult(0, emptySet())
         synchronized(fileTxLock) {
             val machine = fileTxMachine()
             val tx = machine.get(uuid)
             if (tx != null) {
-                if (tx.state !in setOf(CollectionState.CLAIMED, CollectionState.COLLECTING, CollectionState.FAILED)) return 0
-                if (!machine.transition(tx.graveId, tx.txId, tx.state, CollectionState.FAILED_RECOVERABLE, now, "manually unlocked")) return 0
-                return 1
+                if (tx.state !in setOf(CollectionState.CLAIMED, CollectionState.COLLECTING, CollectionState.FAILED)) return TxUpdateResult(0, emptySet())
+                if (!machine.transition(tx.graveId, tx.txId, tx.state, CollectionState.FAILED_RECOVERABLE, now, "manually unlocked")) return TxUpdateResult(0, emptySet())
+                return TxUpdateResult(1, setOf(tx.graveId))
             }
             val targets = machine.all().filter { it.graveId == uuid && it.state in setOf(CollectionState.CLAIMED, CollectionState.COLLECTING, CollectionState.FAILED) }
             var changed = 0
+            val graveIds = linkedSetOf<UUID>()
             targets.forEach { candidate ->
                 if (machine.transition(candidate.graveId, candidate.txId, candidate.state, CollectionState.FAILED_RECOVERABLE, now, "manually unlocked")) {
                     changed++
+                    graveIds.add(candidate.graveId)
                 }
             }
-            return changed
+            return TxUpdateResult(changed, graveIds)
         }
     }
 
-    private fun recoverExpiredCollectionTxSql(now: Long, retryThreshold: Long): Int {
-        val manager = dbManager ?: return 0
-        if (!ensureSqlReady(logFailure = false)) return 0
+    private fun recoverExpiredCollectionTxSql(now: Long, retryThreshold: Long): TxUpdateResult {
+        val manager = dbManager ?: return TxUpdateResult(0, emptySet())
+        if (!ensureSqlReady(logFailure = false)) return TxUpdateResult(0, emptySet())
         return runCatching {
             val expired = manager.query(
                 """
@@ -951,14 +968,17 @@ class DatabaseHandler private constructor(
                     state
                 )
             }
-            expired.size
+            TxUpdateResult(
+                changed = expired.size,
+                graveIds = expired.map { UUID.fromString(it.second) }.toSet()
+            )
         }.getOrElse {
             logger.warning("Failed to auto-recover expired SQL collection tx: ${it.message}")
-            0
+            TxUpdateResult(0, emptySet())
         }
     }
 
-    private fun recoverExpiredCollectionTxFile(now: Long, retryThreshold: Long): Int {
+    private fun recoverExpiredCollectionTxFile(now: Long, retryThreshold: Long): TxUpdateResult {
         synchronized(fileTxLock) {
             val machine = fileTxMachine()
             val expired = machine.all().filter {
@@ -966,18 +986,15 @@ class DatabaseHandler private constructor(
                     (it.state == CollectionState.FAILED && it.updatedAt < retryThreshold)
             }
             var changed = 0
+            val graveIds = linkedSetOf<UUID>()
             expired.forEach { tx ->
                 if (machine.transition(tx.graveId, tx.txId, tx.state, CollectionState.FAILED_RECOVERABLE, now, "auto-recovered after TTL")) {
                     changed++
+                    graveIds.add(tx.graveId)
                 }
             }
-            return changed
+            return TxUpdateResult(changed, graveIds)
         }
-    }
-
-    private fun parseIdentifierToQuery(identifier: String): Pair<String, Array<Any>> {
-        val uuid = UUID.fromString(identifier)
-        return "graveId = ? OR txId = ?" to arrayOf(uuid.toString(), uuid.toString())
     }
 
     private fun appendTxAudit(actor: String, action: String, target: String, reason: String, changed: Int) {

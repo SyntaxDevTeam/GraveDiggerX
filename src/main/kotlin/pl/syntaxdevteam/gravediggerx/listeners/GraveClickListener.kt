@@ -111,6 +111,7 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
             val markedCollected = plugin.graveManager.markCollected(grave, ticket)
             if (!markedCollected) {
                 player.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "collection-tx-save-failed"))
+                releaseLock = true
                 return
             }
             plugin.graveManager.removeGrave(grave)
