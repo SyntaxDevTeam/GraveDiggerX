@@ -312,6 +312,8 @@ class GraveManager(private val plugin: GraveDiggerX) {
         return activeGraves[getKey(location)]
     }
 
+    fun activeGravesCount(): Int = activeGraves.size
+
     fun cleanupOrphanedHolograms(): Int {
         var removed = 0
         val hologramKey = NamespacedKey(plugin, "grave_hologram")
@@ -426,6 +428,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
             .flatMap { chunk -> chunk.tileEntities.filterIsInstance<Skull>() }
             .toMutableList()
         if (cleanupTask != null) return false
+        val startedAt = System.currentTimeMillis()
         var removed = 0
         val iterator = skulls.iterator()
         val graveKey = NamespacedKey(plugin, "grave")
@@ -442,6 +445,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
             if (!iterator.hasNext()) {
                 cleanupTask?.cancel()
                 cleanupTask = null
+                plugin.runtimeMetrics.recordCleanup(System.currentTimeMillis() - startedAt, removed.toLong())
                 onComplete(removed)
             }
         }, 1L, 1L)
@@ -455,6 +459,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
         remover: (T) -> Boolean
     ): Boolean {
         if (cleanupTask != null) return false
+        val startedAt = System.currentTimeMillis()
         var removed = 0
         val iterator = snapshot.iterator()
         cleanupTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
@@ -469,6 +474,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
             if (!iterator.hasNext()) {
                 cleanupTask?.cancel()
                 cleanupTask = null
+                plugin.runtimeMetrics.recordCleanup(System.currentTimeMillis() - startedAt, removed.toLong())
                 onComplete(removed)
             }
         }, 1L, 1L)
@@ -541,10 +547,12 @@ class GraveManager(private val plugin: GraveDiggerX) {
     fun beginCollection(grave: Grave, collectorId: UUID): CollectionTicket? {
         val lockKey = getKey(grave.location.toBlockLocation())
         if (!collectionLocks.add(lockKey)) {
+            plugin.runtimeMetrics.incrementCollectionClaimConflict()
             return null
         }
         if (!plugin.databaseHandler.tryAcquireCollectionClaim(grave)) {
             collectionLocks.remove(lockKey)
+            plugin.runtimeMetrics.incrementCollectionClaimConflict()
             return null
         }
         val ttlMillis = plugin.config.getLong("graves.collection.claim-ttl-ms", 15000L).coerceAtLeast(3000L)
@@ -552,6 +560,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
         if (tx == null) {
             collectionLocks.remove(lockKey)
             plugin.databaseHandler.releaseCollectionClaim(grave)
+            plugin.runtimeMetrics.incrementCollectionClaimConflict()
             return null
         }
         return CollectionTicket(tx.txId, tx.graveId, collectorId)
@@ -571,13 +580,16 @@ class GraveManager(private val plugin: GraveDiggerX) {
     }
 
     fun markCollectionFailed(grave: Grave, ticket: CollectionTicket, error: String?) {
-        plugin.databaseHandler.transitionCollectionTx(
+        val transitioned = plugin.databaseHandler.transitionCollectionTx(
             graveId = grave.graveId,
             txId = ticket.txId,
             from = CollectionState.COLLECTING,
             to = CollectionState.FAILED,
             error = error
         )
+        if (!transitioned) {
+            plugin.runtimeMetrics.incrementCollectionClaimConflict()
+        }
     }
 
     fun releaseCollectionLock(grave: Grave) {

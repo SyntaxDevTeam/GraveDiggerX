@@ -1,6 +1,7 @@
 package pl.syntaxdevteam.gravediggerx
 
 import org.bukkit.configuration.file.FileConfiguration
+import org.bukkit.scheduler.BukkitTask
 import org.bukkit.plugin.java.JavaPlugin
 import pl.syntaxdevteam.core.SyntaxCore
 import pl.syntaxdevteam.core.logging.Logger
@@ -12,6 +13,7 @@ import pl.syntaxdevteam.message.MessageHandler
 import pl.syntaxdevteam.message.SyntaxMessages
 import pl.syntaxdevteam.gravediggerx.commands.CommandManager
 import pl.syntaxdevteam.gravediggerx.common.ConfigHandler
+import pl.syntaxdevteam.gravediggerx.common.RuntimeMetrics
 import pl.syntaxdevteam.core.platform.ServerEnvironment
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
 import pl.syntaxdevteam.gravediggerx.database.DatabaseHandler
@@ -32,10 +34,12 @@ class GraveDiggerX : JavaPlugin() {
     lateinit var pluginsManager: PluginManagerX
     lateinit var pluginConfig: FileConfiguration
     lateinit var databaseHandler: DatabaseHandler
+    lateinit var runtimeMetrics: RuntimeMetrics
 
     lateinit var graveManager: GraveManager
     lateinit var ghostManager: GhostManager
     lateinit var timeGraveRemove: TimeGraveRemove
+    private var healthSummaryTask: BukkitTask? = null
 
 
     override fun onEnable() {
@@ -56,6 +60,7 @@ class GraveDiggerX : JavaPlugin() {
         SyntaxMessages.initialize(this)
         messageHandler = SyntaxMessages.messages
         pluginsManager = SyntaxCore.pluginManagerx
+        runtimeMetrics = RuntimeMetrics()
 
         graveManager = GraveManager(this)
         ghostManager = GhostManager(this)
@@ -69,10 +74,13 @@ class GraveDiggerX : JavaPlugin() {
 
         graveManager.loadGravesFromStorage()
         statsCollector = SyntaxCore.statsCollector
+        scheduleHealthSummary()
         SyntaxCore.updateChecker.checkAsync()
     }
 
     override fun onDisable() {
+        healthSummaryTask?.cancel()
+        healthSummaryTask = null
         graveManager.removeAllGraves()
         databaseHandler.close()
         logger.err(pluginMeta.name + " " + pluginMeta.version + " has been disabled ☹️")
@@ -100,5 +108,26 @@ class GraveDiggerX : JavaPlugin() {
         if (allowLegacy) {
             logger.warning("Legacy base64 deserialization is ENABLED. Use only for migration windows due to security risk.")
         }
+    }
+
+    private fun scheduleHealthSummary() {
+        val intervalTicks = 5L * 60L * 20L
+        healthSummaryTask = server.scheduler.runTaskTimer(this, Runnable {
+            val stuckThresholdMs = config.getLong("graves.collection.stuck-threshold-ms", 30000L).coerceAtLeast(3000L)
+            val stuckCount = databaseHandler.countStuckCollectionTx(stuckThresholdMs)
+            runtimeMetrics.incrementCollectionTxStuck(stuckCount.toLong())
+            val snapshot = runtimeMetrics.snapshot(graveManager.activeGravesCount().toLong())
+            logger.info(
+                "health-summary metrics: " +
+                    "graves_active_total=${snapshot.gravesActiveTotal}, " +
+                    "collection_claim_conflict_total=${snapshot.collectionClaimConflictTotal}, " +
+                    "collection_tx_stuck_total=${snapshot.collectionTxStuckTotal}, " +
+                    "storage_io_errors_total=${snapshot.storageIoErrorsTotal}, " +
+                    "cleanup_duration_ms=${snapshot.cleanupDurationMs}, " +
+                    "cleanup_duration_avg_ms=${snapshot.cleanupDurationAvgMs}, " +
+                    "cleanup_items_processed_total=${snapshot.cleanupItemsProcessedTotal}, " +
+                    "collection_tx_stuck_current=$stuckCount"
+            )
+        }, intervalTicks, intervalTicks)
     }
 }

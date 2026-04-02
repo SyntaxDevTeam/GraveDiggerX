@@ -36,7 +36,8 @@ class DatabaseHandler private constructor(
     private val dataFolder: java.io.File,
     private val configString: (String) -> String?,
     private val configInt: (String) -> Int,
-    private val fileStore: GraveStore
+    private val fileStore: GraveStore,
+    private val onStorageIoError: () -> Unit
 ) {
     constructor(plugin: GraveDiggerX) : this(
         coreLogger = plugin.logger,
@@ -49,7 +50,8 @@ class DatabaseHandler private constructor(
         dataFolder = plugin.dataFolder,
         configString = { key -> plugin.config.getString(key) },
         configInt = { key -> plugin.config.getInt(key) },
-        fileStore = GraveStoreAdapter(GraveDataStore(plugin))
+        fileStore = GraveStoreAdapter(GraveDataStore(plugin)),
+        onStorageIoError = { plugin.runtimeMetrics.incrementStorageIoError() }
     )
 
     internal constructor(
@@ -71,7 +73,8 @@ class DatabaseHandler private constructor(
         dataFolder = dataFolder,
         configString = configString,
         configInt = configInt,
-        fileStore = GraveStoreAdapter(GraveDataStoreShim(dataFolder, LogSink(debug, warning, error)))
+        fileStore = GraveStoreAdapter(GraveDataStoreShim(dataFolder, LogSink(debug, warning, error))),
+        onStorageIoError = {}
     )
 
     private enum class StorageBackend { FILE, SQL }
@@ -331,6 +334,37 @@ class DatabaseHandler private constructor(
         return transitionCollectionTx(graveId, txId, CollectionState.COLLECTING, CollectionState.COLLECTED)
     }
 
+    fun countStuckCollectionTx(stuckThresholdMs: Long): Int {
+        val now = System.currentTimeMillis()
+        val threshold = now - stuckThresholdMs.coerceAtLeast(1000L)
+        if (storageBackend == StorageBackend.SQL) {
+            val manager = dbManager ?: return 0
+            if (!ensureSqlReady(logFailure = false)) return 0
+            return runCatching {
+                manager.query(
+                    """
+                        SELECT txId FROM grave_collection_tx
+                        WHERE state IN (?, ?) AND updatedAt < ?
+                    """.trimIndent(),
+                    CollectionState.CLAIMED.name,
+                    CollectionState.COLLECTING.name,
+                    threshold
+                ) { rs -> rs.getString("txId") }.size
+            }.getOrElse {
+                logger.warning("Failed to count stuck SQL collection tx: ${it.message}")
+                0
+            }
+        }
+
+        synchronized(fileTxLock) {
+            val txValues = fileTxMachine().all()
+            return txValues.count { tx ->
+                (tx.state == CollectionState.CLAIMED || tx.state == CollectionState.COLLECTING) &&
+                    tx.updatedAt < threshold
+            }
+        }
+    }
+
     fun clearCollectionState(grave: Grave) {
         if (storageBackend == StorageBackend.SQL) {
             val manager = dbManager ?: return
@@ -483,6 +517,7 @@ class DatabaseHandler private constructor(
         try {
             Files.createDirectories(path)
         } catch (ignored: IOException) {
+            onStorageIoError.invoke()
             logger.warning("Failed to create directory ${path.toAbsolutePath()}: ${ignored.message}")
         }
     }
@@ -593,6 +628,7 @@ class DatabaseHandler private constructor(
             val values: List<String> = GraveSerializer.gson.fromJson(JsonParser.parseString(content), type)
             fileClaims.addAll(values)
         }.onFailure {
+            onStorageIoError.invoke()
             logger.warning("Failed to load collection claims from ${claimsFilePath.toAbsolutePath()}: ${it.message}")
         }
     }
@@ -614,6 +650,7 @@ class DatabaseHandler private constructor(
             }
             true
         } catch (e: Exception) {
+            onStorageIoError.invoke()
             logger.warning("Failed to save collection claims to ${claimsFilePath.toAbsolutePath()}: ${e.message}")
             false
         }
@@ -739,6 +776,7 @@ class DatabaseHandler private constructor(
                 fileCollectionTx[tx.txId] = tx
             }
         }.onFailure {
+            onStorageIoError.invoke()
             logger.warning("Failed to load collection tx from ${collectionTxFilePath.toAbsolutePath()}: ${it.message}")
         }
     }
@@ -788,6 +826,7 @@ class DatabaseHandler private constructor(
             }
             true
         } catch (e: Exception) {
+            onStorageIoError.invoke()
             logger.warning("Failed to save collection tx to ${collectionTxFilePath.toAbsolutePath()}: ${e.message}")
             false
         }

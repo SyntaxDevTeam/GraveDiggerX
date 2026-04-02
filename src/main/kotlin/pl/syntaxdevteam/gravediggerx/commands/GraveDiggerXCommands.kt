@@ -17,6 +17,7 @@ import pl.syntaxdevteam.gravediggerx.commands.admin.AdminCleanupGravesCommand
 import pl.syntaxdevteam.gravediggerx.commands.admin.AdminBackupListCommand
 import pl.syntaxdevteam.gravediggerx.commands.admin.AdminBackupRestoreCommand
 import pl.syntaxdevteam.gravediggerx.commands.admin.AdminRemoveCommand
+import pl.syntaxdevteam.gravediggerx.commands.admin.AdminStatsCommand
 
 class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
 
@@ -52,7 +53,7 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
         }
 
         if (args.size == 2 && args[0].equals("admin", ignoreCase = true)) {
-            val subcommands = listOf("list", "remove", "backup", "cleanupholograms", "cleanupghosts", "cleanupgraves")
+            val subcommands = listOf("list", "remove", "backup", "cleanupholograms", "cleanupghosts", "cleanupgraves", "stats")
             return subcommands.filter { it.startsWith(args[1], ignoreCase = true) }
         }
 
@@ -213,6 +214,7 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
             "cleanupholograms" -> AdminCleanupHologramsCommand(plugin).execute(stack, args)
             "cleanupghosts" -> AdminCleanupGhostsCommand(plugin).execute(stack, args)
             "cleanupgraves" -> AdminCleanupGravesCommand(plugin).execute(stack, args)
+            "stats" -> AdminStatsCommand(plugin).execute(stack, args)
             else -> {
                 val message = plugin.messageHandler.stringMessageToComponent("error", "unknown-command")
                 sender.sendMessage(message)
