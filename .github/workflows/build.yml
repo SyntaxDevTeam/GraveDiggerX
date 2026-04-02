@@ -22,7 +22,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Cache Gradle dependencies
         uses: actions/cache@v5
@@ -36,7 +36,7 @@ jobs:
         run: ./gradlew clean build
 
       - name: Upload JAR
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: GraveDiggerX-latest-DEV.jar
           path: build/libs/*.jar
