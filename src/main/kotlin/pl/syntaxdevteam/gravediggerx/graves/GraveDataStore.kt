@@ -3,7 +3,7 @@ package pl.syntaxdevteam.gravediggerx.graves
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import java.io.File
 
-class GraveDataStore(plugin: GraveDiggerX) {
+class GraveDataStore(plugin: GraveDiggerX, private val onIoError: () -> Unit = {}) {
 
     private val dataFile = File(plugin.dataFolder, "data.json")
     private val logger = plugin.logger
@@ -34,15 +34,19 @@ class GraveDataStore(plugin: GraveDiggerX) {
                     java.nio.file.StandardCopyOption.ATOMIC_MOVE
                 )
             } catch (moveError: Exception) {
+                onIoError.invoke()
                 logger.warning("Atomic write failed for ${dataFile.absolutePath}, fallback rename will be used: ${moveError.message}")
                 if (dataFile.exists() && !dataFile.delete()) {
+                    onIoError.invoke()
                     logger.warning("Could not delete old grave file before rename: ${dataFile.absolutePath}")
                 }
                 if (!tmpFile.renameTo(dataFile)) {
+                    onIoError.invoke()
                     logger.err("Fallback rename failed while saving graves to ${dataFile.absolutePath}")
                 }
             }
         } catch (e: Exception) {
+            onIoError.invoke()
             logger.err("Failed to save graves to ${dataFile.absolutePath}: ${e.message}")
         }
     }
@@ -63,6 +67,7 @@ class GraveDataStore(plugin: GraveDiggerX) {
             }
             decoded
         } catch (e: Exception) {
+            onIoError.invoke()
             logger.err("Failed to load graves from ${dataFile.absolutePath}: ${e.message}")
             emptyList()
         }

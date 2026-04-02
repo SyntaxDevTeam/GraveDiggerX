@@ -115,13 +115,14 @@ class GraveDiggerX : JavaPlugin() {
         healthSummaryTask = server.scheduler.runTaskTimer(this, Runnable {
             val stuckThresholdMs = config.getLong("graves.collection.stuck-threshold-ms", 30000L).coerceAtLeast(3000L)
             val stuckCount = databaseHandler.countStuckCollectionTx(stuckThresholdMs)
-            runtimeMetrics.incrementCollectionTxStuck(stuckCount.toLong())
+            runtimeMetrics.setCollectionTxStuckCurrent(stuckCount.toLong())
             val snapshot = runtimeMetrics.snapshot(graveManager.activeGravesCount().toLong())
             logger.info(
                 "health-summary metrics: " +
                     "graves_active_total=${snapshot.gravesActiveTotal}, " +
                     "collection_claim_conflict_total=${snapshot.collectionClaimConflictTotal}, " +
                     "collection_tx_stuck_total=${snapshot.collectionTxStuckTotal}, " +
+                    "collection_tx_transition_fail_total=${snapshot.collectionTxTransitionFailTotal}, " +
                     "storage_io_errors_total=${snapshot.storageIoErrorsTotal}, " +
                     "cleanup_duration_ms=${snapshot.cleanupDurationMs}, " +
                     "cleanup_duration_avg_ms=${snapshot.cleanupDurationAvgMs}, " +

@@ -5,7 +5,8 @@ import java.util.concurrent.atomic.AtomicLong
 class RuntimeMetrics {
 
     private val collectionClaimConflictTotal = AtomicLong(0)
-    private val collectionTxStuckTotal = AtomicLong(0)
+    private val collectionTxStuckCurrent = AtomicLong(0)
+    private val collectionTxTransitionFailTotal = AtomicLong(0)
     private val storageIoErrorsTotal = AtomicLong(0)
     private val cleanupDurationMsTotal = AtomicLong(0)
     private val cleanupDurationSamples = AtomicLong(0)
@@ -15,10 +16,12 @@ class RuntimeMetrics {
         collectionClaimConflictTotal.incrementAndGet()
     }
 
-    fun incrementCollectionTxStuck(by: Long) {
-        if (by > 0) {
-            collectionTxStuckTotal.addAndGet(by)
-        }
+    fun setCollectionTxStuckCurrent(value: Long) {
+        collectionTxStuckCurrent.set(value.coerceAtLeast(0L))
+    }
+
+    fun incrementCollectionTxTransitionFail() {
+        collectionTxTransitionFailTotal.incrementAndGet()
     }
 
     fun incrementStorageIoError() {
@@ -37,7 +40,8 @@ class RuntimeMetrics {
         return Snapshot(
             gravesActiveTotal = gravesActiveTotal,
             collectionClaimConflictTotal = collectionClaimConflictTotal.get(),
-            collectionTxStuckTotal = collectionTxStuckTotal.get(),
+            collectionTxStuckTotal = collectionTxStuckCurrent.get(),
+            collectionTxTransitionFailTotal = collectionTxTransitionFailTotal.get(),
             storageIoErrorsTotal = storageIoErrorsTotal.get(),
             cleanupDurationMs = totalDuration,
             cleanupDurationAvgMs = totalDuration / cleanupSamples,
@@ -49,6 +53,7 @@ class RuntimeMetrics {
         val gravesActiveTotal: Long,
         val collectionClaimConflictTotal: Long,
         val collectionTxStuckTotal: Long,
+        val collectionTxTransitionFailTotal: Long,
         val storageIoErrorsTotal: Long,
         val cleanupDurationMs: Long,
         val cleanupDurationAvgMs: Long,

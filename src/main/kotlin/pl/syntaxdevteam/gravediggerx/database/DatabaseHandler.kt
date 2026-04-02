@@ -50,7 +50,7 @@ class DatabaseHandler private constructor(
         dataFolder = plugin.dataFolder,
         configString = { key -> plugin.config.getString(key) },
         configInt = { key -> plugin.config.getInt(key) },
-        fileStore = GraveStoreAdapter(GraveDataStore(plugin)),
+        fileStore = GraveStoreAdapter(GraveDataStore(plugin) { plugin.runtimeMetrics.incrementStorageIoError() }),
         onStorageIoError = { plugin.runtimeMetrics.incrementStorageIoError() }
     )
 
@@ -73,7 +73,7 @@ class DatabaseHandler private constructor(
         dataFolder = dataFolder,
         configString = configString,
         configInt = configInt,
-        fileStore = GraveStoreAdapter(GraveDataStoreShim(dataFolder, LogSink(debug, warning, error))),
+        fileStore = GraveStoreAdapter(GraveDataStoreShim(dataFolder, LogSink(debug, warning, error)) {}),
         onStorageIoError = {}
     )
 
@@ -869,7 +869,8 @@ class DatabaseHandler private constructor(
 
     private class GraveDataStoreShim(
         private val dataFolder: java.io.File,
-        private val logger: LogSink
+        private val logger: LogSink,
+        private val onStorageIoError: () -> Unit
     ) : GraveStore {
         private val dataFile = java.io.File(dataFolder, "data.json")
 
@@ -896,9 +897,11 @@ class DatabaseHandler private constructor(
                         java.nio.file.StandardCopyOption.ATOMIC_MOVE
                     )
                 } catch (_: Exception) {
+                    onStorageIoError.invoke()
                     Files.move(tmpFile.toPath(), dataFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
                 }
             } catch (e: Exception) {
+                onStorageIoError.invoke()
                 logger.err("Failed to save graves to ${dataFile.absolutePath}: ${e.message}")
             }
         }
@@ -907,12 +910,13 @@ class DatabaseHandler private constructor(
             return try {
                 if (!dataFile.exists()) return emptyList()
                 val content = dataFile.readText()
-                if (content.isBlank()) return emptyList()
-                GraveSerializer.decodeGravesFromString(content)
-            } catch (e: Exception) {
-                logger.err("Failed to load graves from ${dataFile.absolutePath}: ${e.message}")
-                emptyList()
-            }
+            if (content.isBlank()) return emptyList()
+            GraveSerializer.decodeGravesFromString(content)
+        } catch (e: Exception) {
+            onStorageIoError.invoke()
+            logger.err("Failed to load graves from ${dataFile.absolutePath}: ${e.message}")
+            emptyList()
+        }
         }
     }
 

@@ -588,7 +588,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
             error = error
         )
         if (!transitioned) {
-            plugin.runtimeMetrics.incrementCollectionClaimConflict()
+            plugin.runtimeMetrics.incrementCollectionTxTransitionFail()
         }
     }
 
