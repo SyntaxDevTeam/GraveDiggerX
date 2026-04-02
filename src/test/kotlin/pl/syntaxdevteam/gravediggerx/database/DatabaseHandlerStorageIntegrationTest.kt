@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import pl.syntaxdevteam.core.logging.Logger
 import pl.syntaxdevteam.gravediggerx.graves.CollectionState
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import java.nio.file.Files
@@ -185,11 +184,13 @@ class DatabaseHandlerStorageIntegrationTest {
         )
 
         return DatabaseHandler(
-            logger = mock<Logger>(),
             pluginName = "GraveDiggerX-Test",
             dataFolder = dataFolder.toFile(),
             configString = { key -> values[key] },
-            configInt = { _ -> 0 }
+            configInt = { _ -> 0 },
+            debug = {},
+            warning = {},
+            error = {}
         )
     }
 }

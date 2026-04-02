@@ -5,6 +5,12 @@ plugins {
     id("pl.syntaxdevteam.plugindeployer") version "1.0.5-R0.1-SNAPSHOT"
 }
 
+val mockitoAgent by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
+
 group = "pl.syntaxdevteam.gravediggerx"
 version = "1.0.6-DEV"
 description = "A powerful and very effective plugin for managing tombstones after players die."
@@ -36,6 +42,9 @@ dependencies {
     testImplementation("org.xerial:sqlite-jdbc:3.51.1.0")
     testImplementation("org.mockito:mockito-core:5.20.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:6.1.0")
+    mockitoAgent("org.mockito:mockito-core:5.20.0") {
+        isTransitive = false
+    }
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.17")
 
 }
@@ -51,6 +60,7 @@ tasks {
     }
     test {
         useJUnitPlatform()
+        jvmArgs("-javaagent:${mockitoAgent.singleFile.absolutePath}")
     }
     runServer {
         minecraftVersion("1.21.11")
