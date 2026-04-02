@@ -12,7 +12,7 @@ val mockitoAgent by configurations.creating {
 
 
 group = "pl.syntaxdevteam.gravediggerx"
-version = "1.0.6-DEV"
+version = "1.0.6-R0.2-SNAPSHOT"
 description = "A powerful and very effective plugin for managing tombstones after players die."
 
 repositories {
@@ -35,7 +35,7 @@ dependencies {
     compileOnly("org.mariadb.jdbc:mariadb-java-client:3.5.8")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.16")
     testImplementation(kotlin("test"))
-    testImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.0-M1")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     testImplementation("pl.syntaxdevteam:core:1.3.0-R0.2-SNAPSHOT")
     testImplementation("com.zaxxer:HikariCP:7.0.2")
