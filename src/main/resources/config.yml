@@ -12,6 +12,8 @@ graves:
   protected-effect-cooldown: 5000 # Cooldown in milliseconds for protected grave effect (teleport + sound)
   collection:
     claim-ttl-ms: 15000 # TTL for CLAIMED/COLLECTING collection transaction states
+    stuck-threshold-ms: 30000 # Threshold for reporting stuck transactions
+    recovery-interval-ticks: 200 # Periodic recovery job interval (20 ticks = 1s)
 
   backups:
     enabled: true # Save backups of grave inventories for admin restores

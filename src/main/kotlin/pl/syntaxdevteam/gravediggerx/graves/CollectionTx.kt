@@ -7,7 +7,8 @@ enum class CollectionState {
     CLAIMED,
     COLLECTING,
     COLLECTED,
-    FAILED
+    FAILED,
+    FAILED_RECOVERABLE
 }
 
 data class CollectionTx(

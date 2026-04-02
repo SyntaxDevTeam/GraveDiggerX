@@ -18,6 +18,8 @@ import pl.syntaxdevteam.gravediggerx.commands.admin.AdminBackupListCommand
 import pl.syntaxdevteam.gravediggerx.commands.admin.AdminBackupRestoreCommand
 import pl.syntaxdevteam.gravediggerx.commands.admin.AdminRemoveCommand
 import pl.syntaxdevteam.gravediggerx.commands.admin.AdminStatsCommand
+import pl.syntaxdevteam.gravediggerx.commands.dev.DevTxListStuckCommand
+import pl.syntaxdevteam.gravediggerx.commands.dev.DevTxUnlockCommand
 
 class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
 
@@ -35,6 +37,7 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
             "reload" -> sendReload(stack)
             "list" -> sendList(stack)
             "admin" -> sendAdmin(stack, args)
+            "dev" -> sendDev(stack, args)
             else -> {
                 val message = plugin.messageHandler.stringMessageToComponent("error", "unknown-command")
                 sender.sendMessage(message)
@@ -44,17 +47,23 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
 
     override fun suggest(@NotNull stack: CommandSourceStack, @NotNull args: Array<String>): List<String> {
         if (args.isEmpty() || args[0].isBlank()) {
-            return listOf("help", "reload", "list", "admin")
+            return listOf("help", "reload", "list", "admin", "dev")
         }
 
         if (args.size == 1) {
-            return listOf("help", "reload", "list", "admin")
+            return listOf("help", "reload", "list", "admin", "dev")
                 .filter { it.startsWith(args[0], ignoreCase = true) }
         }
 
         if (args.size == 2 && args[0].equals("admin", ignoreCase = true)) {
-            val subcommands = listOf("list", "remove", "backup", "cleanupholograms", "cleanupghosts", "cleanupgraves", "stats")
+            val subcommands = listOf("list", "remove", "backup", "cleanupholograms", "cleanupghosts", "cleanupgraves")
             return subcommands.filter { it.startsWith(args[1], ignoreCase = true) }
+        }
+        if (args.size == 2 && args[0].equals("dev", ignoreCase = true)) {
+            return listOf("stats", "tx").filter { it.startsWith(args[1], ignoreCase = true) }
+        }
+        if (args.size == 3 && args[0].equals("dev", ignoreCase = true) && args[1].equals("tx", ignoreCase = true)) {
+            return listOf("list-stuck", "unlock").filter { it.startsWith(args[2], ignoreCase = true) }
         }
 
         if (args.size == 3 && args[0].equals("admin", ignoreCase = true)) {
@@ -214,11 +223,37 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
             "cleanupholograms" -> AdminCleanupHologramsCommand(plugin).execute(stack, args)
             "cleanupghosts" -> AdminCleanupGhostsCommand(plugin).execute(stack, args)
             "cleanupgraves" -> AdminCleanupGravesCommand(plugin).execute(stack, args)
-            "stats" -> AdminStatsCommand(plugin).execute(stack, args)
             else -> {
                 val message = plugin.messageHandler.stringMessageToComponent("error", "unknown-command")
                 sender.sendMessage(message)
             }
+        }
+    }
+
+    private fun sendDev(stack: CommandSourceStack, args: Array<String>) {
+        val sender = stack.sender
+        if (!PermissionChecker.has(sender, PermissionKey.CMD_ADMIN)) {
+            sender.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "no-permission"))
+            return
+        }
+        if (args.size < 2) {
+            sender.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "unknown-command"))
+            return
+        }
+        when (args[1].lowercase()) {
+            "stats" -> AdminStatsCommand(plugin).execute(stack, args)
+            "tx" -> {
+                if (args.size < 3) {
+                    sender.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "unknown-command"))
+                    return
+                }
+                when (args[2].lowercase()) {
+                    "list-stuck" -> DevTxListStuckCommand(plugin).execute(stack)
+                    "unlock" -> DevTxUnlockCommand(plugin).execute(stack, args)
+                    else -> sender.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "unknown-command"))
+                }
+            }
+            else -> sender.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "unknown-command"))
         }
     }
 

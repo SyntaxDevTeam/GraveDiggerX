@@ -37,7 +37,7 @@ permissions:
       grx.opengrave: true
 
   grx.cmd.help:
-    description: "Permission to use /grx help"
+    description: "Permission to use /gdx help"
     default: true
 
   grx.cmd.reload:

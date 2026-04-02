@@ -576,7 +576,19 @@ class GraveManager(private val plugin: GraveDiggerX) {
     }
 
     fun markCollected(grave: Grave, ticket: CollectionTicket): Boolean {
-        return plugin.databaseHandler.markCollectedTx(grave.graveId, ticket.txId)
+        val marked = plugin.databaseHandler.markCollectedTx(grave.graveId, ticket.txId)
+        if (marked) return true
+        val rolledBack = plugin.databaseHandler.transitionCollectionTx(
+            graveId = grave.graveId,
+            txId = ticket.txId,
+            from = CollectionState.COLLECTING,
+            to = CollectionState.FAILED_RECOVERABLE,
+            error = "safe rollback: COLLECTED persist failed"
+        )
+        if (!rolledBack) {
+            plugin.runtimeMetrics.incrementCollectionTxTransitionFail()
+        }
+        return false
     }
 
     fun markCollectionFailed(grave: Grave, ticket: CollectionTicket, error: String?) {
@@ -595,6 +607,15 @@ class GraveManager(private val plugin: GraveDiggerX) {
     fun releaseCollectionLock(grave: Grave) {
         collectionLocks.remove(getKey(grave.location.toBlockLocation()))
         plugin.databaseHandler.releaseCollectionClaim(grave)
+    }
+
+    fun releaseCollectionLockById(identifier: UUID): Boolean {
+        val byGraveId = activeGraves.values.firstOrNull { it.graveId == identifier }
+        if (byGraveId != null) {
+            releaseCollectionLock(byGraveId)
+            return true
+        }
+        return false
     }
 
 

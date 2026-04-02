@@ -50,7 +50,7 @@ GraveDiggerX is a Paper/Folia plugin (API 1.21) that creates a grave when a play
 | `performance.cleanup.limit-per-tick` | Tick limit for admin orphan cleanup processing. |
 
 ## Commands
-Main command: `/gravediggerx` (alias: `/grx`).
+Main command: `/gravediggerx` (alias: `/gdx`).
 
 | Command | Description | Permission |
 | --- | --- | --- |
@@ -69,9 +69,9 @@ Main command: `/gravediggerx` (alias: `/grx`).
 
 | Permission | Default | Description |
 | --- | --- | --- |
-| `grx.cmd.help` | `true` | Permission for `/grx help`. |
-| `grx.cmd.reload` | `op` | Permission for `/grx reload`. |
-| `grx.cmd.list` | `true` | Permission for `/grx list`. |
+| `grx.cmd.help` | `true` | Permission for `/gdx help`. |
+| `grx.cmd.reload` | `op` | Permission for `/gdx reload`. |
+| `grx.cmd.list` | `true` | Permission for `/gdx list`. |
 | `grx.cmd.admin` | `op` | Permission for admin commands. |
 | `grx.opengrave` | `true` | Open grave GUI and collect grave contents. |
 | `grx.owner` | `false` | Master node for core GraveDiggerX permissions. |

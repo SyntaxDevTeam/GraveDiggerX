@@ -40,6 +40,7 @@ class GraveDiggerX : JavaPlugin() {
     lateinit var ghostManager: GhostManager
     lateinit var timeGraveRemove: TimeGraveRemove
     private var healthSummaryTask: BukkitTask? = null
+    private var txRecoveryTask: BukkitTask? = null
 
 
     override fun onEnable() {
@@ -75,12 +76,15 @@ class GraveDiggerX : JavaPlugin() {
         graveManager.loadGravesFromStorage()
         statsCollector = SyntaxCore.statsCollector
         scheduleHealthSummary()
+        scheduleTxRecovery()
         SyntaxCore.updateChecker.checkAsync()
     }
 
     override fun onDisable() {
         healthSummaryTask?.cancel()
         healthSummaryTask = null
+        txRecoveryTask?.cancel()
+        txRecoveryTask = null
         graveManager.removeAllGraves()
         databaseHandler.close()
         logger.err(pluginMeta.name + " " + pluginMeta.version + " has been disabled ☹️")
@@ -117,7 +121,7 @@ class GraveDiggerX : JavaPlugin() {
             val stuckCount = databaseHandler.countStuckCollectionTx(stuckThresholdMs)
             runtimeMetrics.setCollectionTxStuckCurrent(stuckCount.toLong())
             val snapshot = runtimeMetrics.snapshot(graveManager.activeGravesCount().toLong())
-            logger.info(
+            logger.debug(
                     "health-summary metrics: " +
                     "graves_active_total=${snapshot.gravesActiveTotal}, " +
                     "collection_claim_conflict_total=${snapshot.collectionClaimConflictTotal}, " +
@@ -128,6 +132,16 @@ class GraveDiggerX : JavaPlugin() {
                     "cleanup_duration_avg_ms=${snapshot.cleanupDurationAvgMs}, " +
                     "cleanup_items_processed_total=${snapshot.cleanupItemsProcessedTotal}"
             )
+        }, intervalTicks, intervalTicks)
+    }
+
+    private fun scheduleTxRecovery() {
+        val intervalTicks = config.getLong("graves.collection.recovery-interval-ticks", 200L).coerceAtLeast(20L)
+        txRecoveryTask = server.scheduler.runTaskTimer(this, Runnable {
+            val changed = databaseHandler.recoverExpiredCollectionTx()
+            if (changed > 0) {
+                logger.warning("Recovered $changed expired collection transactions to FAILED_RECOVERABLE.")
+            }
         }, intervalTicks, intervalTicks)
     }
 }

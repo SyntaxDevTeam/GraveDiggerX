@@ -14,12 +14,12 @@ class CommandManager(private val plugin: GraveDiggerX) {
             val commands: Commands = event.registrar()
             commands.register(
                 "gravediggerx",
-                "GraveDiggerX plugin command. Type /gravediggerx help to check available commands",
+                "GraveDiggerX plugin command. Type /gdx help to check available commands",
                 GraveDiggerXCommands(plugin)
             )
             commands.register(
-                "grx",
-                "GraveDiggerX plugin command. Type /gravediggerx help to check available commands",
+                "gdx",
+                "GraveDiggerX plugin command. Type /gdx help to check available commands",
                 GraveDiggerXCommands(plugin)
             )
 

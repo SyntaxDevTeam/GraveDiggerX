@@ -151,6 +151,40 @@ class DatabaseHandlerStorageIntegrationTest {
         handler.close()
     }
 
+    @Test
+    fun `recovery job transitions expired collecting tx to failed recoverable`() {
+        val handler = newHandler(tempDir, dbType = "sqlite", dbName = "integration_recovery_job")
+        val grave = graveStub(UUID.fromString("00000000-0000-0000-0000-000000000888"))
+        val collector = UUID.fromString("00000000-0000-0000-0000-000000000889")
+        handler.connect()
+        handler.ensureSchema()
+
+        val tx = handler.beginCollectionTx(grave, collector, ttlMillis = 50)
+        assertNotNull(tx)
+        assertTrue(handler.transitionCollectionTx(grave.graveId, tx.txId, CollectionState.CLAIMED, CollectionState.COLLECTING))
+        Thread.sleep(120)
+
+        assertTrue(handler.recoverExpiredCollectionTx() >= 1)
+        assertNotNull(handler.beginCollectionTx(grave, collector, ttlMillis = 5000))
+        handler.close()
+    }
+
+    @Test
+    fun `manual unlock allows collection restart without restart`() {
+        val handler = newHandler(tempDir, dbType = "sqlite", dbName = "integration_manual_unlock")
+        val grave = graveStub(UUID.fromString("00000000-0000-0000-0000-000000000901"))
+        val collector = UUID.fromString("00000000-0000-0000-0000-000000000902")
+        handler.connect()
+        handler.ensureSchema()
+        val tx = handler.beginCollectionTx(grave, collector, ttlMillis = 5000)
+        assertNotNull(tx)
+        assertTrue(handler.transitionCollectionTx(grave.graveId, tx.txId, CollectionState.CLAIMED, CollectionState.COLLECTING))
+
+        assertEquals(1, handler.unlockCollectionTx(tx.txId.toString(), "test-admin", "stuck tx"))
+        assertNotNull(handler.beginCollectionTx(grave, collector, ttlMillis = 5000))
+        handler.close()
+    }
+
     private fun graveStub(graveId: UUID): Grave {
         val world = mock<World>()
         whenever(world.name).thenReturn("world")
