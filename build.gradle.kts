@@ -35,8 +35,8 @@ dependencies {
     testImplementation("com.zaxxer:HikariCP:7.0.2")
     testImplementation("org.xerial:sqlite-jdbc:3.51.1.0")
     testImplementation("org.mockito:mockito-core:5.20.0")
-    testImplementation("org.mockito:mockito-inline:5.2.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:6.1.0")
+    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.17")
 
 }
 
