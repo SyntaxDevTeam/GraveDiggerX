@@ -54,28 +54,28 @@ Main command: `/gravediggerx` (alias: `/gdx`).
 
 | Command | Description | Permission |
 | --- | --- | --- |
-| `/gravediggerx help` | Show help and command syntax. | `grx.cmd.help` |
-| `/gravediggerx reload` | Reload configuration and messages. | `grx.cmd.reload` |
-| `/gravediggerx list` | Show player's active graves with coordinates. | `grx.cmd.list` |
-| `/gravediggerx admin list <player>` | List active graves for selected player. | `grx.cmd.admin` |
-| `/gravediggerx admin remove <player> <id>` | Remove one grave by list index. | `grx.cmd.admin` |
-| `/gravediggerx admin backup list <player>` | List saved grave backups for selected player. | `grx.cmd.admin` |
-| `/gravediggerx admin backup restore <player> <id>` | Restore one backup as active grave. | `grx.cmd.admin` |
-| `/gravediggerx admin cleanupholograms` | Remove orphan grave holograms. | `grx.cmd.admin` |
-| `/gravediggerx admin cleanupghosts` | Remove orphan ghost spirits (Allays). | `grx.cmd.admin` |
-| `/gravediggerx admin cleanupgraves` | Remove orphan grave blocks. | `grx.cmd.admin` |
+| `/gravediggerx help` | Show help and command syntax. | `gdx.cmd.help` |
+| `/gravediggerx reload` | Reload configuration and messages. | `gdx.cmd.reload` |
+| `/gravediggerx list` | Show player's active graves with coordinates. | `gdx.cmd.list` |
+| `/gravediggerx admin list <player>` | List active graves for selected player. | `gdx.cmd.admin` |
+| `/gravediggerx admin remove <player> <id>` | Remove one grave by list index. | `gdx.cmd.admin` |
+| `/gravediggerx admin backup list <player>` | List saved grave backups for selected player. | `gdx.cmd.admin` |
+| `/gravediggerx admin backup restore <player> <id>` | Restore one backup as active grave. | `gdx.cmd.admin` |
+| `/gravediggerx admin cleanupholograms` | Remove orphan grave holograms. | `gdx.cmd.admin` |
+| `/gravediggerx admin cleanupghosts` | Remove orphan ghost spirits (Allays). | `gdx.cmd.admin` |
+| `/gravediggerx admin cleanupgraves` | Remove orphan grave blocks. | `gdx.cmd.admin` |
 
 ## Permissions
 
 | Permission | Default | Description |
 | --- | --- | --- |
-| `grx.cmd.help` | `true` | Permission for `/gdx help`. |
-| `grx.cmd.reload` | `op` | Permission for `/gdx reload`. |
-| `grx.cmd.list` | `true` | Permission for `/gdx list`. |
-| `grx.cmd.admin` | `op` | Permission for admin commands. |
-| `grx.opengrave` | `true` | Open grave GUI and collect grave contents. |
-| `grx.owner` | `false` | Master node for core GraveDiggerX permissions. |
-| `grx.*` | `false` | Wildcard node for all GraveDiggerX permissions. |
+| `gdx.cmd.help` | `true` | Permission for `/gdx help`. |
+| `gdx.cmd.reload` | `op` | Permission for `/gdx reload`. |
+| `gdx.cmd.list` | `true` | Permission for `/gdx list`. |
+| `gdx.cmd.admin` | `op` | Permission for admin commands. |
+| `gdx.opengrave` | `true` | Open grave GUI and collect grave contents. |
+| `gdx.owner` | `false` | Master node for core GraveDiggerX permissions. |
+| `gdx.*` | `false` | Wildcard node for all GraveDiggerX permissions. |
 
 > OP players are allowed by the runtime permission checker.
 

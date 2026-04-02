@@ -6,12 +6,12 @@ object PermissionChecker {
 
     enum class PermissionKey(val node: String) {
 
-        OWNER("grx.owner"),
-        CMD_HELP("grx.cmd.help"),
-        CMD_RELOAD("grx.cmd.reload"),
-        CMD_LIST("grx.cmd.list"),
-        CMD_ADMIN("grx.cmd.admin"),
-        OPEN_GRAVE("grx.opengrave");
+        OWNER("gdx.owner"),
+        CMD_HELP("gdx.cmd.help"),
+        CMD_RELOAD("gdx.cmd.reload"),
+        CMD_LIST("gdx.cmd.list"),
+        CMD_ADMIN("gdx.cmd.admin"),
+        OPEN_GRAVE("gdx.opengrave");
 
         override fun toString(): String = node
     }
@@ -19,9 +19,11 @@ object PermissionChecker {
     fun has(sender: CommandSender, key: PermissionKey): Boolean {
         if (sender.isOp) return true
         if (sender.hasPermission("*") ||
+            sender.hasPermission("gdx.*") ||
             sender.hasPermission("grx.*") ||
-            sender.hasPermission(PermissionKey.OWNER.node)) return true
-        return sender.hasPermission(key.node)
+            sender.hasPermission(PermissionKey.OWNER.node) ||
+            sender.hasPermission("grx.owner")) return true
+        return sender.hasPermission(key.node) || sender.hasPermission(key.node.replace("gdx.", "grx."))
     }
 
 }

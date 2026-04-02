@@ -26,42 +26,54 @@ dependencies:
 
 
 permissions:
-  grx.owner:
+  gdx.owner:
     description: "Master permission node for GraveDiggerX"
     default: false
     children:
-      grx.cmd.help: true
-      grx.cmd.reload: true
-      grx.cmd.list: true
-      grx.cmd.admin: true
-      grx.opengrave: true
+      gdx.cmd.help: true
+      gdx.cmd.reload: true
+      gdx.cmd.list: true
+      gdx.cmd.admin: true
+      gdx.opengrave: true
 
-  grx.cmd.help:
+  gdx.cmd.help:
     description: "Permission to use /gdx help"
     default: true
 
-  grx.cmd.reload:
+  gdx.cmd.reload:
     description: "Permission to reload plugin configuration"
     default: op
 
-  grx.cmd.list:
+  gdx.cmd.list:
     description: "Permission to list own graves"
     default: true
 
-  grx.cmd.admin:
+  gdx.cmd.admin:
     description: "Permission to use admin commands"
     default: op
 
-  grx.opengrave:
+  gdx.opengrave:
     description: "Permission to open and collect graves"
     default: true
 
-  grx.*:
+  gdx.*:
     description: "All GraveDiggerX permissions"
     default: false
     children:
-      grx.cmd.help: true
-      grx.cmd.reload: true
-      grx.cmd.list: true
-      grx.cmd.admin: true
-      grx.opengrave: true
+      gdx.cmd.help: true
+      gdx.cmd.reload: true
+      gdx.cmd.list: true
+      gdx.cmd.admin: true
+      gdx.opengrave: true
+
+  grx.owner:
+    description: "[LEGACY] Backward compatibility alias for gdx.owner"
+    default: false
+    children:
+      gdx.owner: true
+
+  grx.*:
+    description: "[LEGACY] Backward compatibility alias for gdx.*"
+    default: false
+    children:
+      gdx.*: true
