@@ -8,6 +8,7 @@ build/
 .gradle/
 !gradle/wrapper/gradle-wrapper.jar
 gradle-app.setting
+gradle.properties
 
 # Logs, runtime, server files
 run/
