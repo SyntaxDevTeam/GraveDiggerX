@@ -38,8 +38,11 @@ graves:
 spirits:
   enabled: true
 
-# Settings for connecting to the database
+performance:
+  cleanup:
+    limit-per-tick: 250 # Max orphaned entities/blocks processed per tick in admin cleanup commands
 
+# Settings for connecting to the database
 database:
   # Available options: json, mariadb, mysql, postgresql, sqlite, h2
   type: json
@@ -69,7 +72,3 @@ debug: false
 # Should StatsCollector be enabled? Recommended: true.
 stats:
   enabled: true
-
-performance:
-  cleanup:
-    limit-per-tick: 250 # Max orphaned entities/blocks processed per tick in admin cleanup commands

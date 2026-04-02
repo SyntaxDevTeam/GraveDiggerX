@@ -1,7 +1,7 @@
 # Author: f1lipus (https://github.com/f1lipus)
 # Version: 1.0.0
 
-prefix: "<bold><gradient:#2C2C2C:#555555>[GRX]</gradient></bold>"
+prefix: "<bold><gradient:#2C2C2C:#555555>[GDX]</gradient></bold>"
 
 error:
   no-permission: "You don't have permission to perform this operation!"
