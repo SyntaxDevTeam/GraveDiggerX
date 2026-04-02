@@ -1,76 +1,94 @@
 [![Build Plugin](https://github.com/SyntaxDevTeam/GraveDiggerX/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/SyntaxDevTeam/GraveDiggerX/actions/workflows/build.yml) ![GitHub issues](https://img.shields.io/github/issues/SyntaxDevTeam/GraveDiggerX) ![GitHub last commit](https://img.shields.io/github/last-commit/SyntaxDevTeam/GraveDiggerX) ![GitHub Release Date](https://img.shields.io/github/release-date/SyntaxDevTeam/GraveDiggerX)
 ![GitHub commits since latest release (branch)](https://img.shields.io/github/commits-since/SyntaxDevTeam/GraveDiggerX/latest/main) [![Hangar Downloads](https://img.shields.io/hangar/dt/GraveDiggerX?style=flat)](https://hangar.papermc.io/SyntaxDevTeam/GraveDiggerX)
+
 # GraveDiggerX
 
-GraveDiggerX is an advanced plugin for Paper servers that automatically creates graves upon a player's death. The plugin secures the player's inventory, experience, and death location, providing clear visual information and easy recovery of lost items.
+GraveDiggerX is a Paper/Folia plugin (API 1.21) that creates a grave when a player dies, stores inventory + XP, and lets the owner recover items via GUI or quick collect (sneak + click).
 
 | In game |
 | --- |
 | ![gravelook.png](https://raw.githubusercontent.com/SyntaxDevTeam/GraveDiggerX/main/assets/gravelook.png) |
 
-## Key Features
-- **Auto Graves** – After the player’s death, their inventory and experience are transferred to a gravestone in the form of the player’s head, accompanied by an informational hologram.
-- **Interactive inventory recovery** – The owner can open the gravestone’s GUI or quickly collect its contents by holding the sneak key and clicking on the gravestone.
-- **Death site protection** – Gravestones are immune to destruction by explosions, fluids, pistons, hoppers, or mobs, and thieves are repelled by a special effect until the gravestone expires.
-- **Guardian spirit** – A glowing Allay appears above the gravestone and remains until the loot is collected or the gravestone expires (can be disabled in the configuration).
-- **Automatic cleanup** – Gravestones are removed after a defined period, and the owner receives a countdown in the action bar.
-- **Persistent storage** – Gravestone data is saved in `data.json`, ensuring it is not lost after a server restart.
+## What the plugin actually does
+- **Creates a player-head grave** and stores main inventory (slots 0-35), armor, offhand, XP, location, and owner metadata.
+- **Spawns a hologram with countdown** and optionally a ghost spirit (Allay) above the grave.
+- **Protects grave blocks** against explosions, fluids, mobs, pistons, and hoppers (config-controlled).
+- **Enforces grave access rules**: foreign players are blocked/repelled, owner can recover items using GUI or quick collect.
+- **Supports expiration behavior**: `DISAPPEAR`, `DROP_ITEMS`, or `BECOME_PUBLIC`.
+- **Keeps grave backups** with admin list/restore commands.
+- **Provides orphan cleanup commands** for holograms, spirits, and leftover grave blocks.
+- **Integrates with WorldGuard**: if a region has explicit owners/members, grave placement requires player ownership/membership.
 
-## Requirements and Installation
-1. A Paper server version 1.21.10 (or compatible) is required.
-2. Download the latest version of GraveDiggerX and place the JAR file in the `plugins/` directory.
-3. Start the server to generate configuration and language files.
-4. Adjust the configuration as needed, then restart the server or use the `/gravediggerx reload` command.
+## Requirements
+- Java **21**.
+- **Paper/Folia 1.21.x** server (project currently built/tested against 1.21.11 API).
+- Optional **WorldGuard 7.x** (soft dependency; plugin can run without it).
 
-## Configuration
-The most important options are located in the `config.yml` file:
+## Installation
+1. Download the latest release JAR.
+2. Place it in your `plugins/` directory.
+3. Start the server to generate `config.yml`, `data.json`, and language files.
+4. Adjust configuration and restart the server or run `/gravediggerx reload`.
+
+## Configuration (key options)
 
 | Path | Description |
 | --- | --- |
-| `graves.grave-despawn` | Time (in seconds) after which the gravestone is removed. |
-| `graves.max-per-player` | Maximum number of active gravestones per player; exceeding this limit prevents new gravestones from being created. |
-| `graves.protected-effect-cooldown` | Cooldown time (in milliseconds) for the knockback effect applied to foreign players attempting to loot a fresh gravestone. |
-| `graves.protection.*` | Enables/disables protection against explosions, fluids, mobs, pistons, and hopper item extraction. |
-| `spirits.enabled` | Controls the appearance of the guardian spirit above the gravestone. |
-| `language` | Selects the language file (`EN`/`PL`). You can customize messages in `lang/messages_*.yml`. |
-| `update.*` | Automatic update checking and downloading (Hangar/GitHub/Modrinth). |
-| `stats.enabled` | Enables anonymous usage statistics collection. |
+| `graves.grave-despawn` | Grave lifetime in seconds. |
+| `graves.max-per-player` | Maximum active graves per player. |
+| `graves.expiration-action` | Action on expiration: `DISAPPEAR` / `DROP_ITEMS` / `BECOME_PUBLIC`. |
+| `graves.collection.claim-ttl-ms` | Collection transaction claim TTL (anti-race-condition protection). |
+| `graves.backups.*` | Backup toggle and backup limits (per player / global). |
+| `graves.worlds.*` | Enable graves per dimension (`overworld`, `nether`, `end`). |
+| `graves.protection.*` | Grave block protections (explosions, fluids, mobs, pistons, hoppers). |
+| `spirits.enabled` | Enables/disables grave spirit (Allay). |
+| `database.type` | Data backend: `json`, `mariadb`, `mysql`, `postgresql`, `sqlite`, `h2`. |
+| `database.sql.*` | SQL connection settings for SQL backends. |
+| `language` | Message locale selection (`EN`, `PL`; also includes `messages_ru.yml` and `messages_uk.yml`). |
+| `update.*` | Update check and auto-download sources (Hangar/GitHub/Modrinth). |
+| `stats.enabled` | Anonymous usage statistics toggle. |
+| `performance.cleanup.limit-per-tick` | Tick limit for admin orphan cleanup processing. |
 
-## Commands and Permissions
-The main plugin command is `/gravediggerx` (shortcut `/grx`). The following subcommands are available:
+## Commands
+Main command: `/gravediggerx` (alias: `/grx`).
 
 | Command | Description | Permission |
 | --- | --- | --- |
-| `/gravediggerx help` | Displays the plugin help and available command usage. | `grx.cmd.help` |
-| `/gravediggerx reload` | Reloads configuration and language messages without restarting the server. | `grx.cmd.reload` |
-| `/gravediggerx list` | Shows the executing player a numbered list of their active graves with coordinates. | `grx.cmd.list` |
-| `/gravediggerx admin list <player>` | Lists all active graves for the selected player. | `grx.cmd.admin` |
-| `/gravediggerx admin remove <player> <id>` | Removes one grave (by list index) for the selected player. | `grx.cmd.admin` |
-| `/gravediggerx admin backup list <player>` | Lists saved grave backups for the selected player. | `grx.cmd.admin` |
-| `/gravediggerx admin backup restore <player> <id>` | Restores one backup (by list index) as an active grave. | `grx.cmd.admin` |
-| `/gravediggerx admin cleanupholograms` | Removes orphaned grave holograms. | `grx.cmd.admin` |
-| `/gravediggerx admin cleanupghosts` | Removes orphaned guardian spirits (ghosts/allays). | `grx.cmd.admin` |
-| `/gravediggerx admin cleanupgraves` | Removes orphaned grave blocks tracked by the plugin. | `grx.cmd.admin` |
+| `/gravediggerx help` | Show help and command syntax. | `grx.cmd.help` |
+| `/gravediggerx reload` | Reload configuration and messages. | `grx.cmd.reload` |
+| `/gravediggerx list` | Show player's active graves with coordinates. | `grx.cmd.list` |
+| `/gravediggerx admin list <player>` | List active graves for selected player. | `grx.cmd.admin` |
+| `/gravediggerx admin remove <player> <id>` | Remove one grave by list index. | `grx.cmd.admin` |
+| `/gravediggerx admin backup list <player>` | List saved grave backups for selected player. | `grx.cmd.admin` |
+| `/gravediggerx admin backup restore <player> <id>` | Restore one backup as active grave. | `grx.cmd.admin` |
+| `/gravediggerx admin cleanupholograms` | Remove orphan grave holograms. | `grx.cmd.admin` |
+| `/gravediggerx admin cleanupghosts` | Remove orphan ghost spirits (Allays). | `grx.cmd.admin` |
+| `/gravediggerx admin cleanupgraves` | Remove orphan grave blocks. | `grx.cmd.admin` |
 
-Permissions:
+## Permissions
 
 | Permission | Default | Description |
 | --- | --- | --- |
-| `grx.cmd.help` | `true` | Permission to use the help command. |
-| `grx.cmd.reload` | `op` | Permission to reload plugin configuration and messages. |
-| `grx.cmd.list` | `true` | Permission to list your own graves. |
-| `grx.cmd.admin` | `op` | Permission to use all admin subcommands. |
-| `grx.opengrave` | `true` | Permission to open grave GUI and collect grave contents. |
-| `grx.owner` | `false` | Master node that grants all core GraveDiggerX permissions. |
+| `grx.cmd.help` | `true` | Permission for `/grx help`. |
+| `grx.cmd.reload` | `op` | Permission for `/grx reload`. |
+| `grx.cmd.list` | `true` | Permission for `/grx list`. |
+| `grx.cmd.admin` | `op` | Permission for admin commands. |
+| `grx.opengrave` | `true` | Open grave GUI and collect grave contents. |
+| `grx.owner` | `false` | Master node for core GraveDiggerX permissions. |
 | `grx.*` | `false` | Wildcard node for all GraveDiggerX permissions. |
 
-> **Note:** OP players are always allowed by the runtime permission checker.
+> OP players are allowed by the runtime permission checker.
 
+## Developer quickstart
+```bash
+chmod +x gradlew
+./gradlew clean build
+./gradlew test --console=plain
+```
 
-## Support and Development
-The plugin was designed for survival, hardcore, and RPG servers. Please report suggestions and bugs on the official Discord server or in the project repository so we can continue improving GraveDiggerX.
+## Support
+Please use GitHub Issues or the SyntaxDevTeam Discord to report bugs, request improvements, or propose new features.
 
 | SyntaxDevTeam |
 | --- |
 | ![syntaxdevteam_logo.png](https://raw.githubusercontent.com/SyntaxDevTeam/PunisherX/main/assets/syntaxdevteam_logo.png) |
-
