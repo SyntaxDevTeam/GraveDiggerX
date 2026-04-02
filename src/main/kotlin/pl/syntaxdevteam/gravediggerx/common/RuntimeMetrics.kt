@@ -40,7 +40,7 @@ class RuntimeMetrics {
         return Snapshot(
             gravesActiveTotal = gravesActiveTotal,
             collectionClaimConflictTotal = collectionClaimConflictTotal.get(),
-            collectionTxStuckTotal = collectionTxStuckCurrent.get(),
+            collectionTxStuckCurrent = collectionTxStuckCurrent.get(),
             collectionTxTransitionFailTotal = collectionTxTransitionFailTotal.get(),
             storageIoErrorsTotal = storageIoErrorsTotal.get(),
             cleanupDurationMs = totalDuration,
@@ -52,7 +52,7 @@ class RuntimeMetrics {
     data class Snapshot(
         val gravesActiveTotal: Long,
         val collectionClaimConflictTotal: Long,
-        val collectionTxStuckTotal: Long,
+        val collectionTxStuckCurrent: Long,
         val collectionTxTransitionFailTotal: Long,
         val storageIoErrorsTotal: Long,
         val cleanupDurationMs: Long,
