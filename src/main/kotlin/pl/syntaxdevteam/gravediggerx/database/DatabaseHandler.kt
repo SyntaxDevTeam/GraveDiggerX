@@ -16,6 +16,7 @@ import pl.syntaxdevteam.gravediggerx.graves.GraveIdentity
 import pl.syntaxdevteam.gravediggerx.graves.GraveSerializer
 import pl.syntaxdevteam.gravediggerx.graves.CollectionState
 import pl.syntaxdevteam.gravediggerx.graves.CollectionTx
+import pl.syntaxdevteam.gravediggerx.graves.CollectionTxStateMachine
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -62,6 +63,8 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
     private val fileClaims = ConcurrentHashMap.newKeySet<String>()
     private val fileTxLock = Any()
     private val fileCollectionTx = ConcurrentHashMap<UUID, CollectionTx>()
+    @Volatile
+    private var fileTxStateMachine: CollectionTxStateMachine? = null
 
     fun connect() {
         if (storageBackend != StorageBackend.SQL) {
@@ -297,9 +300,7 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
         }
 
         synchronized(fileTxLock) {
-            loadTxFromFileIfNeeded()
-            fileCollectionTx.entries.removeIf { it.value.graveId == grave.graveId }
-            saveTxToFile()
+            fileTxMachine().clearGrave(grave.graveId)
         }
     }
 
@@ -648,41 +649,28 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
 
     private fun beginCollectionTxFile(tx: CollectionTx): CollectionTx? {
         synchronized(fileTxLock) {
-            loadTxFromFileIfNeeded()
-            val now = System.currentTimeMillis()
-            fileCollectionTx.entries.removeIf {
-                it.value.graveId == tx.graveId && it.value.state != CollectionState.COLLECTED && it.value.expiresAt < now
-            }
-            val locked = fileCollectionTx.values.any {
-                it.graveId == tx.graveId && (it.state == CollectionState.CLAIMED || it.state == CollectionState.COLLECTING || it.state == CollectionState.COLLECTED)
-            }
-            if (locked) return null
-            fileCollectionTx[tx.txId] = tx
-            if (!saveTxToFile()) {
-                fileCollectionTx.remove(tx.txId)
-                return null
-            }
-            return tx
+            val machine = fileTxMachine()
+            val ttl = (tx.expiresAt - tx.updatedAt).coerceAtLeast(1L)
+            return machine.begin(
+                graveId = tx.graveId,
+                collectorId = tx.collectorId,
+                ttlMillis = ttl,
+                nowMillis = tx.updatedAt,
+                txId = tx.txId
+            )
         }
     }
 
     private fun transitionCollectionTxFile(graveId: UUID, txId: UUID, from: CollectionState, to: CollectionState, error: String?): Boolean {
         synchronized(fileTxLock) {
-            loadTxFromFileIfNeeded()
-            val current = fileCollectionTx[txId] ?: return false
-            if (current.graveId != graveId || current.state != from) return false
-            val updated = current.copy(
-                state = to,
-                version = current.version + 1,
-                updatedAt = System.currentTimeMillis(),
-                lastError = error
+            return fileTxMachine().transition(
+                graveId = graveId,
+                txId = txId,
+                from = from,
+                to = to,
+                nowMillis = System.currentTimeMillis(),
+                error = error
             )
-            fileCollectionTx[txId] = updated
-            if (!saveTxToFile()) {
-                fileCollectionTx[txId] = current
-                return false
-            }
-            return true
         }
     }
 
@@ -709,6 +697,22 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
         }.onFailure {
             logger.warning("Failed to load collection tx from ${collectionTxFilePath.toAbsolutePath()}: ${it.message}")
         }
+    }
+
+    private fun fileTxMachine(): CollectionTxStateMachine {
+        val existing = fileTxStateMachine
+        if (existing != null) return existing
+        loadTxFromFileIfNeeded()
+        val created = CollectionTxStateMachine(
+            persistence = CollectionTxStateMachine.Persistence { snapshot ->
+                fileCollectionTx.clear()
+                snapshot.forEach { fileCollectionTx[it.txId] = it }
+                saveTxToFile()
+            },
+            initialState = fileCollectionTx.values.toList()
+        )
+        fileTxStateMachine = created
+        return created
     }
 
     private fun saveTxToFile(): Boolean {
