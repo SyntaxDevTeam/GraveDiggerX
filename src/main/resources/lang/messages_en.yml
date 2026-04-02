@@ -52,6 +52,7 @@ graves:
   removal-countdown: "<#AAAAAA>Your grave will be deleted in: <white><time></white> sec"
   locate-header: "<white>Your active graves:</white>"
   locate-entry: "<white><index>.</white> <#AAAAAA>World: <white><world></white> <gray>→</gray> <white>X:<x> Y:<y> Z:<z></white>"
+  collection-tx-save-failed: "<#AAAAAA>Failed to persist collection transaction. The grave remains locked until an administrator intervenes."
 
 
 graveh:
@@ -63,6 +64,10 @@ admin:
   cleaned-holograms: "<#AAAAAA>Removed orphaned holograms: <white><count></white>."
   cleaned-ghosts: "<#AAAAAA>Removed orphaned spirits: <white><count></white>."
   cleaned-graves: "<#AAAAAA>Removed orphaned graves: <white><count></white>."
+  cleanup-already-running: "<#AAAAAA>Cleanup is already running. Wait until the current cycle finishes."
+  cleanup-holograms-started: "<#AAAAAA>Started hologram cleanup in batches (limit/tick: <white><limit></white>)."
+  cleanup-ghosts-started: "<#AAAAAA>Started spirit cleanup in batches (limit/tick: <white><limit></white>)."
+  cleanup-graves-started: "<#AAAAAA>Started grave cleanup in batches (limit/tick: <white><limit></white>)."
   player-not-found: "<#AAAAAA>Player <white><player></white> <#AAAAAA>not found."
   no-graves-for-player: "<#AAAAAA>Player <white><player></white> <#AAAAAA>has no graves."
   list-header: "<white>List of <white><player>'s graves:</white>"
@@ -74,3 +79,6 @@ admin:
   backup-location-occupied: "<#AAAAAA>Cannot restore backup because the location is already occupied."
   backup-world-missing: "<#AAAAAA>Cannot restore backup because the world is missing."
   backup-restore-failed: "<#AAAAAA>Could not restore backup<white> <player> <id>"
+  stats-header: "<#AAAAAA>=== GraveDiggerX runtime metrics ==="
+  stats-entry: "<#AAAAAA><metric>=<white><value>"
+  stats-reset-not-supported: "<#AAAAAA>Warning: metrics reset is not supported yet."

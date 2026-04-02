@@ -52,6 +52,7 @@ graves:
   removal-countdown: "<#AAAAAA>Twój grób zostanie usunięty za: <white><time></white> s"
   locate-header: "<white>Twoje aktywne groby:</white>"
   locate-entry: "<white><index>.</white> <#AAAAAA>Świat: <white><world></white> <gray>→</gray> <white>X:<x> Y:<y> Z:<z></white>"
+  collection-tx-save-failed: "<#AAAAAA>Błąd zapisu transakcji odbioru. Grób pozostaje zablokowany do czasu interwencji administracji."
 
 graveh:
   hologram: "<#800020>R.I.P.<newline><#AAAAAA>Wygasa za: <white><time>s</white><newline><#AAAAAA>Grób gracza <white><player></white><newline><yellow>Kliknij prawym przyciskiem, aby otworzyć"
@@ -62,6 +63,10 @@ admin:
   cleaned-holograms: "<#AAAAAA>Usunięto osierocone hologramy: <white><count></white>."
   cleaned-ghosts: "<#AAAAAA>Usunięto osierocone duchy: <white><count></white>."
   cleaned-graves: "<#AAAAAA>Usunięto osierocone groby: <white><count></white>."
+  cleanup-already-running: "<#AAAAAA>Cleanup już działa, poczekaj aż obecny cykl się zakończy."
+  cleanup-holograms-started: "<#AAAAAA>Uruchomiono cleanup hologramów w batchach (limit/tick: <white><limit></white>)."
+  cleanup-ghosts-started: "<#AAAAAA>Uruchomiono cleanup duchów w batchach (limit/tick: <white><limit></white>)."
+  cleanup-graves-started: "<#AAAAAA>Uruchomiono cleanup grobów w batchach (limit/tick: <white><limit></white>)."
   player-not-found: "<#AAAAAA>Gracz <white><player></white> <#AAAAAA>nie znaleziony."
   no-graves-for-player: "<#AAAAAA>Gracz <white><player></white> <#AAAAAA>nie ma grobów."
   list-header: "<white>Lista grobów <white><player>:</white>"
@@ -73,3 +78,6 @@ admin:
   backup-location-occupied: "<#AAAAAA>Nie można przywrócić kopii, miejsce jest zajęte."
   backup-world-missing: "<#AAAAAA>Nie można przywrócić kopii, świat nie istnieje."
   backup-restore-failed: "<#AAAAAA>Nie udało się przywrócić kopii<white> <player> <id>"
+  stats-header: "<#AAAAAA>=== Metryki runtime GraveDiggerX ==="
+  stats-entry: "<#AAAAAA><metric>=<white><value>"
+  stats-reset-not-supported: "<#AAAAAA>Uwaga: reset metryk nie jest jeszcze wspierany."

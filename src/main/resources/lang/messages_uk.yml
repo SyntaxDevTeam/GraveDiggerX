@@ -52,6 +52,7 @@ graves:
   removal-countdown: "<#AAAAAA>Ваша могила зникне через: <white><time></white> сек"
   locate-header: "<white>Ваші активні могили:</white>"
   locate-entry: "<white><index>.</white> <#AAAAAA>Світ: <white><world></white> <gray>→</gray> <white>X:<x> Y:<y> Z:<z></white>"
+  collection-tx-save-failed: "<#AAAAAA>Не вдалося зберегти транзакцію збору. Могила залишиться заблокованою до втручання адміністрації."
 
 
 graveh:
@@ -63,6 +64,10 @@ admin:
   cleaned-holograms: "<#AAAAAA>Видалено осиротілі голограми: <white><count></white>."
   cleaned-ghosts: "<#AAAAAA>Видалено осиротілі духи: <white><count></white>."
   cleaned-graves: "<#AAAAAA>Видалено осиротілі могили: <white><count></white>."
+  cleanup-already-running: "<#AAAAAA>Cleanup вже виконується, дочекайтеся завершення поточного циклу."
+  cleanup-holograms-started: "<#AAAAAA>Запущено cleanup голограм батчами (ліміт/тік: <white><limit></white>)."
+  cleanup-ghosts-started: "<#AAAAAA>Запущено cleanup духів батчами (ліміт/тік: <white><limit></white>)."
+  cleanup-graves-started: "<#AAAAAA>Запущено cleanup могил батчами (ліміт/тік: <white><limit></white>)."
   player-not-found: "<#AAAAAA>Гравець <white><player></white> <#AAAAAA>не знайдений."
   no-graves-for-player: "<#AAAAAA>Гравець <white><player></white> <#AAAAAA>не має могил."
   list-header: "<white>Список <white><player> могил:</white>"
@@ -74,3 +79,6 @@ admin:
   backup-location-occupied: "<#AAAAAA>Неможливо відновити копію, місце зайняте."
   backup-world-missing: "<#AAAAAA>Неможливо відновити копію, світ відсутній."
   backup-restore-failed: "<#AAAAAA>Не вдалося відновити копію<white> <player> <id>"
+  stats-header: "<#AAAAAA>=== Метрики runtime GraveDiggerX ==="
+  stats-entry: "<#AAAAAA><metric>=<white><value>"
+  stats-reset-not-supported: "<#AAAAAA>Увага: reset метрик поки не підтримується."

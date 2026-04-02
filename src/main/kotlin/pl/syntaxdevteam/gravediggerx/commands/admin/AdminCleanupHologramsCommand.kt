@@ -2,7 +2,6 @@ package pl.syntaxdevteam.gravediggerx.commands.admin
 
 import io.papermc.paper.command.brigadier.BasicCommand
 import io.papermc.paper.command.brigadier.CommandSourceStack
-import net.kyori.adventure.text.Component
 import org.jetbrains.annotations.NotNull
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker
@@ -29,9 +28,15 @@ class AdminCleanupHologramsCommand(private val plugin: GraveDiggerX) : BasicComm
             sender.sendMessage(message)
         }
         if (!started) {
-            sender.sendMessage(Component.text("Cleanup już działa, poczekaj aż obecny cykl się zakończy."))
+            sender.sendMessage(plugin.messageHandler.stringMessageToComponent("admin", "cleanup-already-running"))
             return
         }
-        sender.sendMessage(Component.text("Uruchomiono cleanup hologramów w batchach (limit/tick: $limitPerTick)."))
+        sender.sendMessage(
+            plugin.messageHandler.stringMessageToComponent(
+                "admin",
+                "cleanup-holograms-started",
+                mapOf("limit" to limitPerTick.toString())
+            )
+        )
     }
 }

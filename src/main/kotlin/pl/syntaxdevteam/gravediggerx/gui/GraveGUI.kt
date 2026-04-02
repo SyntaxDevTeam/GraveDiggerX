@@ -193,7 +193,7 @@ class GraveGUI(
             plugin.ghostManager.removeGhost(grave.ownerId)
             val markedCollected = plugin.graveManager.markCollected(grave, ticket)
             if (!markedCollected) {
-                player.sendMessage(Component.text("Błąd zapisu transakcji odbioru. Grób pozostaje zablokowany do czasu interwencji administracji."))
+                player.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "collection-tx-save-failed"))
                 return
             }
             plugin.graveManager.removeGrave(grave)

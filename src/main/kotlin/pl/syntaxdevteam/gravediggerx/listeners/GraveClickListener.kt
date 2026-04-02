@@ -5,7 +5,6 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.player.PlayerInteractEvent
-import net.kyori.adventure.text.Component
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.common.addItemOrDrop
 import pl.syntaxdevteam.gravediggerx.common.equipSafely
@@ -111,7 +110,7 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
 
             val markedCollected = plugin.graveManager.markCollected(grave, ticket)
             if (!markedCollected) {
-                player.sendMessage(Component.text("Błąd zapisu transakcji odbioru. Grób pozostaje zablokowany do czasu interwencji administracji."))
+                player.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "collection-tx-save-failed"))
                 return
             }
             plugin.graveManager.removeGrave(grave)
