@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import pl.syntaxdevteam.gravediggerx.graves.CollectionState
+import pl.syntaxdevteam.gravediggerx.graves.collection.CollectionState
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import java.nio.file.Files
 import java.nio.file.Path

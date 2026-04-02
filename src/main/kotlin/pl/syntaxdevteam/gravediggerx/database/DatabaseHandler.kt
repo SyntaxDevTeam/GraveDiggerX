@@ -16,9 +16,9 @@ import pl.syntaxdevteam.gravediggerx.graves.Grave
 import pl.syntaxdevteam.gravediggerx.graves.GraveDataStore
 import pl.syntaxdevteam.gravediggerx.graves.GraveIdentity
 import pl.syntaxdevteam.gravediggerx.graves.GraveSerializer
-import pl.syntaxdevteam.gravediggerx.graves.CollectionState
-import pl.syntaxdevteam.gravediggerx.graves.CollectionTx
-import pl.syntaxdevteam.gravediggerx.graves.CollectionTxStateMachine
+import pl.syntaxdevteam.gravediggerx.graves.collection.CollectionState
+import pl.syntaxdevteam.gravediggerx.graves.collection.CollectionTx
+import pl.syntaxdevteam.gravediggerx.graves.collection.CollectionTxStateMachine
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path

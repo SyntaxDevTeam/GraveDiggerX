@@ -1,4 +1,4 @@
-package pl.syntaxdevteam.gravediggerx.graves
+package pl.syntaxdevteam.gravediggerx.graves.backup
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
@@ -6,6 +6,7 @@ import com.google.gson.JsonParser
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.inventory.ItemStack
+import pl.syntaxdevteam.gravediggerx.graves.GraveSerializer
 import java.util.UUID
 
 object GraveBackupSerializer {

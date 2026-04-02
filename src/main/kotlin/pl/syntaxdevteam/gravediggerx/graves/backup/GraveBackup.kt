@@ -1,4 +1,4 @@
-package pl.syntaxdevteam.gravediggerx.graves
+package pl.syntaxdevteam.gravediggerx.graves.backup
 
 import org.bukkit.Location
 import org.bukkit.inventory.ItemStack

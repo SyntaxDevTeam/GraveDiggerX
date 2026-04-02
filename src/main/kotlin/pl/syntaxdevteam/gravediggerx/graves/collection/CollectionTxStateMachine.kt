@@ -1,4 +1,4 @@
-package pl.syntaxdevteam.gravediggerx.graves
+package pl.syntaxdevteam.gravediggerx.graves.collection
 
 import java.util.UUID
 

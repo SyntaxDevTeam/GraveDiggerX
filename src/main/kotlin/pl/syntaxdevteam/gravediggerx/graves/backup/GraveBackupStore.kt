@@ -1,7 +1,10 @@
-package pl.syntaxdevteam.gravediggerx.graves
+package pl.syntaxdevteam.gravediggerx.graves.backup
 
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
+import pl.syntaxdevteam.gravediggerx.graves.GraveSerializer
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 class GraveBackupStore(plugin: GraveDiggerX) {
 
@@ -27,11 +30,11 @@ class GraveBackupStore(plugin: GraveDiggerX) {
             try {
                 val source = tmpFile.toPath()
                 val target = dataFile.toPath()
-                java.nio.file.Files.move(
+                Files.move(
                     source,
                     target,
-                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
-                    java.nio.file.StandardCopyOption.ATOMIC_MOVE
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE
                 )
             } catch (moveError: Exception) {
                 logger.warning("Atomic write failed for ${dataFile.absolutePath}, fallback rename will be used: ${moveError.message}")

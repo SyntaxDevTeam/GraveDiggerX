@@ -6,6 +6,9 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
+import pl.syntaxdevteam.gravediggerx.graves.collection.CollectionState
+import pl.syntaxdevteam.gravediggerx.graves.collection.CollectionTx
+import pl.syntaxdevteam.gravediggerx.graves.collection.CollectionTxStateMachine
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
