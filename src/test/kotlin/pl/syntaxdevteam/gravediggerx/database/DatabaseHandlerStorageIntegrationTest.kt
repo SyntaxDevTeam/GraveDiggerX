@@ -173,7 +173,6 @@ class DatabaseHandlerStorageIntegrationTest {
         )
     }
 
-    @Suppress("SameParameterValue")
     private fun newHandler(dataFolder: Path, dbType: String, dbName: String): DatabaseHandler {
         val values = mapOf(
             "database.type" to dbType,
