@@ -12,6 +12,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
+@Suppress("RedundantSamConstructor")
 class CollectionTxStateMachineTest {
 
     private val graveA = UUID.fromString("00000000-0000-0000-0000-0000000000aa")

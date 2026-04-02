@@ -27,6 +27,7 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
+@Suppress("RedundantSamConstructor", "CanBeParameter")
 class DatabaseHandler private constructor(
     private val logger: Logger,
     private val pluginName: String,
