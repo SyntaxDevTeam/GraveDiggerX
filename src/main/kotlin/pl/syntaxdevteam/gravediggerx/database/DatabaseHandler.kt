@@ -9,6 +9,7 @@ import pl.syntaxdevteam.core.database.DatabaseConfig
 import pl.syntaxdevteam.core.database.DatabaseManager
 import pl.syntaxdevteam.core.database.DatabaseType
 import pl.syntaxdevteam.core.database.TableSchema
+import pl.syntaxdevteam.core.logging.Logger
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import pl.syntaxdevteam.gravediggerx.graves.GraveDataStore
@@ -26,29 +27,57 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
-class DatabaseHandler(private val plugin: GraveDiggerX) {
+class DatabaseHandler private constructor(
+    private val logger: Logger,
+    private val pluginName: String,
+    private val dataFolder: java.io.File,
+    private val configString: (String) -> String?,
+    private val configInt: (String) -> Int,
+    private val fileStore: GraveStore
+) {
+    constructor(plugin: GraveDiggerX) : this(
+        logger = plugin.logger,
+        pluginName = plugin.name,
+        dataFolder = plugin.dataFolder,
+        configString = { key -> plugin.config.getString(key) },
+        configInt = { key -> plugin.config.getInt(key) },
+        fileStore = GraveStoreAdapter(GraveDataStore(plugin))
+    )
+
+    internal constructor(
+        logger: Logger,
+        pluginName: String,
+        dataFolder: java.io.File,
+        configString: (String) -> String?,
+        configInt: (String) -> Int
+    ) : this(
+        logger = logger,
+        pluginName = pluginName,
+        dataFolder = dataFolder,
+        configString = configString,
+        configInt = configInt,
+        fileStore = GraveStoreAdapter(GraveDataStoreShim(dataFolder, logger))
+    )
+
     private enum class StorageBackend { FILE, SQL }
 
-    private val logger = plugin.logger
-
-    private val fileStore = GraveDataStore(plugin)
     private val configuredType =
-        plugin.config.getString("database.type")?.trim()?.lowercase(Locale.ROOT) ?: "yaml"
+        configString("database.type")?.trim()?.lowercase(Locale.ROOT) ?: "yaml"
 
     private val storageBackend = resolveBackend(configuredType)
     private val dbType: DatabaseType? = parseDatabaseType(configuredType)
     private val dbConfig = if (storageBackend == StorageBackend.SQL) {
         dbType?.let {
             val databaseName = resolveDatabaseName(
-                plugin.config.getString("database.sql.dbname")
+                configString("database.sql.dbname")
             )
             DatabaseConfig(
                 type = it,
-                host = plugin.config.getString("database.sql.host") ?: "localhost",
-                port = resolvePort(it, plugin.config.getInt("database.sql.port")),
+                host = configString("database.sql.host") ?: "localhost",
+                port = resolvePort(it, configInt("database.sql.port")),
                 database = databaseName,
-                username = plugin.config.getString("database.sql.username") ?: "root",
-                password = plugin.config.getString("database.sql.password") ?: "",
+                username = configString("database.sql.username") ?: "root",
+                password = configString("database.sql.password") ?: "",
                 filePath = resolveDatabaseFilePath(it, databaseName)
             )
         }
@@ -57,8 +86,8 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
     }
     private val dbManager = dbConfig?.let { DatabaseManager(it, logger) }
     private val sqlOperational = AtomicBoolean(false)
-    private val claimsFilePath = plugin.dataFolder.toPath().resolve("collection_claims.json")
-    private val collectionTxFilePath = plugin.dataFolder.toPath().resolve("collection_tx.json")
+    private val claimsFilePath = dataFolder.toPath().resolve("collection_claims.json")
+    private val collectionTxFilePath = dataFolder.toPath().resolve("collection_tx.json")
     private val fileClaimsLock = Any()
     private val fileClaims = ConcurrentHashMap.newKeySet<String>()
     private val fileTxLock = Any()
@@ -329,7 +358,7 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
     }
 
     private fun resolveDatabaseName(configuredName: String?): String =
-        configuredName?.takeUnless { it.isBlank() } ?: plugin.name
+        configuredName?.takeUnless { it.isBlank() } ?: pluginName
 
     private fun resolveDatabaseFilePath(type: DatabaseType, baseName: String): String? = when (type) {
         DatabaseType.SQLITE -> resolveSqliteDatabasePath(baseName)
@@ -358,7 +387,7 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
             return path.toString()
         }
 
-        val dataFolderPath = plugin.dataFolder.toPath()
+        val dataFolderPath = dataFolder.toPath()
         createDirectoryIfMissing(dataFolderPath)
         val databaseRoot = dataFolderPath.resolve("database")
         createDirectoryIfMissing(databaseRoot)
@@ -370,7 +399,7 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
 
     private fun resolveSqliteDatabasePath(name: String): String {
         val trimmed = name.trim().removeSuffix(".db")
-        val dataFolderPath = plugin.dataFolder.toPath()
+        val dataFolderPath = dataFolder.toPath()
         createDirectoryIfMissing(dataFolderPath)
         val databaseRoot = dataFolderPath.resolve("database")
         createDirectoryIfMissing(databaseRoot)
@@ -765,5 +794,71 @@ class DatabaseHandler(private val plugin: GraveDiggerX) {
             storedXp = storedXp,
             payload = GraveSerializer.encodeGraveToString(this)
         )
+    }
+
+    private interface GraveStore {
+        fun saveAllGraves(graves: Collection<Grave>)
+        fun loadAllGraves(): List<Grave>
+    }
+
+    private class GraveStoreAdapter(
+        private val delegate: GraveStore
+    ) : GraveStore {
+        constructor(delegate: GraveDataStore) : this(object : GraveStore {
+            override fun saveAllGraves(graves: Collection<Grave>) = delegate.saveAllGraves(graves)
+            override fun loadAllGraves(): List<Grave> = delegate.loadAllGraves()
+        })
+
+        override fun saveAllGraves(graves: Collection<Grave>) = delegate.saveAllGraves(graves)
+        override fun loadAllGraves(): List<Grave> = delegate.loadAllGraves()
+    }
+
+    private class GraveDataStoreShim(
+        private val dataFolder: java.io.File,
+        private val logger: Logger
+    ) : GraveStore {
+        private val dataFile = java.io.File(dataFolder, "data.json")
+
+        init {
+            if (!dataFolder.exists()) {
+                dataFolder.mkdirs()
+            }
+        }
+
+        override fun saveAllGraves(graves: Collection<Grave>) {
+            try {
+                val jsonArray = GraveSerializer.encodeGraves(graves)
+                val jsonText = GraveSerializer.gson.toJson(jsonArray)
+                val tmpFile = java.io.File(dataFile.parentFile, dataFile.name + ".tmp")
+                tmpFile.bufferedWriter().use { writer ->
+                    writer.write(jsonText)
+                    writer.flush()
+                }
+                try {
+                    Files.move(
+                        tmpFile.toPath(),
+                        dataFile.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                        java.nio.file.StandardCopyOption.ATOMIC_MOVE
+                    )
+                } catch (_: Exception) {
+                    Files.move(tmpFile.toPath(), dataFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                }
+            } catch (e: Exception) {
+                logger.err("Failed to save graves to ${dataFile.absolutePath}: ${e.message}")
+            }
+        }
+
+        override fun loadAllGraves(): List<Grave> {
+            return try {
+                if (!dataFile.exists()) return emptyList()
+                val content = dataFile.readText()
+                if (content.isBlank()) return emptyList()
+                GraveSerializer.decodeGravesFromString(content)
+            } catch (e: Exception) {
+                logger.err("Failed to load graves from ${dataFile.absolutePath}: ${e.message}")
+                emptyList()
+            }
+        }
     }
 }
