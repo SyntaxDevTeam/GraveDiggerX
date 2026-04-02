@@ -10,6 +10,7 @@ import pl.syntaxdevteam.core.database.DatabaseManager
 import pl.syntaxdevteam.core.database.DatabaseType
 import pl.syntaxdevteam.core.database.TableSchema
 import pl.syntaxdevteam.core.logging.Logger
+import pl.syntaxdevteam.core.plugin.PluginMetaProvider
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import pl.syntaxdevteam.gravediggerx.graves.GraveDataStore
@@ -29,7 +30,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 @Suppress("RedundantSamConstructor", "CanBeParameter")
 class DatabaseHandler private constructor(
-    private val logger: Logger,
+    private val coreLogger: Logger,
+    private val logger: LogSink,
     private val pluginName: String,
     private val dataFolder: java.io.File,
     private val configString: (String) -> String?,
@@ -37,7 +39,12 @@ class DatabaseHandler private constructor(
     private val fileStore: GraveStore
 ) {
     constructor(plugin: GraveDiggerX) : this(
-        logger = plugin.logger,
+        coreLogger = plugin.logger,
+        logger = LogSink(
+            debug = { plugin.logger.debug(it) },
+            warning = { plugin.logger.warning(it) },
+            error = { plugin.logger.err(it) }
+        ),
         pluginName = plugin.name,
         dataFolder = plugin.dataFolder,
         configString = { key -> plugin.config.getString(key) },
@@ -46,18 +53,25 @@ class DatabaseHandler private constructor(
     )
 
     internal constructor(
-        logger: Logger,
         pluginName: String,
         dataFolder: java.io.File,
         configString: (String) -> String?,
-        configInt: (String) -> Int
+        configInt: (String) -> Int,
+        debug: (String) -> Unit = {},
+        warning: (String) -> Unit = {},
+        error: (String) -> Unit = {}
     ) : this(
-        logger = logger,
+        coreLogger = Logger(object : PluginMetaProvider {
+            override val name: String = pluginName
+            override val version: String = "test"
+            override val debugMode: Boolean = false
+        }),
+        logger = LogSink(debug, warning, error),
         pluginName = pluginName,
         dataFolder = dataFolder,
         configString = configString,
         configInt = configInt,
-        fileStore = GraveStoreAdapter(GraveDataStoreShim(dataFolder, logger))
+        fileStore = GraveStoreAdapter(GraveDataStoreShim(dataFolder, LogSink(debug, warning, error)))
     )
 
     private enum class StorageBackend { FILE, SQL }
@@ -85,7 +99,7 @@ class DatabaseHandler private constructor(
     } else {
         null
     }
-    private val dbManager = dbConfig?.let { DatabaseManager(it, logger) }
+    private val dbManager = dbConfig?.let { DatabaseManager(it, coreLogger) }
     private val sqlOperational = AtomicBoolean(false)
     private val claimsFilePath = dataFolder.toPath().resolve("collection_claims.json")
     private val collectionTxFilePath = dataFolder.toPath().resolve("collection_tx.json")
@@ -816,7 +830,7 @@ class DatabaseHandler private constructor(
 
     private class GraveDataStoreShim(
         private val dataFolder: java.io.File,
-        private val logger: Logger
+        private val logger: LogSink
     ) : GraveStore {
         private val dataFile = java.io.File(dataFolder, "data.json")
 
@@ -861,5 +875,15 @@ class DatabaseHandler private constructor(
                 emptyList()
             }
         }
+    }
+
+    private data class LogSink(
+        val debug: (String) -> Unit,
+        val warning: (String) -> Unit,
+        val error: (String) -> Unit
+    ) {
+        fun debug(message: String) = debug.invoke(message)
+        fun warning(message: String) = warning.invoke(message)
+        fun err(message: String) = error.invoke(message)
     }
 }
