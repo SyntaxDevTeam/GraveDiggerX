@@ -16,6 +16,7 @@ import pl.syntaxdevteam.gravediggerx.common.CancellableTask
 import pl.syntaxdevteam.gravediggerx.common.RuntimeMetrics
 import pl.syntaxdevteam.core.platform.ServerEnvironment
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
+import pl.syntaxdevteam.gravediggerx.common.VersionChecker
 import pl.syntaxdevteam.gravediggerx.database.DatabaseHandler
 import pl.syntaxdevteam.gravediggerx.graves.GraveManager
 import pl.syntaxdevteam.gravediggerx.graves.GraveSerializer
@@ -50,6 +51,7 @@ class GraveDiggerX : JavaPlugin() {
         )
         SyntaxCore.init(this, versionType = "paper")
         this.logger = SyntaxCore.logger
+        VersionChecker(this).checkAndLog()
         saveDefaultConfig()
         pluginConfig = this.config
         configHandler = ConfigHandler(this)
