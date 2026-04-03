@@ -685,22 +685,30 @@ class DatabaseHandler private constructor(
     private fun tryAcquireCollectionClaimSql(claimKey: String, graveKey: String): Boolean {
         val manager = dbManager ?: return false
         if (!ensureSqlReady()) return false
-        return try {
-            manager.execute(
-                "INSERT INTO grave_collection_claims (claimKey, graveKey, claimedAt) VALUES (?, ?, ?)",
-                claimKey,
-                graveKey,
-                System.currentTimeMillis()
-            )
-            true
-        } catch (e: Exception) {
-            val message = e.message?.lowercase(Locale.ROOT).orEmpty()
-            if ("unique" in message || "duplicate" in message || "constraint" in message) {
+        repeat(3) { attempt ->
+            try {
+                manager.execute(
+                    "INSERT INTO grave_collection_claims (claimKey, graveKey, claimedAt) VALUES (?, ?, ?)",
+                    claimKey,
+                    graveKey,
+                    System.currentTimeMillis()
+                )
+                return true
+            } catch (e: Exception) {
+                val message = e.message?.lowercase(Locale.ROOT).orEmpty()
+                if ("unique" in message || "duplicate" in message || "constraint" in message) {
+                    return false
+                }
+                val isTransientLock = "database is locked" in message || "database table is locked" in message
+                if (isTransientLock && attempt < 2) {
+                    Thread.sleep(10)
+                    return@repeat
+                }
+                logger.warning("Failed to acquire SQL collection claim for $claimKey: ${e.message}")
                 return false
             }
-            logger.warning("Failed to acquire SQL collection claim for $claimKey: ${e.message}")
-            false
         }
+        return false
     }
 
     private fun releaseCollectionClaimSql(claimKey: String) {
