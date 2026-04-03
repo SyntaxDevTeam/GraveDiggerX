@@ -1,7 +1,6 @@
 package pl.syntaxdevteam.gravediggerx
 
 import org.bukkit.configuration.file.FileConfiguration
-import org.bukkit.scheduler.BukkitTask
 import org.bukkit.plugin.java.JavaPlugin
 import pl.syntaxdevteam.core.SyntaxCore
 import pl.syntaxdevteam.core.logging.Logger
@@ -13,6 +12,7 @@ import pl.syntaxdevteam.message.MessageHandler
 import pl.syntaxdevteam.message.SyntaxMessages
 import pl.syntaxdevteam.gravediggerx.commands.CommandManager
 import pl.syntaxdevteam.gravediggerx.common.ConfigHandler
+import pl.syntaxdevteam.gravediggerx.common.CancellableTask
 import pl.syntaxdevteam.gravediggerx.common.RuntimeMetrics
 import pl.syntaxdevteam.core.platform.ServerEnvironment
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
@@ -39,8 +39,8 @@ class GraveDiggerX : JavaPlugin() {
     lateinit var graveManager: GraveManager
     lateinit var ghostManager: GhostManager
     lateinit var timeGraveRemove: TimeGraveRemove
-    private var healthSummaryTask: BukkitTask? = null
-    private var txRecoveryTask: BukkitTask? = null
+    private var healthSummaryTask: CancellableTask? = null
+    private var txRecoveryTask: CancellableTask? = null
 
 
     override fun onEnable() {
@@ -116,7 +116,7 @@ class GraveDiggerX : JavaPlugin() {
 
     private fun scheduleHealthSummary() {
         val intervalTicks = 5L * 60L * 20L
-        healthSummaryTask = server.scheduler.runTaskTimer(this, Runnable {
+        healthSummaryTask = SchedulerProvider.runAsyncRepeating(this, intervalTicks, intervalTicks, Runnable {
             val stuckThresholdMs = config.getLong("graves.collection.stuck-threshold-ms", 30000L).coerceAtLeast(3000L)
             val stuckCount = databaseHandler.countStuckCollectionTx(stuckThresholdMs)
             runtimeMetrics.setCollectionTxStuckCurrent(stuckCount.toLong())
@@ -132,16 +132,16 @@ class GraveDiggerX : JavaPlugin() {
                     "cleanup_duration_avg_ms=${snapshot.cleanupDurationAvgMs}, " +
                     "cleanup_items_processed_total=${snapshot.cleanupItemsProcessedTotal}"
             )
-        }, intervalTicks, intervalTicks)
+        })
     }
 
     private fun scheduleTxRecovery() {
         val intervalTicks = config.getLong("graves.collection.recovery-interval-ticks", 200L).coerceAtLeast(20L)
-        txRecoveryTask = server.scheduler.runTaskTimer(this, Runnable {
+        txRecoveryTask = SchedulerProvider.runAsyncRepeating(this, intervalTicks, intervalTicks, Runnable {
             val changed = databaseHandler.recoverExpiredCollectionTx()
             if (changed > 0) {
                 logger.warning("Recovered $changed expired collection transactions to FAILED_RECOVERABLE.")
             }
-        }, intervalTicks, intervalTicks)
+        })
     }
 }

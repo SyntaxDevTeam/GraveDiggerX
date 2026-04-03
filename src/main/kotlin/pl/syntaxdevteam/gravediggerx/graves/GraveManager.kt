@@ -8,9 +8,9 @@ import org.bukkit.entity.Display
 import org.bukkit.entity.TextDisplay
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
-import org.bukkit.scheduler.BukkitTask
 import org.joml.Vector3f
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
+import pl.syntaxdevteam.gravediggerx.common.CancellableTask
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
 import pl.syntaxdevteam.gravediggerx.graves.backup.GraveBackup
 import pl.syntaxdevteam.gravediggerx.graves.backup.GraveBackupStore
@@ -29,7 +29,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
     private val regionOwnershipChecker = RegionOwnershipChecker.create(plugin)
     private val graveBackups = Collections.synchronizedList(backupStore.loadAllBackups().toMutableList())
     @Volatile
-    private var cleanupTask: BukkitTask? = null
+    private var cleanupTask: CancellableTask? = null
 
     enum class BackupRestoreResult {
         SUCCESS,
@@ -436,7 +436,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
         var removed = 0
         val iterator = skulls.iterator()
         val graveKey = NamespacedKey(plugin, "grave")
-        cleanupTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
+        cleanupTask = SchedulerProvider.runGlobalRepeating(plugin, 1L, 1L, Runnable {
             var processed = 0
             while (iterator.hasNext() && processed < limitPerTick) {
                 val skull = iterator.next()
@@ -452,7 +452,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
                 plugin.runtimeMetrics.recordCleanup(System.currentTimeMillis() - startedAt, removed.toLong())
                 onComplete(removed)
             }
-        }, 1L, 1L)
+        })
         return true
     }
 
@@ -466,7 +466,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
         val startedAt = System.currentTimeMillis()
         var removed = 0
         val iterator = snapshot.iterator()
-        cleanupTask = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
+        cleanupTask = SchedulerProvider.runGlobalRepeating(plugin, 1L, 1L, Runnable {
             var processed = 0
             while (iterator.hasNext() && processed < limitPerTick) {
                 val entity = iterator.next()
@@ -481,7 +481,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
                 plugin.runtimeMetrics.recordCleanup(System.currentTimeMillis() - startedAt, removed.toLong())
                 onComplete(removed)
             }
-        }, 1L, 1L)
+        })
         return true
     }
 

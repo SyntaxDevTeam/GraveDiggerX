@@ -4,6 +4,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.plugin.Plugin
 import pl.syntaxdevteam.core.platform.ServerEnvironment
+import pl.syntaxdevteam.core.platform.scheduler.FoliaRunnable
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 
@@ -74,16 +75,45 @@ object SchedulerProvider {
     ): CancellableTask {
         if (ServerEnvironment.isFoliaBased()) {
             val foliaInitialDelayTicks = initialDelayTicks.coerceAtLeast(1L)
-            val scheduled = runFoliaAsyncRepeating(plugin, foliaInitialDelayTicks, periodTicks, task)
-            if (scheduled != null) {
-                return ReflectiveTask(scheduled)
+            val foliaPeriodTicks = periodTicks.coerceAtLeast(1L)
+            val foliaRunnable = object : FoliaRunnable(Bukkit.getAsyncScheduler(), TimeUnit.MILLISECONDS) {
+                override fun run() {
+                    task.run()
+                }
             }
-            val bukkitTask = Bukkit.getScheduler()
-                .runTaskTimerAsynchronously(plugin, task, initialDelayTicks, periodTicks)
-            return BukkitTaskWrapper(bukkitTask)
+            foliaRunnable.scheduleAtFixedRate(
+                plugin,
+                ticksToMillis(foliaInitialDelayTicks),
+                ticksToMillis(foliaPeriodTicks)
+            )
+            return RunnableTask(foliaRunnable::cancel)
         }
         val bukkitTask = Bukkit.getScheduler()
             .runTaskTimerAsynchronously(plugin, task, initialDelayTicks, periodTicks)
+        return BukkitTaskWrapper(bukkitTask)
+    }
+
+    fun runGlobalRepeating(
+        plugin: Plugin,
+        initialDelayTicks: Long,
+        periodTicks: Long,
+        task: Runnable
+    ): CancellableTask {
+        if (ServerEnvironment.isFoliaBased()) {
+            val foliaRunnable = object : FoliaRunnable(Bukkit.getGlobalRegionScheduler()) {
+                override fun run() {
+                    task.run()
+                }
+            }
+            foliaRunnable.scheduleAtFixedRate(
+                plugin,
+                initialDelayTicks.coerceAtLeast(1L),
+                periodTicks.coerceAtLeast(1L)
+            )
+            return RunnableTask(foliaRunnable::cancel)
+        }
+        val bukkitTask = Bukkit.getScheduler()
+            .runTaskTimer(plugin, task, initialDelayTicks, periodTicks)
         return BukkitTaskWrapper(bukkitTask)
     }
 
@@ -151,6 +181,10 @@ object SchedulerProvider {
         }
     }
 
+    private data class RunnableTask(private val action: () -> Unit) : CancellableTask {
+        override fun cancel() = action.invoke()
+    }
+
     private object NoopTask : CancellableTask {
         override fun cancel() = Unit
     }
@@ -188,26 +222,6 @@ object SchedulerProvider {
         } ?: return false
         method.invoke(scheduler, plugin, Consumer<Any> { task.run() })
         return true
-    }
-
-    private fun runFoliaAsyncRepeating(
-        plugin: Plugin,
-        initialDelayTicks: Long,
-        periodTicks: Long,
-        task: Runnable
-    ): Any? {
-        val scheduler = getServerScheduler("getAsyncScheduler") ?: return null
-        val method = scheduler.javaClass.methods.firstOrNull {
-            it.name == "runAtFixedRate" && it.parameterCount == 5
-        } ?: return null
-        return method.invoke(
-            scheduler,
-            plugin,
-            Consumer<Any> { task.run() },
-            ticksToMillis(initialDelayTicks),
-            ticksToMillis(periodTicks),
-            TimeUnit.MILLISECONDS
-        )
     }
 
     private fun runFoliaGlobal(plugin: Plugin, task: Runnable): Boolean {
