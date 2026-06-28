@@ -1,8 +1,8 @@
 plugins {
-    kotlin("jvm") version "2.3.20"
-    id("com.gradleup.shadow") version "9.4.1"
+    kotlin("jvm") version "2.4.0"
+    id("com.gradleup.shadow") version "9.4.3"
     id("xyz.jpenilla.run-paper") version "3.0.2"
-    id("pl.syntaxdevteam.plugindeployer") version "1.0.5-R0.1-SNAPSHOT"
+    id("pl.syntaxdevteam.plugindeployer") version "1.0.6-R0.2-SNAPSHOT"
 }
 
 val mockitoAgent by configurations.creating {
@@ -27,18 +27,18 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly("pl.syntaxdevteam:core:1.3.0-R0.2-SNAPSHOT")
-    compileOnly("pl.syntaxdevteam:messageHandler-paper:1.1.2-R0.1-SNAPSHOT")
-    compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.3")
-    compileOnly("com.zaxxer:HikariCP:7.0.2")
+    compileOnly("pl.syntaxdevteam:core:1.4.0-R0.1-SNAPSHOT")
+    compileOnly("pl.syntaxdevteam:messageHandler-paper:1.2.0-R0.1-SNAPSHOT")
+    compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.4")
+    compileOnly("com.zaxxer:HikariCP:7.1.0")
     compileOnly("org.xerial:sqlite-jdbc:3.51.3.0")
     compileOnly("org.mariadb.jdbc:mariadb-java-client:3.5.8")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.16")
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.0-M1")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    testImplementation("pl.syntaxdevteam:core:1.3.0-R0.2-SNAPSHOT")
-    testImplementation("com.zaxxer:HikariCP:7.0.2")
+    testImplementation("pl.syntaxdevteam:core:1.4.0-R0.1-SNAPSHOT")
+    testImplementation("com.zaxxer:HikariCP:7.1.0")
     testImplementation("org.xerial:sqlite-jdbc:3.51.3.0")
     testImplementation("org.mockito:mockito-core:5.23.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:6.3.0")
@@ -49,7 +49,7 @@ dependencies {
 
 }
 
-val targetJavaVersion = 21
+val targetJavaVersion = 25
 kotlin {
     jvmToolchain(targetJavaVersion)
 }
@@ -63,7 +63,7 @@ tasks {
         jvmArgs("-javaagent:${mockitoAgent.singleFile.absolutePath}")
     }
     runServer {
-        minecraftVersion("1.21.11")
+        minecraftVersion("26.1.1")
         runDirectory(file("run/paper"))
     }
 
@@ -90,7 +90,7 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
 }
 
 plugindeployer {
-    paper { dir = "/home/debian/server/Paper/1.21.11/plugins" }
+    paper { dir = "/home/debian/server/Paper/26.2/plugins" }
     folia { dir = "/home/debian/server/Folia/1.21.11/plugins" }
-    spigot { dir = "/home/debian/server/Spigot/26.1/plugins" }
+    spigot { dir = "/home/debian/server/Spigot/26.2/plugins" }
 }

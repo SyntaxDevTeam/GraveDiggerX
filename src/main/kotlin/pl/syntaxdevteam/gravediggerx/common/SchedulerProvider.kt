@@ -8,9 +8,6 @@ import pl.syntaxdevteam.core.platform.scheduler.FoliaRunnable
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 
-interface CancellableTask {
-    fun cancel()
-}
 
 object SchedulerProvider {
     fun runAsync(plugin: Plugin, task: Runnable) {

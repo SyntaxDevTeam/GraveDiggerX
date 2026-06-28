@@ -35,7 +35,7 @@ object GraveSerializer {
     fun decodeGravesFromString(content: String): List<Grave> {
         if (content.isBlank()) return emptyList()
         return try {
-            val json = JsonParser.parseString(content).asJsonArray
+            val json = JsonParser().parse(content).asJsonArray
             json.mapNotNull { element ->
                 runCatching { decodeGrave(element.asJsonObject) }.getOrNull()
             }
@@ -47,7 +47,7 @@ object GraveSerializer {
     fun decodeGraveFromString(payload: String): Grave? {
         if (payload.isBlank()) return null
         return try {
-            val obj = JsonParser.parseString(payload).asJsonObject
+            val obj = JsonParser().parse(payload).asJsonObject
             decodeGrave(obj)
         } catch (_: Exception) {
             null

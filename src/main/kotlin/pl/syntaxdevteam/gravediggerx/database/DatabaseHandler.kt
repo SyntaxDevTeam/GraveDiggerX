@@ -750,7 +750,7 @@ class DatabaseHandler private constructor(
             val content = Files.readString(claimsFilePath)
             if (content.isBlank()) return@runCatching
             val type = object : TypeToken<List<String>>() {}.type
-            val values: List<String> = GraveSerializer.gson.fromJson(JsonParser.parseString(content), type)
+            val values: List<String> = GraveSerializer.gson.fromJson(JsonParser().parse(content), type)
             fileClaims.addAll(values)
         }.onFailure {
             onStorageIoError.invoke()
@@ -1028,7 +1028,7 @@ class DatabaseHandler private constructor(
         runCatching {
             val content = Files.readString(collectionTxFilePath)
             if (content.isBlank()) return@runCatching
-            val values = JsonParser.parseString(content).asJsonArray
+            val values = JsonParser().parse(content).asJsonArray
             values.forEach { element ->
                 val obj = element.asJsonObject
                 val tx = CollectionTx(

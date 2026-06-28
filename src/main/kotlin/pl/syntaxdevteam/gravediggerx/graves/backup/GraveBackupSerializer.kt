@@ -19,7 +19,7 @@ object GraveBackupSerializer {
     fun decodeBackupsFromString(content: String): List<GraveBackup> {
         if (content.isBlank()) return emptyList()
         return try {
-            val json = JsonParser.parseString(content).asJsonArray
+            val json = JsonParser().parse(content).asJsonArray
             json.mapNotNull { element ->
                 runCatching { decodeBackup(element.asJsonObject) }.getOrNull()
             }
