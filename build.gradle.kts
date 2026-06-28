@@ -27,7 +27,7 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly("pl.syntaxdevteam:core:1.4.0-R0.1-SNAPSHOT")
+    compileOnly("pl.syntaxdevteam:syntaxcore:1.4.0-R0.1-SNAPSHOT")
     compileOnly("pl.syntaxdevteam:messageHandler-paper:1.2.0-R0.1-SNAPSHOT")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.4")
     compileOnly("com.zaxxer:HikariCP:7.1.0")
@@ -37,7 +37,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.0-M1")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    testImplementation("pl.syntaxdevteam:core:1.4.0-R0.1-SNAPSHOT")
+    testImplementation("pl.syntaxdevteam:syntaxcore:1.4.0-R0.1-SNAPSHOT")
     testImplementation("com.zaxxer:HikariCP:7.1.0")
     testImplementation("org.xerial:sqlite-jdbc:3.51.3.0")
     testImplementation("org.mockito:mockito-core:5.23.0")
@@ -49,7 +49,7 @@ dependencies {
 
 }
 
-val targetJavaVersion = 25
+val targetJavaVersion = 21
 kotlin {
     jvmToolchain(targetJavaVersion)
 }
@@ -63,7 +63,7 @@ tasks {
         jvmArgs("-javaagent:${mockitoAgent.singleFile.absolutePath}")
     }
     runServer {
-        minecraftVersion("26.1.1")
+        minecraftVersion("26.2")
         runDirectory(file("run/paper"))
     }
 

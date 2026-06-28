@@ -9,6 +9,7 @@ import pl.syntaxdevteam.core.database.DatabaseConfig
 import pl.syntaxdevteam.core.database.DatabaseManager
 import pl.syntaxdevteam.core.database.DatabaseType
 import pl.syntaxdevteam.core.database.TableSchema
+import pl.syntaxdevteam.core.logging.DebugLevel
 import pl.syntaxdevteam.core.logging.Logger
 import pl.syntaxdevteam.core.plugin.PluginMetaProvider
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
@@ -82,7 +83,7 @@ class DatabaseHandler private constructor(
         coreLogger = Logger(object : PluginMetaProvider {
             override val name: String = pluginName
             override val version: String = "test"
-            override val debugMode: Boolean = false
+            override val debugLevel: DebugLevel = DebugLevel.OFF
         }),
         logger = LogSink(debug, warning, error),
         pluginName = pluginName,
