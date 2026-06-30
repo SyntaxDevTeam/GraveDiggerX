@@ -1,0 +1,174 @@
+name: Build and publish plugin
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  MINI_PORTAL_URL: https://new.syntaxdevteam.pl
+  BUILD_CHANNEL: dev
+  BUILD_SLUG: gravediggerx
+  BUILD_SERVER: Paper
+  BUILD_GRADLE_TASK: build
+  BUILD_GRADLE_PROPERTIES_TASK: properties
+  BUILD_JAR_DIR: build/libs
+  BUILD_ARTIFACT_PREFIX: GraveDiggerX-
+
+jobs:
+  verify:
+    name: Verify repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Test
+        run: |
+          chmod +x ./gradlew
+          ./gradlew test --console=plain --no-daemon
+
+  publish:
+    name: Publish plugin
+    runs-on: ubuntu-latest
+    needs: verify
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build plugin
+        run: |
+          chmod +x ./gradlew
+          ./gradlew "${BUILD_GRADLE_TASK}" --console=plain --no-daemon
+
+      - name: Publish artifact to BuildExplorer
+        env:
+          BUILD_CI_TOKEN: ${{ secrets.BUILD_CI_TOKEN }}
+          GITHUB_BEFORE: ${{ github.event.before }}
+          GITHUB_AFTER: ${{ github.sha }}
+          GITHUB_RUN_ID_VALUE: ${{ github.run_id }}
+          GITHUB_RUN_NUMBER_VALUE: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${BUILD_CI_TOKEN}" ]; then
+            echo "Missing BUILD_CI_TOKEN repository secret." >&2
+            exit 1
+          fi
+
+          if [ ! -d "${BUILD_JAR_DIR}" ]; then
+            echo "Directory ${BUILD_JAR_DIR} does not exist for ${BUILD_SLUG}." >&2
+            exit 1
+          fi
+
+          jar="$(python3 - <<'PY'
+          from pathlib import Path
+          import os
+          import sys
+
+          jar_dir = Path(os.environ["BUILD_JAR_DIR"])
+          prefix = os.environ["BUILD_ARTIFACT_PREFIX"]
+          excluded_suffixes = ("-sources.jar", "-javadoc.jar", "-plain.jar", "-original.jar")
+          candidates = [
+              path for path in jar_dir.glob("*.jar")
+              if not path.name.endswith(excluded_suffixes)
+          ]
+          preferred = [path for path in candidates if path.name.startswith(prefix)]
+          pool = preferred or candidates
+          if not pool:
+              sys.exit(1)
+          print(max(pool, key=lambda path: path.stat().st_size))
+          PY
+          )"
+          if [ -z "${jar}" ]; then
+            echo "No JAR found for ${BUILD_SLUG} in ${BUILD_JAR_DIR}." >&2
+            exit 1
+          fi
+
+          version="$(./gradlew -q "${BUILD_GRADLE_PROPERTIES_TASK}" --console=plain --no-daemon | awk -F': ' '$1 == "version" {print $2; exit}' | tr -d '\r')"
+          if [ -z "${version}" ] || [ "${version}" = "unspecified" ]; then
+            version="${GITHUB_SHA::12}"
+          fi
+          artifact_base="$(basename "${jar}" .jar)"
+          if [ "${artifact_base%-${GITHUB_RUN_NUMBER_VALUE}}" != "${artifact_base}" ]; then
+            filename="${artifact_base}.jar"
+          else
+            filename="${artifact_base}-${GITHUB_RUN_NUMBER_VALUE}.jar"
+          fi
+          sha256="$(sha256sum "${jar}" | awk '{print $1}')"
+          size="$(stat -c%s "${jar}")"
+
+          export BUILD_VERSION="${version}"
+          export BUILD_FILENAME="${filename}"
+          export BUILD_SHA256="${sha256}"
+          export BUILD_SIZE="${size}"
+
+          python3 - <<'PY' > build-info.json
+          import json
+          import os
+          import subprocess
+          from datetime import datetime, timezone
+
+          before = os.environ.get("GITHUB_BEFORE", "")
+          after = os.environ["GITHUB_AFTER"]
+          rev_range = after
+          if before and before != "0000000000000000000000000000000000000000":
+              rev_range = f"{before}..{after}"
+
+          raw = subprocess.check_output(
+              ["git", "log", "--format=%H%x1f%cI%x1f%s", rev_range],
+              text=True,
+          ).strip()
+          commits = []
+          for line in raw.splitlines():
+              if not line:
+                  continue
+              sha, time, message = line.split("\x1f", 2)
+              commits.append({"sha": sha, "time": time, "message": message})
+
+          payload = {
+              "id": int(os.environ["GITHUB_RUN_ID_VALUE"]),
+              "time": datetime.now(timezone.utc).isoformat(),
+              "channel": os.environ["BUILD_CHANNEL"],
+              "server": os.environ["BUILD_SERVER"],
+              "version": os.environ["BUILD_VERSION"],
+              "build_number": os.environ["GITHUB_RUN_NUMBER_VALUE"],
+              "filename": os.environ["BUILD_FILENAME"],
+              "sha256": os.environ["BUILD_SHA256"],
+              "size": int(os.environ["BUILD_SIZE"]),
+              "commits": commits[:100],
+          }
+          print(json.dumps(payload, ensure_ascii=False))
+          PY
+
+          curl --fail-with-body \
+            -X POST "${MINI_PORTAL_URL}/api/builds/ci/${BUILD_SLUG}" \
+            -H "X-Build-Token: ${BUILD_CI_TOKEN}" \
+            -F "metadata=<build-info.json;type=application/json" \
+            -F "artifact=@${jar};filename=${filename};type=application/java-archive"
