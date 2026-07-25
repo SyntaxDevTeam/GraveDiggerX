@@ -67,7 +67,7 @@ update:
 
 
 # Debug mode: when true, provides more detailed console logs.
-debug: false
+debug: off
 
 # Should StatsCollector be enabled? Recommended: true.
 stats:

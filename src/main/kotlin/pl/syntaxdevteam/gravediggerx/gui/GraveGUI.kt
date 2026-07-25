@@ -25,10 +25,17 @@ class GraveGUI(
     private val plugin: GraveDiggerX
 ) : Listener {
 
+    private val guiPlaceholders: Map<String, String> = mapOf(
+        "player" to grave.ownerName.ifBlank {
+            plugin.messageHandler.stringMessageToStringNoPrefix("error", "unknown-player", emptyMap())
+        },
+        "xp" to grave.storedXp.toString()
+    )
+
     private val inventory: Inventory = Bukkit.createInventory(
         null,
         54,
-        plugin.messageHandler.stringMessageToComponentNoPrefix("gui-grave", "title", emptyMap())
+        plugin.messageHandler.stringMessageToComponentNoPrefix("gui-grave", "title", guiPlaceholders)
     )
 
     private var openedBy: Player? = null
@@ -68,8 +75,7 @@ class GraveGUI(
     private fun createOwnerBanner(): ItemStack {
         val banner = ItemStack(Material.WHITE_BANNER)
         val meta = banner.itemMeta
-        val ownerName = grave.ownerName.ifBlank { plugin.messageHandler.stringMessageToStringNoPrefix("error", "unknown-player", emptyMap()) }
-        val message = plugin.messageHandler.stringMessageToStringNoPrefix("gui-grave", "stats-owner", mapOf("player" to ownerName))
+        val message = plugin.messageHandler.stringMessageToStringNoPrefix("gui-grave", "stats-owner", guiPlaceholders)
         meta.displayName(plugin.messageHandler.formatMixedTextToMiniMessage(message, null))
         banner.itemMeta = meta
         return banner
@@ -78,7 +84,7 @@ class GraveGUI(
     private fun createXpBanner(): ItemStack {
         val banner = ItemStack(Material.CYAN_BANNER)
         val meta = banner.itemMeta
-        val message = plugin.messageHandler.stringMessageToStringNoPrefix("gui-grave", "stats-xp", mapOf("xp" to grave.storedXp.toString()))
+        val message = plugin.messageHandler.stringMessageToStringNoPrefix("gui-grave", "stats-xp", guiPlaceholders)
         meta.displayName(plugin.messageHandler.formatMixedTextToMiniMessage(message, null))
         banner.itemMeta = meta
         return banner
@@ -88,8 +94,8 @@ class GraveGUI(
         val item = ItemStack(Material.LIME_CANDLE)
         val meta = item.itemMeta
 
-        val displayName = plugin.messageHandler.stringMessageToStringNoPrefix("gui-grave", "collect-item-name", emptyMap())
-        val loreList = plugin.messageHandler.getSmartMessage("gui-grave", "collect-item-lore", emptyMap())
+        val displayName = plugin.messageHandler.stringMessageToStringNoPrefix("gui-grave", "collect-item-name", guiPlaceholders)
+        val loreList = plugin.messageHandler.getSmartMessage("gui-grave", "collect-item-lore", guiPlaceholders)
 
         meta.displayName(plugin.messageHandler.formatMixedTextToMiniMessage(displayName, null))
         meta.lore(loreList)
