@@ -130,11 +130,11 @@ jobs:
           artifact_upper="${artifact_base^^}"
           if [[ "${GITHUB_REF_NAME_VALUE}" == experimental/* || "${GITHUB_REF_NAME_VALUE}" == experimental-* ]]; then
             channel="wip"
-          elif [[ "${artifact_upper}" == *"-WIP"* ]]; then
+          elif [[ "${artifact_upper}" == *"-WIP"* || "${artifact_upper}" == *"-PREALPHA"* || "${artifact_upper}" == *"-ALPHA"* ]]; then
             channel="wip"
           elif [[ "${artifact_upper}" == *"-DEV"* ]]; then
             channel="dev"
-          elif [[ "${artifact_upper}" == *"-SNAPSHOT"* || "${artifact_upper}" == *"-PREALPHA"* || "${artifact_upper}" == *"-ALPHA"* || "${artifact_upper}" == *"-BETA"* || "${artifact_upper}" == *"-RC"* ]]; then
+          elif [[ "${artifact_upper}" == *"-SNAPSHOT"* || "${artifact_upper}" == *"-BETA"* || "${artifact_upper}" == *"-RC"* ]]; then
             channel="snapshot"
           else
             channel="release"
@@ -162,24 +162,10 @@ jobs:
               if triples:
                   versions.extend(".".join(parts) for parts in triples)
               else:
-                  versions.extend(
-                      re.findall(r'"(\d+(?:\.\d+){1,2})"', text)
-                  )
+                  versions.extend(re.findall(r'"(\d+(?:\.\d+){1,2})"', text))
           elif mode == "gradle_api":
-              versions.extend(
-                  re.findall(
-                      r"(?:paper-api|spigot-api|folia-api):"
-                      r"(\d+(?:\.\d+){1,2})",
-                      text,
-                  )
-              )
-              versions.extend(
-                  re.findall(
-                      r"(?:paper-api|spigot-api|folia-api)\s*=\s*"
-                      r'"(\d+(?:\.\d+){1,2})',
-                      text,
-                  )
-              )
+              versions.extend(re.findall(r"(?:paper-api|spigot-api|folia-api):(\d+(?:\.\d+){1,2})", text))
+              versions.extend(re.findall(r"(?:paper-api|spigot-api|folia-api)\s*=\s*" r'"(\d+(?:\.\d+){1,2})', text))
           else:
               raise SystemExit(f"Unsupported BUILD_GAME_VERSION_MODE: {mode}")
 
@@ -247,6 +233,7 @@ jobs:
               "time": datetime.now(timezone.utc).isoformat(),
               "channel": os.environ["BUILD_CHANNEL"],
               "platform": os.environ["BUILD_PLATFORM"],
+              "compatible_platforms": [os.environ["BUILD_PLATFORM"]],
               "platform_family": os.environ["BUILD_PLATFORM_FAMILY"],
               "game_versions": json.loads(os.environ["BUILD_GAME_VERSIONS"]),
               "version": os.environ["BUILD_VERSION"],
