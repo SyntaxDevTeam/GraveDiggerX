@@ -7,7 +7,9 @@ import java.util.concurrent.ConcurrentHashMap
 
 class GhostManager(private val plugin: GraveDiggerX) {
 
-    private val activeGhosts = ConcurrentHashMap<UUID, GhostSpirit>()
+    // A player may have several graves, so a ghost must be tracked by its grave,
+    // not by the grave owner's UUID.
+    private val activeGhosts = ConcurrentHashMap<String, GhostSpirit>()
 
     fun createGhost(graveOwnerId: UUID, graveLocation: Location, ownerName: String): GhostSpirit? {
         val enabled = plugin.config.getBoolean("spirits.enabled", true)
@@ -15,7 +17,7 @@ class GhostManager(private val plugin: GraveDiggerX) {
 
         val ghost = GhostSpirit(plugin, graveOwnerId, graveLocation)
         ghost.spawn()
-        activeGhosts[graveOwnerId] = ghost
+        activeGhosts[graveKey(graveLocation)] = ghost
 
         return ghost
     }
@@ -25,13 +27,17 @@ class GhostManager(private val plugin: GraveDiggerX) {
         return ghost?.entity?.uniqueId
     }
 
-    fun removeGhost(graveOwnerId: UUID) {
-        activeGhosts[graveOwnerId]?.despawn()
-        activeGhosts.remove(graveOwnerId)
+    fun removeGhost(graveLocation: Location) {
+        activeGhosts.remove(graveKey(graveLocation))?.despawn()
     }
 
     fun removeAllGhosts() {
         activeGhosts.values.forEach { it.despawn() }
         activeGhosts.clear()
+    }
+
+    private fun graveKey(location: Location): String {
+        val worldId = location.world?.uid ?: return "unloaded:${location.blockX}:${location.blockY}:${location.blockZ}"
+        return "$worldId:${location.blockX}:${location.blockY}:${location.blockZ}"
     }
 }

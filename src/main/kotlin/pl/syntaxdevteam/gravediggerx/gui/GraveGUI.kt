@@ -238,7 +238,7 @@ class GraveGUI(
             )
             player.sendMessage(successMsg)
 
-            plugin.ghostManager.removeGhost(grave.ownerId)
+            plugin.ghostManager.removeGhost(grave.location)
             val markedCollected = plugin.graveManager.markCollected(grave, ticket)
             if (!markedCollected) {
                 player.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "collection-tx-save-failed"))

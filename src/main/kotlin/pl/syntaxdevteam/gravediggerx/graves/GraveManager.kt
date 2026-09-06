@@ -250,7 +250,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
             }
             grave.ghostEntityId?.let { id ->
                 Bukkit.getEntity(id)?.remove() }
-            plugin.ghostManager.removeGhost(grave.ownerId)
+            plugin.ghostManager.removeGhost(grave.location)
             releaseCollectionLock(grave)
             plugin.databaseHandler.clearCollectionState(grave)
             notifyGraveRemoved(grave)
@@ -518,7 +518,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
         grave.hologramIds.forEach { Bukkit.getEntity(it)?.remove() }
         grave.ghostEntityId?.let { Bukkit.getEntity(it)?.remove() }
 
-        plugin.ghostManager.removeGhost(grave.ownerId)
+        plugin.ghostManager.removeGhost(grave.location)
         releaseCollectionLock(grave)
         plugin.databaseHandler.clearCollectionState(grave)
         activeGraves.remove(getKey(location))

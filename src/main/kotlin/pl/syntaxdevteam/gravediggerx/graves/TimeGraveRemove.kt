@@ -63,7 +63,7 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
                     val expirationAction = GraveExpirationAction.fromString(
                         plugin.config.getString("graves.expiration-action", "DISAPPEAR")!!
                     )
-                    plugin.ghostManager.removeGhost(grave.ownerId)
+                    plugin.ghostManager.removeGhost(grave.location)
                     when (expirationAction) {
                         GraveExpirationAction.DROP_ITEMS -> {
                             plugin.graveManager.dropGraveItems(grave)
