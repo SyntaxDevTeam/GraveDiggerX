@@ -15,7 +15,6 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.common.addItemOrDrop
-import pl.syntaxdevteam.gravediggerx.common.equipSafely
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker
 
@@ -172,11 +171,54 @@ class GraveGUI(
                     player.addItemOrDrop(item)
                 }
             }
-            grave.armorContents["helmet"]?.let { player.equipSafely(player.inventory.helmet, it) { player.inventory.helmet = it } }
-            grave.armorContents["chestplate"]?.let { player.equipSafely(player.inventory.chestplate, it) { player.inventory.chestplate = it } }
-            grave.armorContents["leggings"]?.let { player.equipSafely(player.inventory.leggings, it) { player.inventory.leggings = it } }
-            grave.armorContents["boots"]?.let { player.equipSafely(player.inventory.boots, it) { player.inventory.boots = it } }
-            grave.armorContents["offhand"]?.let { player.equipSafely(player.inventory.itemInOffHand, it) { player.inventory.setItemInOffHand(it) } }
+
+            // Bezpieczne wyposażanie zbroi i offhandu bezpośrednio przez ekwipunek gracza
+            grave.armorContents["helmet"]?.let {
+                if (it.type != Material.AIR) {
+                    val current = player.inventory.helmet
+                    if (current == null || current.type == Material.AIR) {
+                        player.inventory.setHelmet(it)
+                    } else {
+                        player.addItemOrDrop(it)
+                    }
+                }
+            }
+            grave.armorContents["chestplate"]?.let {
+                if (it.type != Material.AIR) {
+                    val current = player.inventory.chestplate
+                    if (current == null || current.type == Material.AIR) {
+                        player.inventory.setChestplate(it)
+                    } else {
+                        player.addItemOrDrop(it)
+                    }
+                }
+            }
+            grave.armorContents["leggings"]?.let {
+                if (it.type != Material.AIR) {
+                    val current = player.inventory.leggings
+                    if (current == null || current.type == Material.AIR) {
+                        player.inventory.setLeggings(it)
+                    } else {
+                        player.addItemOrDrop(it)
+                    }
+                }
+            }
+            grave.armorContents["boots"]?.let {
+                if (it.type != Material.AIR) {
+                    val current = player.inventory.boots
+                    if (current == null || current.type == Material.AIR) {
+                        player.inventory.setBoots(it)
+                    } else {
+                        player.addItemOrDrop(it)
+                    }
+                }
+            }
+            grave.armorContents["offhand"]?.let {
+                if (it.type != Material.AIR) {
+                    val current = player.inventory.itemInOffHand
+                    if (current == null || current.type == Material.AIR) player.inventory.setItemInOffHand(it) else player.addItemOrDrop(it)
+                }
+            }
 
             if (grave.storedXp > 0) {
                 player.giveExp(grave.storedXp)

@@ -26,7 +26,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    //compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:26.2.build.+")
     compileOnly("pl.syntaxdevteam:syntaxcore:1.4.0-R0.1-SNAPSHOT")
     compileOnly("pl.syntaxdevteam:messageHandler-paper:1.2.0-R0.1-SNAPSHOT")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.4")
@@ -47,9 +48,16 @@ dependencies {
     }
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.17")
 
+    configurations.all {
+        resolutionStrategy {
+            force("com.google.guava:guava:33.5.0-jre")
+            force("com.google.code.gson:gson:2.13.2")
+        }
+    }
+
 }
 
-val targetJavaVersion = 21
+val targetJavaVersion = 25
 kotlin {
     jvmToolchain(targetJavaVersion)
 }
