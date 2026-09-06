@@ -23,7 +23,25 @@ object PermissionChecker {
             sender.hasPermission("grx.*") ||
             sender.hasPermission(PermissionKey.OWNER.node) ||
             sender.hasPermission("grx.owner")) return true
-        return sender.hasPermission(key.node) || sender.hasPermission(key.node.replace("gdx.", "grx."))
+
+        val node = key.node
+        val legacyNode = key.node.replace("gdx.", "grx.")
+
+        if (sender.isPermissionSet(node)) {
+            return sender.hasPermission(node)
+        }
+        if (sender.isPermissionSet(legacyNode)) {
+            return sender.hasPermission(legacyNode)
+        }
+
+        return when (key) {
+            PermissionKey.OPEN_GRAVE,
+            PermissionKey.CMD_HELP,
+            PermissionKey.CMD_LIST -> true
+            PermissionKey.OWNER,
+            PermissionKey.CMD_ADMIN,
+            PermissionKey.CMD_RELOAD -> false
+        }
     }
 
 }

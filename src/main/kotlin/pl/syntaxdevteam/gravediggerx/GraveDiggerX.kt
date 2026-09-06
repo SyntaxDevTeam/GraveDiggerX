@@ -94,18 +94,9 @@ class GraveDiggerX : JavaPlugin() {
 
     private fun setupDatabase() {
         databaseHandler = DatabaseHandler(this)
-        if (ServerEnvironment.isFoliaBased()) {
-            logger.debug("Detected Folia server, using sync database connection handling.")
-            databaseHandler.connect()
-            databaseHandler.ensureSchema()
-            databaseHandler.clearAllCollectionClaims()
-        } else if (ServerEnvironment.isPaperBased()) {
-            SchedulerProvider.runAsync(this, Runnable {
-                databaseHandler.connect()
-                databaseHandler.ensureSchema()
-                databaseHandler.clearAllCollectionClaims()
-            })
-        }
+        databaseHandler.connect()
+        databaseHandler.ensureSchema()
+        databaseHandler.clearAllCollectionClaims()
     }
 
     fun applySecurityConfig() {

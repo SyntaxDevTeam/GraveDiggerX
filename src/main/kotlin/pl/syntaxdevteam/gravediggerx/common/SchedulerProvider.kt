@@ -173,7 +173,6 @@ object SchedulerProvider {
                 }
                 cancelMethod.invoke(task)
             } catch (_: Exception) {
-                // Ignore reflective cancel failures to avoid breaking grave cleanup.
             }
         }
     }

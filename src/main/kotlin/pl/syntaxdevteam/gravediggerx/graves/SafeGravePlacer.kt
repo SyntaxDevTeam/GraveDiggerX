@@ -90,7 +90,6 @@ object SafeGravePlacer {
      * @return pierwsza znaleziona bezpieczna `Location` w Netherze lub `null` jeśli żadna nie została znaleziona
      */
 
-    //TODO: Sprawdzić czy ta metoda w ogóle jest potrzebna skoro nie jest używana
     fun findSafeLocationNether(
         base: Location,
         radius: Int,

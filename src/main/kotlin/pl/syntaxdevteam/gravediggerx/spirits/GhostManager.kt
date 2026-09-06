@@ -7,8 +7,6 @@ import java.util.concurrent.ConcurrentHashMap
 
 class GhostManager(private val plugin: GraveDiggerX) {
 
-    // A player may have several graves, so a ghost must be tracked by its grave,
-    // not by the grave owner's UUID.
     private val activeGhosts = ConcurrentHashMap<String, GhostSpirit>()
 
     fun createGhost(graveOwnerId: UUID, graveLocation: Location, ownerName: String): GhostSpirit? {

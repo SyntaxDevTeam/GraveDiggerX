@@ -33,7 +33,14 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
         }
 
         when (args[0].lowercase()) {
-            "help" -> sendHelpDesk(stack)
+            "help" -> {
+                if (args.size > 1 && args[1].equals("admin", ignoreCase = true)) {
+                    sendAdminHelpDesk(stack)
+                } else {
+                    sendHelpDesk(stack)
+                }
+            }
+            "helpadmin", "adminhelp" -> sendAdminHelpDesk(stack)
             "reload" -> sendReload(stack)
             "list" -> sendList(stack)
             "admin" -> sendAdmin(stack, args)
@@ -46,17 +53,32 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
     }
 
     override fun suggest(@NotNull stack: CommandSourceStack, @NotNull args: Array<String>): List<String> {
+        val sender = stack.sender
+        val hasAdmin = PermissionChecker.has(sender, PermissionKey.CMD_ADMIN)
+
         if (args.isEmpty() || args[0].isBlank()) {
-            return listOf("help", "reload", "list", "admin", "dev")
+            return if (hasAdmin) {
+                listOf("help", "list", "reload", "admin", "dev", "helpadmin")
+            } else {
+                listOf("help", "list")
+            }
         }
 
         if (args.size == 1) {
-            return listOf("help", "reload", "list", "admin", "dev")
-                .filter { it.startsWith(args[0], ignoreCase = true) }
+            val base = if (hasAdmin) {
+                listOf("help", "list", "reload", "admin", "dev", "helpadmin")
+            } else {
+                listOf("help", "list")
+            }
+            return base.filter { it.startsWith(args[0], ignoreCase = true) }
+        }
+
+        if (args.size == 2 && args[0].equals("help", ignoreCase = true)) {
+            return if (hasAdmin) listOf("admin").filter { it.startsWith(args[1], ignoreCase = true) } else emptyList()
         }
 
         if (args.size == 2 && args[0].equals("admin", ignoreCase = true)) {
-            val subcommands = listOf("list", "remove", "backup", "cleanupholograms", "cleanupghosts", "cleanupgraves")
+            val subcommands = listOf("help", "list", "remove", "backup", "cleanupholograms", "cleanupghosts", "cleanupgraves")
             return subcommands.filter { it.startsWith(args[1], ignoreCase = true) }
         }
         if (args.size == 2 && args[0].equals("dev", ignoreCase = true)) {
@@ -117,6 +139,19 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
         helpLines.forEach { sender.sendMessage(it) }
     }
 
+    private fun sendAdminHelpDesk(stack: CommandSourceStack) {
+        val sender = stack.sender
+
+        if (!PermissionChecker.has(sender, PermissionKey.CMD_ADMIN)) {
+            val message = plugin.messageHandler.stringMessageToComponent("error", "no-permission")
+            sender.sendMessage(message)
+            return
+        }
+
+        val helpLines: List<Component> = plugin.messageHandler.getSmartMessage("help", "admin-info", emptyMap())
+        helpLines.forEach { sender.sendMessage(it) }
+    }
+
     private fun sendReload(stack: CommandSourceStack) {
         val sender = stack.sender
 
@@ -125,7 +160,6 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
             sender.sendMessage(message)
             return
         }
-        // TODO: Add reloading database connection
         plugin.reloadConfig()
         plugin.applySecurityConfig()
         ReloadPlugin(plugin).reloadAll()
@@ -182,9 +216,8 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
             return
         }
 
-        if (args.size < 2) {
-            val msg = plugin.messageHandler.stringMessageToComponent("error", "unknown-command")
-            sender.sendMessage(msg)
+        if (args.size < 2 || args[1].equals("help", ignoreCase = true)) {
+            sendAdminHelpDesk(stack)
             return
         }
 

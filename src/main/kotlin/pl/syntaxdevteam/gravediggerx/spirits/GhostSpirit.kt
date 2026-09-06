@@ -49,7 +49,7 @@ class GhostSpirit(
 
         this.entity = ghost
 
-        task = SchedulerProvider.runSyncRepeatingAt(plugin, graveLocation, 1L, 1L, Runnable {
+        task = SchedulerProvider.runSyncRepeatingAt(plugin, graveLocation, 5L, 5L, Runnable {
             val activeEntity = entity
             if (!isAlive || activeEntity == null || activeEntity.isDead) {
                 task?.cancel()
@@ -67,23 +67,25 @@ class GhostSpirit(
             )
 
             activeEntity.velocity = org.bukkit.util.Vector(0, 0, 0)
-            teleportEntity(activeEntity, strictLoc)
+            w.spawnParticle(org.bukkit.Particle.SOUL, strictLoc, 3, 0.2, 0.2, 0.2, 0.05)
 
-            w.spawnParticle(org.bukkit.Particle.SOUL, strictLoc, 2, 0.2, 0.2, 0.2, 0.05)
-
-            val allay = activeEntity as? Allay ?: return@Runnable
-
-            val closestPlayer = w.players
-                .filter { it.world == w }
-                .minByOrNull { it.location.distance(strictLoc) }
-
-            if (closestPlayer != null && strictLoc.distance(closestPlayer.location) < 50.0) {
-                val direction = closestPlayer.eyeLocation.clone()
-                    .subtract(strictLoc).toVector().normalize()
-                val lookLoc = strictLoc.clone().apply { setDirection(direction) }
-                teleportEntity(allay, lookLoc)
+            val maxDistSq = 25.0 * 25.0
+            val nearbyPlayers = runCatching {
+                w.getNearbyPlayers(strictLoc, 25.0)
+            }.getOrElse {
+                w.players.filter { it.world == w && it.location.distanceSquared(strictLoc) <= maxDistSq }
             }
 
+            val closestPlayer = nearbyPlayers.minByOrNull { it.location.distanceSquared(strictLoc) }
+
+            val targetLoc = strictLoc.clone()
+            if (closestPlayer != null) {
+                val direction = closestPlayer.eyeLocation.clone()
+                    .subtract(strictLoc).toVector().normalize()
+                targetLoc.setDirection(direction)
+            }
+
+            teleportEntity(activeEntity, targetLoc)
         })
     }
 

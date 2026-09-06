@@ -70,8 +70,7 @@ class GraveGUI(
     private fun createOwnerBanner(): ItemStack {
         val banner = ItemStack(Material.WHITE_BANNER)
         val meta = banner.itemMeta
-        val message = plugin.messageHandler.stringMessageToStringNoPrefix("gui-grave", "stats-owner", guiPlaceholders)
-        meta.displayName(plugin.messageHandler.formatMixedTextToMiniMessage(message, null))
+        meta.displayName(plugin.messageHandler.stringMessageToComponentNoPrefix("gui-grave", "stats-owner", guiPlaceholders))
         banner.itemMeta = meta
         return banner
     }
@@ -79,8 +78,7 @@ class GraveGUI(
     private fun createXpBanner(): ItemStack {
         val banner = ItemStack(Material.CYAN_BANNER)
         val meta = banner.itemMeta
-        val message = plugin.messageHandler.stringMessageToStringNoPrefix("gui-grave", "stats-xp", guiPlaceholders)
-        meta.displayName(plugin.messageHandler.formatMixedTextToMiniMessage(message, null))
+        meta.displayName(plugin.messageHandler.stringMessageToComponentNoPrefix("gui-grave", "stats-xp", guiPlaceholders))
         banner.itemMeta = meta
         return banner
     }
@@ -88,14 +86,9 @@ class GraveGUI(
     private fun createCollectButton(): ItemStack {
         val item = ItemStack(Material.LIME_CANDLE)
         val meta = item.itemMeta
-
-        val displayName = plugin.messageHandler.stringMessageToStringNoPrefix("gui-grave", "collect-item-name", guiPlaceholders)
-        val loreList = plugin.messageHandler.getSmartMessage("gui-grave", "collect-item-lore", guiPlaceholders)
-
-        meta.displayName(plugin.messageHandler.formatMixedTextToMiniMessage(displayName, null))
-        meta.lore(loreList)
+        meta.displayName(plugin.messageHandler.stringMessageToComponentNoPrefix("gui-grave", "collect-item-name", guiPlaceholders))
+        meta.lore(plugin.messageHandler.getSmartMessage("gui-grave", "collect-item-lore", guiPlaceholders))
         item.itemMeta = meta
-
         return item
     }
 
@@ -132,8 +125,9 @@ class GraveGUI(
     }
 
     private fun collectAll(player: Player) {
-        if (player.uniqueId != grave.ownerId && !grave.isPublic) {
-            val loc = grave.location.clone().add(0.5, 0.5, 0.5)
+        val liveGrave = plugin.graveManager.getGraveAt(grave.location) ?: grave
+        if (player.uniqueId != liveGrave.ownerId && !liveGrave.isPublic) {
+            val loc = liveGrave.location.clone().add(0.5, 0.5, 0.5)
             val world = loc.world ?: return
 
             val notYourGraveMsg = plugin.messageHandler.stringMessageToComponent("graves", "not-your-grave", emptyMap())
@@ -146,28 +140,27 @@ class GraveGUI(
             player.closeInventory()
             return
         }
-        val ticket = plugin.graveManager.beginCollection(grave, player.uniqueId)
+        val ticket = plugin.graveManager.beginCollection(liveGrave, player.uniqueId)
         if (ticket == null) {
             val alreadyCollectedMsg = plugin.messageHandler.stringMessageToComponent("graves", "already-collected", emptyMap())
             player.sendMessage(alreadyCollectedMsg)
             return
         }
-        if (!plugin.graveManager.markCollecting(grave, ticket)) {
-            plugin.graveManager.releaseCollectionLock(grave)
+        if (!plugin.graveManager.markCollecting(liveGrave, ticket)) {
+            plugin.graveManager.releaseCollectionLock(liveGrave)
             val alreadyCollectedMsg = plugin.messageHandler.stringMessageToComponent("graves", "already-collected", emptyMap())
             player.sendMessage(alreadyCollectedMsg)
             return
         }
 
-        var releaseLock = false
         try {
-            for ((slot, item) in grave.items) {
+            for ((slot, item) in liveGrave.items) {
                 if (slot in 0..35) {
                     player.addItemOrDrop(item)
                 }
             }
 
-            grave.armorContents["helmet"]?.let {
+            liveGrave.armorContents["helmet"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.helmet
                     if (current.type == Material.AIR) {
@@ -177,7 +170,7 @@ class GraveGUI(
                     }
                 }
             }
-            grave.armorContents["chestplate"]?.let {
+            liveGrave.armorContents["chestplate"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.chestplate
                     if (current.type == Material.AIR) {
@@ -187,7 +180,7 @@ class GraveGUI(
                     }
                 }
             }
-            grave.armorContents["leggings"]?.let {
+            liveGrave.armorContents["leggings"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.leggings
                     if (current.type == Material.AIR) {
@@ -197,7 +190,7 @@ class GraveGUI(
                     }
                 }
             }
-            grave.armorContents["boots"]?.let {
+            liveGrave.armorContents["boots"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.boots
                     if (current.type == Material.AIR) {
@@ -207,18 +200,18 @@ class GraveGUI(
                     }
                 }
             }
-            grave.armorContents["offhand"]?.let {
+            liveGrave.armorContents["offhand"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.itemInOffHand
                     if (current.type == Material.AIR) player.inventory.setItemInOffHand(it) else player.addItemOrDrop(it)
                 }
             }
 
-            if (grave.storedXp > 0) {
-                player.giveExp(grave.storedXp)
+            if (liveGrave.storedXp > 0) {
+                player.giveExp(liveGrave.storedXp)
             }
 
-            val loc = grave.location.clone().add(0.5, 0.5, 0.5)
+            val loc = liveGrave.location.clone().add(0.5, 0.5, 0.5)
             val world = loc.world ?: return
             world.spawnParticle(Particle.SOUL, loc, 30, 0.3, 0.3, 0.3, 0.02)
             world.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.3f)
@@ -232,22 +225,18 @@ class GraveGUI(
             )
             player.sendMessage(successMsg)
 
-            plugin.ghostManager.removeGhost(grave.location)
-            val markedCollected = plugin.graveManager.markCollected(grave, ticket)
+            plugin.ghostManager.removeGhost(liveGrave.location)
+            val markedCollected = plugin.graveManager.markCollected(liveGrave, ticket)
             if (!markedCollected) {
                 player.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "collection-tx-save-failed"))
-                releaseLock = true
                 return
             }
-            plugin.graveManager.removeGrave(grave)
-            releaseLock = true
+            plugin.graveManager.removeGrave(liveGrave)
         } catch (ex: Exception) {
-            plugin.graveManager.markCollectionFailed(grave, ticket, ex.message)
+            plugin.graveManager.markCollectionFailed(liveGrave, ticket, ex.message)
             throw ex
         } finally {
-            if (releaseLock) {
-                plugin.graveManager.releaseCollectionLock(grave)
-            }
+            plugin.graveManager.releaseCollectionLock(liveGrave)
         }
     }
 }

@@ -19,10 +19,6 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
 
     @EventHandler
     fun onGraveInteract(e: PlayerInteractEvent) {
-        if (e.useInteractedBlock() == Result.DENY || e.useItemInHand() == Result.DENY) return
-
-        val player = e.player
-
         if (e.action != Action.RIGHT_CLICK_BLOCK) return
         val block = e.clickedBlock ?: return
 
@@ -30,16 +26,13 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
         e.setUseInteractedBlock(Result.DENY)
         e.setUseItemInHand(Result.DENY)
 
-        if (grave.ownerId == player.uniqueId) {
+        val player = e.player
+
+        if (grave.ownerId == player.uniqueId || grave.isPublic) {
             if (player.isSneaking) {
                 collectGraveInstantly(player, grave)
                 return
             }
-            GraveGUI(grave, plugin).open(player)
-            return
-        }
-
-        if (grave.isPublic) {
             GraveGUI(grave, plugin).open(player)
             return
         }
@@ -91,7 +84,6 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
             return
         }
 
-        var releaseLock = false
         try {
             for ((slot, item) in grave.items) {
                 if (slot in 0..35) {
@@ -151,11 +143,9 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
             val markedCollected = plugin.graveManager.markCollected(grave, ticket)
             if (!markedCollected) {
                 player.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "collection-tx-save-failed"))
-                releaseLock = true
                 return
             }
             plugin.graveManager.removeGrave(grave)
-            releaseLock = true
             val world = player.world
             val loc = grave.location.clone().add(0.5, 0.5, 0.5)
             world.playSound(loc, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.3f)
@@ -166,9 +156,7 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
             plugin.graveManager.markCollectionFailed(grave, ticket, ex.message)
             throw ex
         } finally {
-            if (releaseLock) {
-                plugin.graveManager.releaseCollectionLock(grave)
-            }
+            plugin.graveManager.releaseCollectionLock(grave)
         }
     }
 }
