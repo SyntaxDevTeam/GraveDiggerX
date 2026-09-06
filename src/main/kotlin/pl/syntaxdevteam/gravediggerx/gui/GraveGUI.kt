@@ -18,7 +18,6 @@ import pl.syntaxdevteam.gravediggerx.common.addItemOrDrop
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker
 
-@Suppress("NestedLambdaShadowedImplicitParameter")
 class GraveGUI(
     private val grave: Grave,
     private val plugin: GraveDiggerX
@@ -37,11 +36,8 @@ class GraveGUI(
         plugin.messageHandler.stringMessageToComponentNoPrefix("gui-grave", "title", guiPlaceholders)
     )
 
-    private var openedBy: Player? = null
-
     init {
         setupInventory()
-        Bukkit.getPluginManager().registerEvents(this, plugin)
     }
 
     private fun setupInventory() {
@@ -110,7 +106,7 @@ class GraveGUI(
             return
         }
 
-        openedBy = player
+        Bukkit.getPluginManager().registerEvents(this, plugin)
         player.openInventory(inventory)
         player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1f, 1f)
     }
@@ -123,7 +119,7 @@ class GraveGUI(
 
         event.isCancelled = true
 
-        if (event.slot == 53) {
+        if (event.rawSlot == 53) {
             collectAll(player)
             player.closeInventory()
         }
@@ -132,7 +128,6 @@ class GraveGUI(
     @EventHandler
     fun onInventoryClose(event: InventoryCloseEvent) {
         if (event.inventory != inventory) return
-        openedBy = null
         HandlerList.unregisterAll(this)
     }
 
@@ -172,11 +167,10 @@ class GraveGUI(
                 }
             }
 
-            // Bezpieczne wyposażanie zbroi i offhandu bezpośrednio przez ekwipunek gracza
             grave.armorContents["helmet"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.helmet
-                    if (current == null || current.type == Material.AIR) {
+                    if (current.type == Material.AIR) {
                         player.inventory.setHelmet(it)
                     } else {
                         player.addItemOrDrop(it)
@@ -186,7 +180,7 @@ class GraveGUI(
             grave.armorContents["chestplate"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.chestplate
-                    if (current == null || current.type == Material.AIR) {
+                    if (current.type == Material.AIR) {
                         player.inventory.setChestplate(it)
                     } else {
                         player.addItemOrDrop(it)
@@ -196,7 +190,7 @@ class GraveGUI(
             grave.armorContents["leggings"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.leggings
-                    if (current == null || current.type == Material.AIR) {
+                    if (current.type == Material.AIR) {
                         player.inventory.setLeggings(it)
                     } else {
                         player.addItemOrDrop(it)
@@ -206,7 +200,7 @@ class GraveGUI(
             grave.armorContents["boots"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.boots
-                    if (current == null || current.type == Material.AIR) {
+                    if (current.type == Material.AIR) {
                         player.inventory.setBoots(it)
                     } else {
                         player.addItemOrDrop(it)
@@ -216,7 +210,7 @@ class GraveGUI(
             grave.armorContents["offhand"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.itemInOffHand
-                    if (current == null || current.type == Material.AIR) player.inventory.setItemInOffHand(it) else player.addItemOrDrop(it)
+                    if (current.type == Material.AIR) player.inventory.setItemInOffHand(it) else player.addItemOrDrop(it)
                 }
             }
 

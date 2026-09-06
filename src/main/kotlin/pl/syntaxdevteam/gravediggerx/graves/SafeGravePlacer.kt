@@ -91,7 +91,6 @@ object SafeGravePlacer {
      */
 
     //TODO: Sprawdzić czy ta metoda w ogóle jest potrzebna skoro nie jest używana
-    @Suppress("unused")
     fun findSafeLocationNether(
         base: Location,
         radius: Int,
@@ -248,7 +247,7 @@ object SafeGravePlacer {
      *
      * Zwraca `true` jeśli wykryto spadek większy niż [maxDrop], `false` w przeciwnym razie.
      */
-    private fun hasSteepDrop(target: Location, @Suppress("SameParameterValue") maxDrop: Int): Boolean {
+    private fun hasSteepDrop(target: Location, maxDrop: Int = 2): Boolean {
         val world = target.world ?: return true
         val x = target.blockX
         val z = target.blockZ

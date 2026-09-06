@@ -12,7 +12,6 @@ import pl.syntaxdevteam.gravediggerx.gui.GraveGUI
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import java.util.UUID
 
-@Suppress("NestedLambdaShadowedImplicitParameter")
 class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
 
     private val effectCooldowns = mutableMapOf<UUID, Long>()
@@ -100,11 +99,10 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
                 }
             }
 
-            // Bezpieczne wyposażanie zbroi i offhandu bezpośrednio przez ekwipunek gracza
             grave.armorContents["helmet"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.helmet
-                    if (current == null || current.type == Material.AIR) {
+                    if (current.type == Material.AIR) {
                         player.inventory.setHelmet(it)
                     } else {
                         player.addItemOrDrop(it)
@@ -114,7 +112,7 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
             grave.armorContents["chestplate"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.chestplate
-                    if (current == null || current.type == Material.AIR) {
+                    if (current.type == Material.AIR) {
                         player.inventory.setChestplate(it)
                     } else {
                         player.addItemOrDrop(it)
@@ -124,7 +122,7 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
             grave.armorContents["leggings"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.leggings
-                    if (current == null || current.type == Material.AIR) {
+                    if (current.type == Material.AIR) {
                         player.inventory.setLeggings(it)
                     } else {
                         player.addItemOrDrop(it)
@@ -134,7 +132,7 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
             grave.armorContents["boots"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.boots
-                    if (current == null || current.type == Material.AIR) {
+                    if (current.type == Material.AIR) {
                         player.inventory.setBoots(it)
                     } else {
                         player.addItemOrDrop(it)
@@ -144,7 +142,7 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
             grave.armorContents["offhand"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.itemInOffHand
-                    if (current == null || current.type == Material.AIR) player.inventory.setItemInOffHand(it) else player.addItemOrDrop(it)
+                    if (current.type == Material.AIR) player.inventory.setItemInOffHand(it) else player.addItemOrDrop(it)
                 }
             }
 

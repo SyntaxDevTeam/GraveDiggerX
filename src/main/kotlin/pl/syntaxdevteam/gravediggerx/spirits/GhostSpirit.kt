@@ -50,13 +50,14 @@ class GhostSpirit(
         this.entity = ghost
 
         task = SchedulerProvider.runSyncRepeatingAt(plugin, graveLocation, 1L, 1L, Runnable {
-            if (!isAlive || entity == null || entity!!.isDead) {
+            val activeEntity = entity
+            if (!isAlive || activeEntity == null || activeEntity.isDead) {
                 task?.cancel()
                 task = null
                 return@Runnable
             }
 
-            val w = entity!!.world
+            val w = activeEntity.world
 
             val strictLoc = Location(
                 w,
@@ -65,12 +66,12 @@ class GhostSpirit(
                 graveLocation.blockZ + 0.5
             )
 
-            entity!!.velocity = org.bukkit.util.Vector(0, 0, 0)
-            teleportEntity(entity!!, strictLoc)
+            activeEntity.velocity = org.bukkit.util.Vector(0, 0, 0)
+            teleportEntity(activeEntity, strictLoc)
 
             w.spawnParticle(org.bukkit.Particle.SOUL, strictLoc, 2, 0.2, 0.2, 0.2, 0.05)
 
-            val allay = entity as? Allay ?: return@Runnable
+            val allay = activeEntity as? Allay ?: return@Runnable
 
             val closestPlayer = w.players
                 .filter { it.world == w }
