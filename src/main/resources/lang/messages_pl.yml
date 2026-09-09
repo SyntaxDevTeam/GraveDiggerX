@@ -8,6 +8,8 @@ error:
   invalid-id: "<#AAAAAA>Nieprawidłowe ID grobu!"
   unknown-command: "<#AAAAAA>Wpisz <white>/gdx help</white> <#AAAAAA>aby zobaczyć dostępne komendy."
   unknown-player: "Nieznany"
+  not-enough-money: "<#AAAAAA>Nie masz wystarczająco środków! Koszt teleportacji to <white><cost>$</white>."
+  transaction-failed: "<#AAAAAA>Transakcja ekonomiczna nie powiodła się. Spróbuj ponownie później."
 
 reload:
   success: "<#AAAAAA>Konfiguracja została pomyślnie przeładowana!"
@@ -48,6 +50,15 @@ gui-grave:
   stats-owner: "<#AAAAAA>Właściciel: <white><player>"
   stats-xp: "<#00FF00>XP: <white><xp>"
 
+gui-list:
+  title: "<#AAAAAA>Twoje aktywne groby"
+  item-name: "<#00FF00>Grób #<index>"
+  item-lore:
+    - "<gray>Pozostały czas:</gray> <white><time_left></white>"
+    - "<gray>Zapisane XP:</gray> <white><xp></white>"
+    - ""
+    - "<yellow>▶ Kliknij, aby się przeteleportować (<cost>$)</yellow>"
+
 graves:
   created-grave: "<#AAAAAA>Twój grób został utworzony na współrzędnych: <#D4D4D4>X=<x>, Y=<y>, Z=<z>"
   grave-relocated: "<#AAAAAA>Twój grób został przeniesiony na <#D4D4D4>X=<x>, Y=<y>, Z=<z> <#AAAAAA>ponieważ zginąłeś w niebezpiecznym miejscu."
@@ -62,6 +73,7 @@ graves:
   locate-header: "<white>Twoje aktywne groby:</white>"
   locate-entry: "<white><index>.</white> <#AAAAAA>Świat: <white><world></white> <gray>→</gray> <white>X:<x> Y:<y> Z:<z></white>"
   collection-tx-save-failed: "<#AAAAAA>Błąd zapisu transakcji odbioru. Grób pozostaje zablokowany do czasu interwencji administracji."
+  teleported-to-grave: "<#AAAAAA>Przeteleportowano do grobu! Koszt: <white><cost>$</white>."
 
 graveh:
   hologram: "<#800020>R.I.P.<newline><#AAAAAA>Wygasa za: <white><time>s</white><newline><#AAAAAA>Grób gracza <white><player></white><newline><yellow>Kliknij prawym przyciskiem, aby otworzyć"

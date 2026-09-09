@@ -8,6 +8,8 @@ error:
   invalid-id: "<#AAAAAA>Invalid grave ID!"
   unknown-command: "<#AAAAAA>Type <white>/gdx help</white> <#AAAAAA>to see available commands."
   unknown-player: "Unknown"
+  not-enough-money: "<#AAAAAA>You don't have enough money! Teleportation costs <white><cost>$</white>."
+  transaction-failed: "<#AAAAAA>Economy transaction failed. Please try again later."
 
 reload:
   success: "<#AAAAAA>Configuration reloaded successfully!"
@@ -48,6 +50,15 @@ gui-grave:
   stats-owner: "<#AAAAAA>Owner: <white><player>"
   stats-xp: "<#00FF00>XP: <white><xp>"
 
+gui-list:
+  title: "<#AAAAAA>Your Active Graves"
+  item-name: "<#00FF00>Grave #<index>"
+  item-lore:
+    - "<gray>Time left:</gray> <white><time_left></white>"
+    - "<gray>Stored XP:</gray> <white><xp></white>"
+    - ""
+    - "<yellow>▶ Click to teleport (<cost>$)</yellow>"
+
 graves:
   created-grave: "<#AAAAAA>Your grave was created at coordinates: <#D4D4D4>X=<x>, Y=<y>, Z=<z>"
   grave-relocated: "<#AAAAAA>Your grave was moved to <#D4D4D4>X=<x>, Y=<y>, Z=<z> <#AAAAAA>because you died in a dangerous spot."
@@ -62,6 +73,7 @@ graves:
   locate-header: "<white>Your active graves:</white>"
   locate-entry: "<white><index>.</white> <#AAAAAA>World: <white><world></white> <gray>→</gray> <white>X:<x> Y:<y> Z:<z></white>"
   collection-tx-save-failed: "<#AAAAAA>Failed to persist collection transaction. The grave remains locked until an administrator intervenes."
+  teleported-to-grave: "<#AAAAAA>Teleported to your grave! Cost: <white><cost>$</white>."
 
 
 graveh:

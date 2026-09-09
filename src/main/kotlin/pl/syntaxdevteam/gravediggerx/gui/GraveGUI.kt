@@ -15,7 +15,6 @@ import org.bukkit.inventory.ItemStack
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.common.addItemOrDrop
 import pl.syntaxdevteam.gravediggerx.graves.Grave
-import pl.syntaxdevteam.gravediggerx.integrations.VaultEconomyProvider
 import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker
 
 class GraveGUI(
@@ -62,9 +61,8 @@ class GraveGUI(
             }
         }
 
-        inventory.setItem(50, createOwnerBanner())
-        inventory.setItem(51, createXpBanner())
-        inventory.setItem(52, createTeleportButton())
+        inventory.setItem(51, createOwnerBanner())
+        inventory.setItem(52, createXpBanner())
         inventory.setItem(53, createCollectButton())
     }
 
@@ -82,15 +80,6 @@ class GraveGUI(
         meta.displayName(plugin.messageHandler.stringMessageToComponentNoPrefix("gui-grave", "stats-xp", guiPlaceholders))
         banner.itemMeta = meta
         return banner
-    }
-
-    private fun createTeleportButton(): ItemStack {
-        val item = ItemStack(Material.ENDER_PEARL)
-        val meta = item.itemMeta
-        meta.displayName(plugin.messageHandler.stringMessageToComponentNoPrefix("gui-grave", "teleport-item-name", guiPlaceholders))
-        meta.lore(plugin.messageHandler.getSmartMessage("gui-grave", "teleport-item-lore", guiPlaceholders))
-        item.itemMeta = meta
-        return item
     }
 
     private fun createCollectButton(): ItemStack {
@@ -121,15 +110,9 @@ class GraveGUI(
 
         event.isCancelled = true
 
-        when (event.rawSlot) {
-            52 -> {
-                player.closeInventory()
-                teleportToGrave(player)
-            }
-            53 -> {
-                collectAll(player)
-                player.closeInventory()
-            }
+        if (event.rawSlot == 53) {
+            collectAll(player)
+            player.closeInventory()
         }
     }
 
@@ -137,28 +120,6 @@ class GraveGUI(
     fun onInventoryClose(event: InventoryCloseEvent) {
         if (event.inventory != inventory) return
         HandlerList.unregisterAll(this)
-    }
-
-    private fun teleportToGrave(player: Player) {
-        val liveGrave = plugin.graveManager.getGraveAt(grave.location) ?: grave
-        val cost = plugin.config.getDouble("teleport.cost", 100.0)
-
-        if (VaultEconomyProvider.economy != null) {
-            if (!VaultEconomyProvider.hasEnough(player, cost)) {
-                player.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "not-enough-money", mapOf("cost" to cost.toString())))
-                player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1f, 1f)
-                return
-            }
-            if (!VaultEconomyProvider.withdraw(player, cost)) {
-                player.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "transaction-failed", emptyMap()))
-                return
-            }
-        }
-
-        val targetLocation = liveGrave.location.clone().add(0.5, 1.0, 0.5)
-        player.teleport(targetLocation)
-        player.playSound(targetLocation, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f)
-        player.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "teleported-to-grave", mapOf("cost" to cost.toString())))
     }
 
     private fun collectAll(player: Player) {

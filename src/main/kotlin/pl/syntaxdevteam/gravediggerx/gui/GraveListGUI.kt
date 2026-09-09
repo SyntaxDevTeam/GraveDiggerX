@@ -61,7 +61,6 @@ class GraveListGUI(
     }
 
     private fun getFormattedRemainingTime(grave: Grave): String {
-        // Pobieramy czas życia grobu z configu (domyślnie np. w godzinach lub minutach, dostosuj ścieżkę jeśli masz inną w configu)
         val lifetimeHours = plugin.config.getLong("grave-lifetime-hours", 24)
         val expiryTime = Instant.ofEpochMilli(grave.createdAt).plus(Duration.ofHours(lifetimeHours))
 
@@ -96,7 +95,8 @@ class GraveListGUI(
         val selectedGrave = userGraves[slot]
         val cost = plugin.config.getDouble("teleport.cost", 100.0)
 
-        if (VaultEconomyProvider.economy != null) {
+        // Sprawdzamy stan konta i pobieramy opłatę przez metody providera
+        if (VaultEconomyProvider.setupEconomy()) {
             if (!VaultEconomyProvider.hasEnough(clicker, cost)) {
                 clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "not-enough-money", mapOf("cost" to cost.toString())))
                 clicker.playSound(clicker.location, Sound.ENTITY_VILLAGER_NO, 1f, 1f)
