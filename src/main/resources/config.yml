@@ -34,6 +34,10 @@ graves:
     pistons: true
     hoppers: true
 
+teleport:
+  enabled: true
+  cost: 100.0
+
 # Ghost spirit over the grave
 spirits:
   enabled: true

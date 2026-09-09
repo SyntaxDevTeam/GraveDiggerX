@@ -23,6 +23,7 @@ repositories {
     maven("https://nexus.syntaxdevteam.pl/repository/maven-snapshots/")
     maven("https://nexus.syntaxdevteam.pl/repository/maven-releases/")
     maven("https://maven.enginehub.org/repo/")
+    maven("https://jitpack.io") // Vault
 }
 
 dependencies {
@@ -35,6 +36,7 @@ dependencies {
     compileOnly("org.xerial:sqlite-jdbc:3.51.3.0")
     compileOnly("org.mariadb.jdbc:mariadb-java-client:3.5.8")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.16")
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.0-M1")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")

@@ -21,6 +21,7 @@ import pl.syntaxdevteam.gravediggerx.database.DatabaseHandler
 import pl.syntaxdevteam.gravediggerx.graves.GraveManager
 import pl.syntaxdevteam.gravediggerx.graves.GraveSerializer
 import pl.syntaxdevteam.gravediggerx.graves.TimeGraveRemove
+import pl.syntaxdevteam.gravediggerx.integrations.VaultEconomyProvider
 import pl.syntaxdevteam.gravediggerx.listeners.GraveClickListener
 import pl.syntaxdevteam.gravediggerx.listeners.GraveDeathListener
 import pl.syntaxdevteam.gravediggerx.listeners.GraveProtectionListener
@@ -80,6 +81,12 @@ class GraveDiggerX : JavaPlugin() {
         scheduleHealthSummary()
         scheduleTxRecovery()
         SyntaxCore.updateChecker.checkAsync()
+
+        if (!VaultEconomyProvider.setupEconomy()) {
+            logger.warning("No economy plugin (Vault) found! The paid teleport-to-grave feature will be disabled.")
+        } else {
+            logger.info("The Vault API has been successfully integrated with the economy system.")
+        }
     }
 
     override fun onDisable() {

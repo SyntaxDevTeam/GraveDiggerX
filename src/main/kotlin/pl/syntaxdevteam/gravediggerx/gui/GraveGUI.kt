@@ -4,7 +4,6 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.Particle
 import org.bukkit.Sound
-import net.kyori.adventure.text.Component
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.HandlerList
@@ -16,6 +15,7 @@ import org.bukkit.inventory.ItemStack
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.common.addItemOrDrop
 import pl.syntaxdevteam.gravediggerx.graves.Grave
+import pl.syntaxdevteam.gravediggerx.integrations.VaultEconomyProvider
 import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker
 
 class GraveGUI(
@@ -62,8 +62,9 @@ class GraveGUI(
             }
         }
 
-        inventory.setItem(51, createOwnerBanner())
-        inventory.setItem(52, createXpBanner())
+        inventory.setItem(50, createOwnerBanner())
+        inventory.setItem(51, createXpBanner())
+        inventory.setItem(52, createTeleportButton())
         inventory.setItem(53, createCollectButton())
     }
 
@@ -81,6 +82,15 @@ class GraveGUI(
         meta.displayName(plugin.messageHandler.stringMessageToComponentNoPrefix("gui-grave", "stats-xp", guiPlaceholders))
         banner.itemMeta = meta
         return banner
+    }
+
+    private fun createTeleportButton(): ItemStack {
+        val item = ItemStack(Material.ENDER_PEARL)
+        val meta = item.itemMeta
+        meta.displayName(plugin.messageHandler.stringMessageToComponentNoPrefix("gui-grave", "teleport-item-name", guiPlaceholders))
+        meta.lore(plugin.messageHandler.getSmartMessage("gui-grave", "teleport-item-lore", guiPlaceholders))
+        item.itemMeta = meta
+        return item
     }
 
     private fun createCollectButton(): ItemStack {
@@ -104,7 +114,6 @@ class GraveGUI(
         player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1f, 1f)
     }
 
-
     @EventHandler
     fun onInventoryClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
@@ -112,9 +121,15 @@ class GraveGUI(
 
         event.isCancelled = true
 
-        if (event.rawSlot == 53) {
-            collectAll(player)
-            player.closeInventory()
+        when (event.rawSlot) {
+            52 -> {
+                player.closeInventory()
+                teleportToGrave(player)
+            }
+            53 -> {
+                collectAll(player)
+                player.closeInventory()
+            }
         }
     }
 
@@ -122,6 +137,28 @@ class GraveGUI(
     fun onInventoryClose(event: InventoryCloseEvent) {
         if (event.inventory != inventory) return
         HandlerList.unregisterAll(this)
+    }
+
+    private fun teleportToGrave(player: Player) {
+        val liveGrave = plugin.graveManager.getGraveAt(grave.location) ?: grave
+        val cost = plugin.config.getDouble("teleport.cost", 100.0)
+
+        if (VaultEconomyProvider.economy != null) {
+            if (!VaultEconomyProvider.hasEnough(player, cost)) {
+                player.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "not-enough-money", mapOf("cost" to cost.toString())))
+                player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1f, 1f)
+                return
+            }
+            if (!VaultEconomyProvider.withdraw(player, cost)) {
+                player.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "transaction-failed", emptyMap()))
+                return
+            }
+        }
+
+        val targetLocation = liveGrave.location.clone().add(0.5, 1.0, 0.5)
+        player.teleport(targetLocation)
+        player.playSound(targetLocation, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f)
+        player.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "teleported-to-grave", mapOf("cost" to cost.toString())))
     }
 
     private fun collectAll(player: Player) {
@@ -163,7 +200,7 @@ class GraveGUI(
             liveGrave.armorContents["helmet"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.helmet
-                    if (current.type == Material.AIR) {
+                    if (current == null || current.type == Material.AIR) {
                         player.inventory.setHelmet(it)
                     } else {
                         player.addItemOrDrop(it)
@@ -173,7 +210,7 @@ class GraveGUI(
             liveGrave.armorContents["chestplate"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.chestplate
-                    if (current.type == Material.AIR) {
+                    if (current == null || current.type == Material.AIR) {
                         player.inventory.setChestplate(it)
                     } else {
                         player.addItemOrDrop(it)
@@ -183,7 +220,7 @@ class GraveGUI(
             liveGrave.armorContents["leggings"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.leggings
-                    if (current.type == Material.AIR) {
+                    if (current == null || current.type == Material.AIR) {
                         player.inventory.setLeggings(it)
                     } else {
                         player.addItemOrDrop(it)
@@ -193,7 +230,7 @@ class GraveGUI(
             liveGrave.armorContents["boots"]?.let {
                 if (it.type != Material.AIR) {
                     val current = player.inventory.boots
-                    if (current.type == Material.AIR) {
+                    if (current == null || current.type == Material.AIR) {
                         player.inventory.setBoots(it)
                     } else {
                         player.addItemOrDrop(it)
