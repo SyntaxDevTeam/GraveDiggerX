@@ -20,6 +20,7 @@ import pl.syntaxdevteam.gravediggerx.commands.admin.AdminRemoveCommand
 import pl.syntaxdevteam.gravediggerx.commands.admin.AdminStatsCommand
 import pl.syntaxdevteam.gravediggerx.commands.dev.DevTxListStuckCommand
 import pl.syntaxdevteam.gravediggerx.commands.dev.DevTxUnlockCommand
+import pl.syntaxdevteam.gravediggerx.gui.GraveListGUI
 
 class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
 
@@ -43,6 +44,7 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
             "helpadmin", "adminhelp" -> sendAdminHelpDesk(stack)
             "reload" -> sendReload(stack)
             "list" -> sendList(stack)
+            "tp", "teleport" -> sendTp(stack)
             "admin" -> sendAdmin(stack, args)
             "dev" -> sendDev(stack, args)
             else -> {
@@ -56,21 +58,18 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
         val sender = stack.sender
         val hasAdmin = PermissionChecker.has(sender, PermissionKey.CMD_ADMIN)
 
+        val baseCommands = if (hasAdmin) {
+            listOf("help", "list", "tp", "reload", "admin", "dev", "helpadmin")
+        } else {
+            listOf("help", "list", "tp")
+        }
+
         if (args.isEmpty() || args[0].isBlank()) {
-            return if (hasAdmin) {
-                listOf("help", "list", "reload", "admin", "dev", "helpadmin")
-            } else {
-                listOf("help", "list")
-            }
+            return baseCommands
         }
 
         if (args.size == 1) {
-            val base = if (hasAdmin) {
-                listOf("help", "list", "reload", "admin", "dev", "helpadmin")
-            } else {
-                listOf("help", "list")
-            }
-            return base.filter { it.startsWith(args[0], ignoreCase = true) }
+            return baseCommands.filter { it.startsWith(args[0], ignoreCase = true) }
         }
 
         if (args.size == 2 && args[0].equals("help", ignoreCase = true)) {
@@ -207,6 +206,24 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
         }
     }
 
+    private fun sendTp(stack: CommandSourceStack) {
+        val sender = stack.sender
+        if (sender !is Player) {
+            val msg = plugin.messageHandler.stringMessageToComponent("graves", "only-player", emptyMap())
+            sender.sendMessage(msg)
+            return
+        }
+
+        if (!PermissionChecker.has(sender, PermissionKey.OPEN_GRAVE)) {
+            val msg = plugin.messageHandler.stringMessageToComponent("error", "no-permission")
+            sender.sendMessage(msg)
+            return
+        }
+
+        val gui = GraveListGUI(sender, plugin)
+        gui.open(sender)
+    }
+
     private fun sendAdmin(stack: CommandSourceStack, args: Array<String>) {
         val sender = stack.sender
 
@@ -319,5 +336,4 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
             sender.sendMessage(line)
         }
     }
-
 }
