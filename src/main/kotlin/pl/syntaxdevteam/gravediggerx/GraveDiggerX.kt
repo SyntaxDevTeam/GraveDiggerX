@@ -82,11 +82,8 @@ class GraveDiggerX : JavaPlugin() {
         scheduleTxRecovery()
         SyntaxCore.updateChecker.checkAsync()
 
-        if (!VaultEconomyProvider.setupEconomy()) {
-            logger.warning("No economy plugin (Vault) found! The paid teleport-to-grave feature will be disabled.")
-        } else {
-            logger.info("The Vault API has been successfully integrated with the economy system.")
-        }
+        VaultEconomyProvider.setupEconomy()
+        logger.info("The economy integration layer has been initialized.")
     }
 
     override fun onDisable() {
