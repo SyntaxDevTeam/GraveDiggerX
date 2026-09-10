@@ -7,23 +7,32 @@ import org.bukkit.plugin.RegisteredServiceProvider
 
 object VaultEconomyProvider {
 
-    private val economy: Economy?
-        get() {
-            val rsp: RegisteredServiceProvider<Economy>? = Bukkit.getServer().servicesManager.getRegistration(Economy::class.java)
-            return rsp?.provider
-        }
+    private var economy: Economy? = null
 
     fun setupEconomy(): Boolean {
-        return Bukkit.getServer().pluginManager.getPlugin("Vault") != null && economy != null
+        if (Bukkit.getServer().pluginManager.getPlugin("Vault") == null) {
+            return false
+        }
+        val rsp: RegisteredServiceProvider<Economy>? = Bukkit.getServer().servicesManager.getRegistration(Economy::class.java)
+        economy = rsp?.provider
+        return economy != null
+    }
+
+    private fun getOrUpdateEconomy(): Economy? {
+        if (economy == null) {
+            setupEconomy()
+        }
+        return economy
     }
 
     fun hasEnough(player: OfflinePlayer, amount: Double): Boolean {
-        val eco = economy ?: return true // Jeśli brak pluginu ekonomii, traktujemy jako darmowe/zaliczone
+        val eco = getOrUpdateEconomy() ?: return false
         return eco.has(player, amount)
     }
 
     fun withdraw(player: OfflinePlayer, amount: Double): Boolean {
-        val eco = economy ?: return true
+        val eco = getOrUpdateEconomy() ?: return false
+        if (amount <= 0.0) return true
         val result = eco.withdrawPlayer(player, amount)
         return result.transactionSuccess()
     }

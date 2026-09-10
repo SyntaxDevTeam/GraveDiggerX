@@ -23,6 +23,9 @@ dependencies:
     WorldGuard:
       load: BEFORE
       required: false
+    Vault:
+      load: AFTER
+      required: false
 
 
 permissions:

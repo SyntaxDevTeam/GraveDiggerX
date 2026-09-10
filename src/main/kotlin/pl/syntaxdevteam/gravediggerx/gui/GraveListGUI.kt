@@ -95,8 +95,7 @@ class GraveListGUI(
         val selectedGrave = userGraves[slot]
         val cost = plugin.config.getDouble("teleport.cost", 100.0)
 
-        // Sprawdzamy stan konta i pobieramy opłatę przez metody providera
-        if (VaultEconomyProvider.setupEconomy()) {
+        if (cost > 0.0) {
             if (!VaultEconomyProvider.hasEnough(clicker, cost)) {
                 clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "not-enough-money", mapOf("cost" to cost.toString())))
                 clicker.playSound(clicker.location, Sound.ENTITY_VILLAGER_NO, 1f, 1f)
