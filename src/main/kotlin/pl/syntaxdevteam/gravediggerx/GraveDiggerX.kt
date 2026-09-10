@@ -81,9 +81,6 @@ class GraveDiggerX : JavaPlugin() {
         scheduleHealthSummary()
         scheduleTxRecovery()
         SyntaxCore.updateChecker.checkAsync()
-
-        VaultEconomyProvider.setupEconomy()
-        logger.info("The economy integration layer has been initialized.")
     }
 
     override fun onDisable() {
