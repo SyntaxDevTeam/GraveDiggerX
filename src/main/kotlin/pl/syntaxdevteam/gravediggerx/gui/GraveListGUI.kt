@@ -14,15 +14,11 @@ import org.bukkit.inventory.ItemStack
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import pl.syntaxdevteam.gravediggerx.integrations.VaultEconomyProvider
-import java.time.Duration
-import java.time.Instant
 
 class GraveListGUI(
-    private val player: Player,
+    player: Player,
     private val plugin: GraveDiggerX
 ) : Listener {
-
-    private val userGraves: List<Grave> = plugin.graveManager.getGravesFor(player.uniqueId)
 
     private val inventory: Inventory = Bukkit.createInventory(
         null,
@@ -31,17 +27,19 @@ class GraveListGUI(
     )
 
     init {
-        setupInventory()
+        setupInventory(player)
     }
 
-    private fun setupInventory() {
+    private fun setupInventory(player: Player) {
+        inventory.clear()
+        val userGraves = plugin.graveManager.getGravesFor(player.uniqueId)
         for ((index, grave) in userGraves.withIndex()) {
             if (index >= 27) break
-            inventory.setItem(index, createGraveIcon(grave))
+            inventory.setItem(index, createGraveIcon(grave, index + 1))
         }
     }
 
-    private fun createGraveIcon(grave: Grave): ItemStack {
+    private fun createGraveIcon(grave: Grave, displayIndex: Int): ItemStack {
         val item = ItemStack(Material.PLAYER_HEAD)
         val meta = item.itemMeta
 
@@ -49,6 +47,7 @@ class GraveListGUI(
         val cost = plugin.config.getDouble("teleport.cost", 100.0)
 
         val placeholders = mapOf(
+            "index" to displayIndex.toString(),
             "time_left" to remainingTime,
             "cost" to cost.toString(),
             "xp" to grave.storedXp.toString()
@@ -61,23 +60,24 @@ class GraveListGUI(
     }
 
     private fun getFormattedRemainingTime(grave: Grave): String {
-        val lifetimeHours = plugin.config.getLong("grave-lifetime-hours", 24)
-        val expiryTime = Instant.ofEpochMilli(grave.createdAt).plus(Duration.ofHours(lifetimeHours))
+        val totalDespawnSeconds = plugin.config.getInt("graves.grave-despawn", 120)
+        val elapsedSeconds = (System.currentTimeMillis() - grave.createdAt) / 1000
+        val secondsLeft = (totalDespawnSeconds - elapsedSeconds).coerceAtLeast(0)
 
-        val duration = Duration.between(Instant.now(), expiryTime)
-        if (duration.isNegative || duration.isZero) return "0m"
+        val minutes = secondsLeft / 60
+        val seconds = secondsLeft % 60
 
-        val hours = duration.toHours()
-        val minutes = duration.toMinutes() % 60
-        return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
+        return if (minutes > 0) "${minutes}m ${seconds}s" else "${seconds}s"
     }
 
     fun open(target: Player) {
+        val userGraves = plugin.graveManager.getGravesFor(target.uniqueId)
         if (userGraves.isEmpty()) {
             target.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "no-graves", emptyMap()))
             return
         }
 
+        setupInventory(target)
         Bukkit.getPluginManager().registerEvents(this, plugin)
         target.openInventory(inventory)
         target.playSound(target.location, Sound.UI_BUTTON_CLICK, 1f, 1f)
@@ -90,9 +90,24 @@ class GraveListGUI(
 
         event.isCancelled = true
         val slot = event.rawSlot
+        val userGraves = plugin.graveManager.getGravesFor(clicker.uniqueId)
         if (slot !in userGraves.indices) return
 
         val selectedGrave = userGraves[slot]
+
+        if (plugin.graveManager.getGraveAt(selectedGrave.location) == null) {
+            inventory.setItem(slot, null)
+            clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "no-graves", emptyMap()))
+            clicker.playSound(clicker.location, Sound.ENTITY_VILLAGER_NO, 1f, 1f)
+            return
+        }
+
+        if (!plugin.config.getBoolean("teleport.enabled", true)) {
+            clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "unknown-command", emptyMap())) // lub dedykowana wiadomość o wyłączonym TP
+            clicker.playSound(clicker.location, Sound.ENTITY_VILLAGER_NO, 1f, 1f)
+            return
+        }
+
         val cost = plugin.config.getDouble("teleport.cost", 100.0)
 
         if (cost > 0.0) {
