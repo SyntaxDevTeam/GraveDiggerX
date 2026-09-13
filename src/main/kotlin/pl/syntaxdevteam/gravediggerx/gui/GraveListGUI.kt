@@ -109,7 +109,7 @@ class GraveListGUI(
         }
 
         if (!plugin.config.getBoolean("teleport.enabled", true)) {
-            clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "unknown-command", emptyMap())) // lub dedykowana wiadomość o wyłączonym TP
+            clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "unknown-command", emptyMap()))
             clicker.playSound(clicker.location, Sound.ENTITY_VILLAGER_NO, 1f, 1f)
             return
         }
