@@ -24,7 +24,7 @@ dependencies:
       load: BEFORE
       required: false
     Vault:
-      load: BEFORE
+      load: AFTER
       required: false
 
 
