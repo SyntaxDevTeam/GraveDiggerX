@@ -81,6 +81,8 @@ class GraveDiggerX : JavaPlugin() {
         scheduleHealthSummary()
         scheduleTxRecovery()
         SyntaxCore.updateChecker.checkAsync()
+
+        VaultEconomyProvider.logInit()
     }
 
     override fun onDisable() {
