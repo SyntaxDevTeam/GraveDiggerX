@@ -10,6 +10,7 @@ error:
   unknown-player: "Unknown"
   not-enough-money: "<#AAAAAA>You don't have enough money! Teleportation costs <white><cost>$</white>."
   transaction-failed: "<#AAAAAA>Economy transaction failed. Please try again later."
+  teleport-disabled: "<#AAAAAA>Teleportation to graves is currently <red>disabled</red> on this server."
 
 reload:
   success: "<#AAAAAA>Configuration reloaded successfully!"

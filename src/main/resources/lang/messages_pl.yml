@@ -10,6 +10,7 @@ error:
   unknown-player: "Nieznany"
   not-enough-money: "<#AAAAAA>Nie masz wystarczająco środków! Koszt teleportacji to <white><cost>$</white>."
   transaction-failed: "<#AAAAAA>Transakcja ekonomiczna nie powiodła się. Spróbuj ponownie później."
+  teleport-disabled: "<#AAAAAA>Teleportacja do grobów jest obecnie <red>wyłączona</red> na tym serwerze."
 
 reload:
   success: "<#AAAAAA>Konfiguracja została pomyślnie przeładowana!"

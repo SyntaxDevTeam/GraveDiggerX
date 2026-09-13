@@ -71,6 +71,12 @@ class GraveListGUI(
     }
 
     fun open(target: Player) {
+        if (!plugin.config.getBoolean("teleport.enabled", true)) {
+            target.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "teleport-disabled", emptyMap()))
+            target.playSound(target.location, Sound.ENTITY_VILLAGER_NO, 1f, 1f)
+            return
+        }
+
         val userGraves = plugin.graveManager.getGravesFor(target.uniqueId)
         if (userGraves.isEmpty()) {
             target.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "no-graves", emptyMap()))
