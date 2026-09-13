@@ -54,7 +54,7 @@ gui-list:
   title: "<#AAAAAA>Your Active Graves"
   item-name: "<#00FF00>Grave #<index>"
   item-lore:
-    - "<gray>Time left:</gray> <white><time_left></white>"
+    - "<gray>Time left:</gray> <white><time></white>"
     - "<gray>Stored XP:</gray> <white><xp></white>"
     - ""
     - "<yellow>▶ Click to teleport (<cost>$)</yellow>"
