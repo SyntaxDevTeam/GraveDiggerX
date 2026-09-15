@@ -1,13 +1,17 @@
+# Plugin language selection. Possible values: EN, PL
+# To add your own language file, please contact us on Discord: https://discord.gg/Zk6mxv7eMh
+language: "EN"
+
 graves:
   grave-despawn: 120 # Time in seconds when grave auto-removes
   max-per-player: 2 # Maximum graves per player
-
   # What should happen when a grave expires?
   # Available options:
   #   DROP_ITEMS - items will be dropped on the ground.
   #   BECOME_PUBLIC - the grave will become public (everyone can take the items).
   #   DISAPPEAR - items will disappear along with the grave (default).
   expiration-action: "DISAPPEAR"
+
 
   protected-effect-cooldown: 5000 # Cooldown in milliseconds for protected grave effect (teleport + sound)
   collection:
@@ -56,10 +60,6 @@ database:
     dbname: my_database
     username: root
     password: sUpErSrOnGP@ssword
-
-# Plugin language selection. Possible values: EN, PL
-# To add your own language file, please contact us on Discord: https://discord.gg/Zk6mxv7eMh
-language: "EN"
 
 # Update check and auto-download settings.
 update:
