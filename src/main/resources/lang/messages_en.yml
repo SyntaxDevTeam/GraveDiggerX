@@ -60,6 +60,17 @@ gui-list:
     - ""
     - "<yellow>▶ Click to teleport (<cost>$)</yellow>"
 
+gui-confirm:
+  title: "<#6E6D6D>Definitely?"
+  confirm-name: "<#86D189>Confirm teleport"
+  confirm-lore:
+    - "<gray>Cost:</gray> <white><cost>$</white>"
+    - ""
+    - "<#423E3E>▶ Click to teleport"
+  cancel-name: "<red>CANCEL</red>"
+  cancel-lore:
+    - "<gray>Click to return back.</gray>"
+
 graves:
   created-grave: "<#AAAAAA>Your grave was created at coordinates: <#D4D4D4>X=<x>, Y=<y>, Z=<z>"
   grave-relocated: "<#AAAAAA>Your grave was moved to <#D4D4D4>X=<x>, Y=<y>, Z=<z> <#AAAAAA>because you died in a dangerous spot."
