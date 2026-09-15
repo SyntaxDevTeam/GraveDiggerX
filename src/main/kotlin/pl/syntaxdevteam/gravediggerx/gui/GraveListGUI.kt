@@ -109,30 +109,13 @@ class GraveListGUI(
         }
 
         if (!plugin.config.getBoolean("teleport.enabled", true)) {
-            clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "unknown-command", emptyMap()))
+            clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "teleport-disabled", emptyMap()))
             clicker.playSound(clicker.location, Sound.ENTITY_VILLAGER_NO, 1f, 1f)
             return
         }
 
-        val cost = plugin.config.getDouble("teleport.cost", 100.0)
-
-        if (cost > 0.0) {
-            if (!VaultEconomyProvider.hasEnough(clicker, cost)) {
-                clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "not-enough-money", mapOf("cost" to cost.toString())))
-                clicker.playSound(clicker.location, Sound.ENTITY_VILLAGER_NO, 1f, 1f)
-                return
-            }
-            if (!VaultEconomyProvider.withdraw(clicker, cost)) {
-                clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "transaction-failed", emptyMap()))
-                return
-            }
-        }
-
         clicker.closeInventory()
-        val targetLocation = selectedGrave.location.clone().add(0.5, 1.0, 0.5)
-        clicker.teleport(targetLocation)
-        clicker.playSound(targetLocation, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f)
-        clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "teleported-to-grave", mapOf("cost" to cost.toString())))
+        GraveConfirmGUI(clicker, selectedGrave, plugin).open()
     }
 
     @EventHandler
