@@ -29,12 +29,15 @@ class GraveDeathListener(private val plugin: GraveDiggerX) : Listener {
             player.inventory.getItem(i)?.let { playerItems[i] = it.clone() }
         }
 
-        playerItems[36] = player.inventory.helmet.clone()
-        playerItems[37] = player.inventory.chestplate.clone()
-        playerItems[38] = player.inventory.leggings.clone()
-        playerItems[39] = player.inventory.boots.clone()
+        playerItems[36] = player.inventory.helmet?.clone() ?: ItemStack(Material.AIR)
+        playerItems[37] = player.inventory.chestplate?.clone() ?: ItemStack(Material.AIR)
+        playerItems[38] = player.inventory.leggings?.clone() ?: ItemStack(Material.AIR)
+        playerItems[39] = player.inventory.boots?.clone() ?: ItemStack(Material.AIR)
         player.inventory.itemInOffHand.let { playerItems[40] = it.clone() }
-        val totalXP = player.totalExperience
+
+        // Bezpieczne wyliczenie punktów doświadczenia ze wzoru poziomów i paska
+        val totalXP = calculateTotalExperience(player)
+
         val hasAnyRealItem = playerItems.values.any { it.type != Material.AIR && it.amount > 0 }
         if (!hasAnyRealItem && totalXP <= 0) {
             return
@@ -66,5 +69,24 @@ class GraveDeathListener(private val plugin: GraveDiggerX) : Listener {
             )
         )
         player.sendMessage(message)
+    }
+
+    private fun calculateTotalExperience(player: org.bukkit.entity.Player): Int {
+        val level = player.level
+        val progress = player.exp
+
+        val experienceAtLevel = when {
+            level <= 15 -> level * level + 6 * level
+            level <= 30 -> (2.5 * level * level - 40.5 * level + 360.0).toInt()
+            else -> (4.5 * level * level - 162.5 * level + 2220.0).toInt()
+        }
+
+        val experienceToNextLevel = when {
+            level < 15 -> 2 * level + 7
+            level < 30 -> 5 * level - 38
+            else -> 9 * level - 158
+        }
+
+        return (experienceAtLevel + (experienceToNextLevel * progress)).toInt().coerceAtLeast(0)
     }
 }
