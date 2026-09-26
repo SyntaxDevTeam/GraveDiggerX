@@ -9,17 +9,20 @@ import org.bukkit.inventory.ItemStack
 import pl.syntaxdevteam.gravediggerx.graves.GraveSerializer
 import java.util.UUID
 
+/** JSON codec for the durable backup format used by [GraveBackupStore]. */
 object GraveBackupSerializer {
+    /** Converts a collection of backups into the JSON array stored on disk. */
     fun encodeBackups(backups: Collection<GraveBackup>): JsonArray {
         val array = JsonArray()
         backups.forEach { array.add(encodeBackup(it)) }
         return array
     }
 
+    /** Restores all valid backups from JSON; malformed entries are ignored. */
     fun decodeBackupsFromString(content: String): List<GraveBackup> {
         if (content.isBlank()) return emptyList()
         return try {
-            val json = JsonParser().parse(content).asJsonArray
+            val json = JsonParser.parseString(content).asJsonArray
             json.mapNotNull { element ->
                 runCatching { decodeBackup(element.asJsonObject) }.getOrNull()
             }

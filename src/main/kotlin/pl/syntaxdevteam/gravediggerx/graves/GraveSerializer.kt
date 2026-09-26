@@ -24,18 +24,21 @@ object GraveSerializer {
     @Volatile
     var allowLegacyBase64Deserialize: Boolean = false
 
+    /** Converts a collection of graves into the JSON array used by persistent storage. */
     fun encodeGraves(graves: Collection<Grave>): JsonArray {
         val array = JsonArray()
         graves.forEach { array.add(encodeGrave(it)) }
         return array
     }
 
+    /** Converts one grave into its compact JSON representation. */
     fun encodeGraveToString(grave: Grave): String = gson.toJson(encodeGrave(grave))
 
+    /** Restores all valid graves from a JSON array; malformed entries are skipped. */
     fun decodeGravesFromString(content: String): List<Grave> {
         if (content.isBlank()) return emptyList()
         return try {
-            val json = JsonParser().parse(content).asJsonArray
+            val json = JsonParser.parseString(content).asJsonArray
             json.mapNotNull { element ->
                 runCatching { decodeGrave(element.asJsonObject) }.getOrNull()
             }
@@ -44,10 +47,11 @@ object GraveSerializer {
         }
     }
 
+    /** Restores one grave from JSON, returning `null` when the payload is invalid. */
     fun decodeGraveFromString(payload: String): Grave? {
         if (payload.isBlank()) return null
         return try {
-            val obj = JsonParser().parse(payload).asJsonObject
+            val obj = JsonParser.parseString(payload).asJsonObject
             decodeGrave(obj)
         } catch (_: Exception) {
             null
