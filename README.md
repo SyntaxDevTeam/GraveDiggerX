@@ -5,6 +5,10 @@
 
 GraveDiggerX is a Paper/Folia plugin (API 1.21) that creates a grave when a player dies, stores inventory + XP, and lets the owner recover items via GUI or quick collect (sneak + click).
 
+[Przejdź do pełnej wiki po polsku](docs/wiki/Home.md) · [Pobierz GraveDiggerX](https://github.com/SyntaxDevTeam/GraveDiggerX/releases)
+
+Na start: [pierwsze kroki](docs/wiki/Pierwsze-kroki.md), [instalacja](docs/wiki/Instalacja.md), [komendy](docs/wiki/Komendy.md), [uprawnienia](docs/wiki/Uprawnienia.md) i [konfiguracja](docs/wiki/Konfiguracja.md).
+
 | In game |
 | --- |
 | ![gravelook.png](https://raw.githubusercontent.com/SyntaxDevTeam/GraveDiggerX/main/assets/gravelook.png) |
