@@ -14,7 +14,6 @@ import pl.syntaxdevteam.gravediggerx.commands.CommandManager
 import pl.syntaxdevteam.gravediggerx.common.ConfigHandler
 import pl.syntaxdevteam.gravediggerx.common.CancellableTask
 import pl.syntaxdevteam.gravediggerx.common.RuntimeMetrics
-import pl.syntaxdevteam.core.platform.ServerEnvironment
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
 import pl.syntaxdevteam.gravediggerx.common.VersionChecker
 import pl.syntaxdevteam.gravediggerx.database.DatabaseHandler
