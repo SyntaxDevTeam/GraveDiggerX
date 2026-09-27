@@ -103,9 +103,9 @@ class GraveConfirmGUI(
                 clicker.playSound(targetLocation, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f)
                 clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "teleported-to-grave", mapOf("cost" to cost.toString())))
             }
-            6 -> { // Anulowanie - powrót do głównej listy grobów
+            6 -> {
                 clicker.closeInventory()
-                GraveListGUI(clicker, plugin).open(clicker)
+                GraveTPGUI(clicker, plugin).open(clicker)
                 clicker.playSound(clicker.location, Sound.UI_BUTTON_CLICK, 1f, 1f)
             }
         }
