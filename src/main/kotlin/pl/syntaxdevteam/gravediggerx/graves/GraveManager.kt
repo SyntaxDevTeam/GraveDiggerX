@@ -499,7 +499,19 @@ class GraveManager(private val plugin: GraveDiggerX) {
         plugin.timeGraveRemove.cancelRemoval(grave)
         val updated = grave.copy(isPublic = true)
         activeGraves[getKey(grave.location)] = updated
-        updateHologramWithTime(updated, 0)
+
+        updated.hologramIds.forEach { id ->
+            val entity = Bukkit.getEntity(id)
+            if (entity is org.bukkit.entity.TextDisplay) {
+                val text: Component = plugin.messageHandler.stringMessageToComponentNoPrefix(
+                    "graveh",
+                    "hologram-public",
+                    mapOf("player" to updated.ownerName)
+                )
+                entity.text(text)
+            }
+        }
+
         saveGravesToStorage()
     }
 
