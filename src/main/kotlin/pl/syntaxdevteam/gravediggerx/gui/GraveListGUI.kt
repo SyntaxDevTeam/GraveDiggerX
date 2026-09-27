@@ -13,7 +13,7 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.graves.Grave
-import pl.syntaxdevteam.gravediggerx.integrations.VaultEconomyProvider
+import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker
 
 class GraveListGUI(
     player: Player,
@@ -71,9 +71,13 @@ class GraveListGUI(
     }
 
     fun open(target: Player) {
+        if (!PermissionChecker.has(target, PermissionChecker.PermissionKey.CMD_LIST)) {
+            target.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "no-permission", emptyMap()))
+            return
+        }
+
         if (!plugin.config.getBoolean("teleport.enabled", true)) {
             target.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "teleport-disabled", emptyMap()))
-            target.playSound(target.location, Sound.ENTITY_VILLAGER_NO, 1f, 1f)
             return
         }
 
