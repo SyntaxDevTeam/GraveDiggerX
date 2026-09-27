@@ -15,7 +15,7 @@ import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker
 
-class GraveListGUI(
+class GraveTPGUI(
     player: Player,
     private val plugin: GraveDiggerX
 ) : Listener {
@@ -71,7 +71,7 @@ class GraveListGUI(
     }
 
     fun open(target: Player) {
-        if (!PermissionChecker.has(target, PermissionChecker.PermissionKey.CMD_LIST)) {
+        if (!PermissionChecker.has(target, PermissionChecker.PermissionKey.CMD_TP)) {
             target.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "no-permission", emptyMap()))
             return
         }

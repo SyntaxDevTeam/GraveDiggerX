@@ -20,7 +20,7 @@ import pl.syntaxdevteam.gravediggerx.commands.admin.AdminRemoveCommand
 import pl.syntaxdevteam.gravediggerx.commands.admin.AdminStatsCommand
 import pl.syntaxdevteam.gravediggerx.commands.dev.DevTxListStuckCommand
 import pl.syntaxdevteam.gravediggerx.commands.dev.DevTxUnlockCommand
-import pl.syntaxdevteam.gravediggerx.gui.GraveListGUI
+import pl.syntaxdevteam.gravediggerx.gui.GraveTPGUI
 
 class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
 
@@ -214,13 +214,13 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
             return
         }
 
-        if (!PermissionChecker.has(sender, PermissionKey.OPEN_GRAVE)) {
+        if (!PermissionChecker.has(sender, PermissionKey.CMD_TP)) {
             val msg = plugin.messageHandler.stringMessageToComponent("error", "no-permission")
             sender.sendMessage(msg)
             return
         }
 
-        val gui = GraveListGUI(sender, plugin)
+        val gui = GraveTPGUI(sender, plugin)
         gui.open(sender)
     }
 
