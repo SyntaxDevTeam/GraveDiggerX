@@ -14,6 +14,7 @@ object PermissionChecker {
         CMD_RELOAD("gdx.cmd.reload"),
         CMD_LIST("gdx.cmd.list"),
         CMD_ADMIN("gdx.cmd.admin"),
+        CMD_TP("gdx.cmd.tp"),
         OPEN_GRAVE("gdx.opengrave");
 
         override fun toString(): String = node
@@ -25,6 +26,7 @@ object PermissionChecker {
         PermissionKey.CMD_RELOAD -> "Allows reloading the GraveDiggerX configuration."
         PermissionKey.CMD_LIST -> "Allows listing active graves."
         PermissionKey.CMD_ADMIN -> "Allows using administrative commands."
+        PermissionKey.CMD_TP -> "Allows viewing the tp GUI"
         PermissionKey.OPEN_GRAVE -> "Allows opening and collecting items from graves."
     }
 
@@ -73,12 +75,13 @@ object PermissionChecker {
     }
 
     private val legacyToNew = mapOf(
-        "grx.owner" to PermissionKey.OWNER.node,
-        "grx.cmd.help" to PermissionKey.CMD_HELP.node,
-        "grx.cmd.reload" to PermissionKey.CMD_RELOAD.node,
-        "grx.cmd.list" to PermissionKey.CMD_LIST.node,
-        "grx.cmd.admin" to PermissionKey.CMD_ADMIN.node,
-        "grx.opengrave" to PermissionKey.OPEN_GRAVE.node
+        "gdx.owner" to PermissionKey.OWNER.node,
+        "gdx.cmd.help" to PermissionKey.CMD_HELP.node,
+        "gdx.cmd.reload" to PermissionKey.CMD_RELOAD.node,
+        "gdx.cmd.list" to PermissionKey.CMD_LIST.node,
+        "gdx.cmd.admin" to PermissionKey.CMD_ADMIN.node,
+        "gdx.cmd.tp" to PermissionKey.CMD_TP.node,
+        "gdx.opengrave" to PermissionKey.OPEN_GRAVE.node
     )
 
     fun hasPermissionStartingWith(sender: CommandSender, prefix: String): Boolean {

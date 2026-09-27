@@ -37,6 +37,7 @@ permissions:
       gdx.cmd.reload: true
       gdx.cmd.list: true
       gdx.cmd.admin: true
+      gdx.cmd.tp: true
       gdx.opengrave: true
 
   gdx.cmd.help:
@@ -57,6 +58,10 @@ permissions:
 
   gdx.opengrave:
     description: "Permission to open and collect graves"
+    default: false
+
+  gdx.cmd.tp:
+    description: "Permission to use teleport to grave"
     default: false
 
   gdx.*:
