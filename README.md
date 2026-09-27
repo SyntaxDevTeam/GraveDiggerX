@@ -1,6 +1,5 @@
 [![Build Plugin](https://github.com/SyntaxDevTeam/GraveDiggerX/actions/workflows/buildexplorer.yml/badge.svg?branch=main)](https://github.com/SyntaxDevTeam/GraveDiggerX/actions/workflows/buildexplorer.yml) ![GitHub issues](https://img.shields.io/github/issues/SyntaxDevTeam/GraveDiggerX) ![GitHub last commit](https://img.shields.io/github/last-commit/SyntaxDevTeam/GraveDiggerX) ![GitHub Release Date](https://img.shields.io/github/release-date/SyntaxDevTeam/GraveDiggerX)
 ![GitHub commits since latest release (branch)](https://img.shields.io/github/commits-since/SyntaxDevTeam/GraveDiggerX/latest/main) [![Hangar Downloads](https://img.shields.io/hangar/dt/GraveDiggerX?style=flat)](https://hangar.papermc.io/SyntaxDevTeam/GraveDiggerX)
-> ❤️ **Like the plugin?** If GraveDiggerX helps you out, a quick heart/like on Modrinth would mean the world to us and help the plugin reach a wider audience! Thank you for your support!
 
 # GraveDiggerX
 
@@ -87,6 +86,8 @@ Main command: `/gravediggerx` (alias: `/gdx`).
 | `gdx.*` | Wildcard that provides access to all plugin permissions. |
 
 > OP players are allowed by the runtime permission checker.
+
+> ❤️ **Like the plugin?** If GraveDiggerX helps you out, a quick heart/like on Modrinth would mean the world to us and help the plugin reach a wider audience! Thank you for your support!
 
 ## Developer quickstart
 ```bash
