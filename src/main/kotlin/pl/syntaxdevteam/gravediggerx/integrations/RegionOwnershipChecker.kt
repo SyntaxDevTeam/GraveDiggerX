@@ -11,7 +11,9 @@ fun interface RegionOwnershipChecker {
         val ALLOW_ALL = RegionOwnershipChecker { _, _ -> true }
 
         fun create(plugin: Plugin): RegionOwnershipChecker {
-            if (plugin.server.pluginManager.getPlugin("WorldGuard")?.isEnabled != true) {
+            val wgPlugin = plugin.server.pluginManager.getPlugin("WorldGuard")
+            if (wgPlugin == null || !wgPlugin.isEnabled) {
+                plugin.logger.info("[WG Integration] WorldGuard not found or disabled. Skipping region checks.")
                 return ALLOW_ALL
             }
 
@@ -19,9 +21,12 @@ fun interface RegionOwnershipChecker {
                 val clazz = Class.forName("pl.syntaxdevteam.gravediggerx.integrations.worldguard.WorldGuardRegionOwnershipChecker")
                 val constructor = clazz.getDeclaredConstructor()
                 constructor.isAccessible = true
-                constructor.newInstance() as RegionOwnershipChecker
+                val instance = constructor.newInstance() as RegionOwnershipChecker
+                plugin.logger.info("[WG Integration] WorldGuardRegionOwnershipChecker successfully loaded!")
+                instance
             }.getOrElse {
-                plugin.logger.warning("WorldGuard was detected but region ownership checks could not be enabled: ${it.message}")
+                plugin.logger.warning("[WG Integration] Failed to load WorldGuardRegionOwnershipChecker: ${it.message}")
+                it.printStackTrace()
                 ALLOW_ALL
             }
         }
