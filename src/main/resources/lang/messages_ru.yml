@@ -4,7 +4,7 @@
 prefix: "<bold><gradient:#2C2C2C:#555555>[GDX]</gradient></bold>"
 
 error:
-  no-permission: "У тебя нет прав для выполнения данной операции!"
+  no-permission: "<#AAAAAA>У тебя нет прав для выполнения данной операции!"
   invalid-id: "<#AAAAAA>Неверный ID могилы!"
   unknown-command: "<#AAAAAA>Введите <white>/gdx help</white> <#AAAAAA>чтобы увидеть доступные команды."
   unknown-player: "Неизвестный"
