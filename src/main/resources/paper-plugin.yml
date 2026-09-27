@@ -49,7 +49,7 @@ permissions:
 
   gdx.cmd.list:
     description: "Permission to list own graves"
-    default: true
+    default: false
 
   gdx.cmd.admin:
     description: "Permission to use admin commands"
@@ -57,7 +57,7 @@ permissions:
 
   gdx.opengrave:
     description: "Permission to open and collect graves"
-    default: true
+    default: false
 
   gdx.*:
     description: "All GraveDiggerX permissions"
