@@ -109,8 +109,14 @@ class GraveGUI(
         if (event.view.topInventory != inventory) return
 
         event.isCancelled = true
-
         if (event.rawSlot == 53) {
+            if (!PermissionChecker.has(player, PermissionChecker.PermissionKey.OPEN_GRAVE)) {
+                val msg = plugin.messageHandler.stringMessageToComponent("error", "no-permission", emptyMap())
+                player.sendMessage(msg)
+                player.closeInventory()
+                return
+            }
+
             collectAll(player)
             player.closeInventory()
         }
