@@ -10,6 +10,7 @@ import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.common.addItemOrDrop
 import pl.syntaxdevteam.gravediggerx.gui.GraveGUI
 import pl.syntaxdevteam.gravediggerx.graves.Grave
+import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker
 import java.util.UUID
 
 class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
@@ -20,6 +21,7 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
     @EventHandler
     fun onGraveInteract(e: PlayerInteractEvent) {
         if (e.action != Action.RIGHT_CLICK_BLOCK) return
+        if (e.hand != org.bukkit.inventory.EquipmentSlot.HAND) return
         val block = e.clickedBlock ?: return
 
         val grave = plugin.graveManager.getGraveAt(block.location) ?: return
@@ -29,6 +31,13 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
         val player = e.player
 
         if (grave.ownerId == player.uniqueId || grave.isPublic) {
+
+            if (!PermissionChecker.has(player, PermissionChecker.PermissionKey.OPEN_GRAVE)) {
+                val msg = plugin.messageHandler.stringMessageToComponent("error", "no-permission", emptyMap())
+                player.sendMessage(msg)
+                return
+            }
+
             if (player.isSneaking) {
                 collectGraveInstantly(player, grave)
                 return

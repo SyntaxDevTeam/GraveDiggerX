@@ -35,11 +35,15 @@ class GraveDeathListener(private val plugin: GraveDiggerX) : Listener {
         playerItems[39] = player.inventory.boots?.clone() ?: ItemStack(Material.AIR)
         player.inventory.itemInOffHand.let { playerItems[40] = it.clone() }
 
-        // Bezpieczne wyliczenie punktów doświadczenia ze wzoru poziomów i paska
         val totalXP = calculateTotalExperience(player)
 
         val hasAnyRealItem = playerItems.values.any { it.type != Material.AIR && it.amount > 0 }
         if (!hasAnyRealItem && totalXP <= 0) {
+            return
+        }
+
+        val canBuild = pl.syntaxdevteam.gravediggerx.integrations.RegionOwnershipChecker.create(plugin).canPlaceGrave(player, player.location)
+        if (!canBuild) {
             return
         }
 
