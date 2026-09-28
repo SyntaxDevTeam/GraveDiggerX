@@ -25,7 +25,7 @@ Na start: [pierwsze kroki](docs/wiki/Pierwsze-kroki.md), [instalacja](docs/wiki/
 
 ## Requirements
 - Java **21**.
-- **Paper/Folia 1.21.x** server (project currently built/tested against 1.21.11 API).
+- **Paper/Folia 1.21.7-26.2** server (project currently built/tested against 26.2 API).
 - Optional **WorldGuard 7.x** (soft dependency; plugin can run without it).
 
 ## Installation
@@ -46,6 +46,8 @@ Na start: [pierwsze kroki](docs/wiki/Pierwsze-kroki.md), [instalacja](docs/wiki/
 | `graves.worlds.*` | Enable graves per dimension (`overworld`, `nether`, `end`). |
 | `graves.protection.*` | Grave block protections (explosions, fluids, mobs, pistons, hoppers). |
 | `spirits.enabled` | Enables/disables grave spirit (Allay). |
+| `teleport.enabled` | Enables or disables the grave teleportation feature. |
+| `teleport.cost` | Cost required to teleport to a grave (integrated with Vault). |
 | `database.type` | Data backend: `json`, `mariadb`, `mysql`, `postgresql`, `sqlite`, `h2`. |
 | `database.sql.*` | SQL connection settings for SQL backends. |
 | `language` | Message locale selection (`EN`, `PL`; also includes `messages_ru.yml` and `messages_uk.yml`). |
@@ -61,6 +63,7 @@ Main command: `/gravediggerx` (alias: `/gdx`).
 | `/gravediggerx help` | Show help and command syntax. | `gdx.cmd.help` |
 | `/gravediggerx reload` | Reload configuration and messages. | `gdx.cmd.reload` |
 | `/gravediggerx list` | Show player's active graves with coordinates. | `gdx.cmd.list` |
+| `/gravediggerx tp` | Opens the graphical interface to view and teleport to active graves. | `gdx.cmd.tp` |
 | `/gravediggerx admin list <player>` | List active graves for selected player. | `gdx.cmd.admin` |
 | `/gravediggerx admin remove <player> <id>` | Remove one grave by list index. | `gdx.cmd.admin` |
 | `/gravediggerx admin backup list <player>` | List saved grave backups for selected player. | `gdx.cmd.admin` |
@@ -71,17 +74,20 @@ Main command: `/gravediggerx` (alias: `/gdx`).
 
 ## Permissions
 
-| Permission | Default | Description |
-| --- | --- | --- |
-| `gdx.cmd.help` | `true` | Permission for `/gdx help`. |
-| `gdx.cmd.reload` | `op` | Permission for `/gdx reload`. |
-| `gdx.cmd.list` | `true` | Permission for `/gdx list`. |
-| `gdx.cmd.admin` | `op` | Permission for admin commands. |
-| `gdx.opengrave` | `true` | Open grave GUI and collect grave contents. |
-| `gdx.owner` | `false` | Master node for core GraveDiggerX permissions. |
-| `gdx.*` | `false` | Wildcard node for all GraveDiggerX permissions. |
+| Permission | Description |
+| --- | --- |
+| `gdx.opengrave` | Allows opening and collecting items from graves. |
+| `gdx.cmd.tp` | Allows viewing the tp GUI. |
+| `gdx.cmd.help` | Allows viewing the help command. |
+| `gdx.cmd.reload` | Allows reloading the GraveDiggerX configuration. |
+| `gdx.cmd.list` | Allows listing active graves. |
+| `gdx.cmd.admin` | Allows using administrative commands. |
+| `gdx.owner` | Allows using all GraveDiggerX commands. |
+| `gdx.*` | Wildcard that provides access to all plugin permissions. |
 
 > OP players are allowed by the runtime permission checker.
+
+> ❤️ **Like the plugin?** If GraveDiggerX helps you out, a quick heart/like on Modrinth would mean the world to us and help the plugin reach a wider audience! Thank you for your support!
 
 ## Developer quickstart
 ```bash
