@@ -28,8 +28,7 @@ repositories {
 }
 
 dependencies {
-    //compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly("io.papermc.paper:paper-api:26.2.build.+")
+    compileOnly("io.papermc.paper:paper-api:26.3.build.+")
     compileOnly("pl.syntaxdevteam:syntaxcore:1.4.0-R0.1-SNAPSHOT")
     compileOnly("pl.syntaxdevteam:messageHandler-paper:1.2.0-R0.1-SNAPSHOT")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.4")
@@ -75,7 +74,7 @@ tasks {
         jvmArgs("-javaagent:${mockitoAgent.singleFile.absolutePath}")
     }
     runServer {
-        minecraftVersion("26.2")
+        minecraftVersion("26.3")
         runDirectory(file("run/paper"))
     }
 
