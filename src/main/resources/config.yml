@@ -3,6 +3,7 @@
 language: "EN"
 
 graves:
+  time-format: "HH:MM:SS" # Options: "MM:SS" or "HH:MM:SS"
   grave-despawn: 120 # Time in seconds when grave auto-removes
   max-per-player: 2 # Maximum graves per player
   # What should happen when a grave expires?
