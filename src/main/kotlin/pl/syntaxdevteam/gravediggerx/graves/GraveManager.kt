@@ -4,11 +4,9 @@ import com.destroystokyo.paper.profile.PlayerProfile
 import net.kyori.adventure.text.Component
 import org.bukkit.*
 import org.bukkit.block.Skull
-import org.bukkit.entity.Display
 import org.bukkit.entity.TextDisplay
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
-import org.joml.Vector3f
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.common.CancellableTask
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
@@ -27,6 +25,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
     private val graveRemoveListeners = ConcurrentHashMap<UUID, MutableList<() -> Unit>>()
     private val backupStore = GraveBackupStore(plugin)
     private val regionOwnershipChecker = RegionOwnershipChecker.create(plugin)
+    val hologramManager = GraveHologramManager(plugin)
     private val graveBackups = Collections.synchronizedList(backupStore.loadAllBackups().toMutableList())
     @Volatile
     private var cleanupTask: CancellableTask? = null
@@ -98,7 +97,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
                             update(true, false)
                         }
                         val totalSeconds = plugin.config.getInt("graves.grave-despawn", 60)
-                        val hologramIds = createHologram(loc, grave.ownerName, totalSeconds, grave.isPublic)
+                        val hologramIds = hologramManager.createHologram(loc, grave.ownerName, totalSeconds, grave.isPublic)
 
                         val ghostId: UUID? = null
                         if (grave.ghostActive) {
@@ -173,7 +172,6 @@ class GraveManager(private val plugin: GraveDiggerX) {
                 isAllowedLocation = { target -> regionOwnershipChecker.canPlaceGrave(player, target) }
             )?.let { safeLoc ->
                 if (safeLoc != location) {
-                    runCatching { plugin.logger.debug("Relocating grave from ${location.blockX},${location.blockY},${location.blockZ} to ${safeLoc.blockX},${safeLoc.blockY},${safeLoc.blockZ}") }
                     location = safeLoc
                 }
             }
@@ -196,7 +194,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
         }
 
         val totalSeconds = plugin.config.getInt("graves.grave-despawn", 60)
-        val hologramIds = createHologram(location, player.name, totalSeconds, false)
+        val hologramIds = hologramManager.createHologram(location, player.name, totalSeconds, false)
         val ghostEntityId = plugin.ghostManager.createGhostAndGetId(player.uniqueId, location, player.name)
 
         val armorContents = mapOf(
@@ -260,13 +258,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
     }
 
     fun updateHologramWithTime(grave: Grave, time: Int) {
-        grave.hologramIds.forEach { id ->
-            val entity = Bukkit.getEntity(id)
-            if (entity is TextDisplay) {
-                val text: Component = buildHologramText(grave.ownerName, time, grave.isPublic)
-                entity.text(text)
-            }
-        }
+        hologramManager.updateHologramWithTime(grave, time)
     }
 
     fun getGravesFor(ownerId: UUID): List<Grave> =
@@ -274,43 +266,6 @@ class GraveManager(private val plugin: GraveDiggerX) {
 
     fun getBackupsFor(ownerId: UUID): List<GraveBackup> =
         graveBackups.toList().filter { it.ownerId == ownerId }.sortedByDescending { it.createdAt }
-
-    private fun createHologram(location: Location, ownerName: String, time: Int, isPublic: Boolean): List<UUID> {
-        val text: Component = buildHologramText(ownerName, time, isPublic)
-        val hologramLocation = location.clone().add(0.5, 1.5, 0.5)
-        val world = hologramLocation.world ?: return emptyList()
-
-        val textDisplay = world.spawn(hologramLocation, TextDisplay::class.java) { display ->
-            display.text(text)
-            display.billboard = Display.Billboard.CENTER
-            display.isShadowed = false
-            display.textOpacity = 255.toByte()
-            display.backgroundColor = Color.fromARGB(120, 10, 10, 10)
-            display.brightness = Display.Brightness(15, 15)
-            display.isSeeThrough = true
-
-            val transform = display.transformation
-            transform.scale.set(Vector3f(1.25f, 1.25f, 1.25f))
-            display.transformation = transform
-
-            display.persistentDataContainer.set(
-                NamespacedKey(plugin, "grave_hologram"),
-                PersistentDataType.STRING,
-                ownerName
-            )
-        }
-
-        return listOf(textDisplay.uniqueId)
-    }
-
-    private fun buildHologramText(ownerName: String, time: Int, isPublic: Boolean): Component {
-        val key = if (isPublic) "hologram-public" else "hologram"
-        return plugin.messageHandler.stringMessageToComponentNoPrefix(
-            "graveh",
-            key,
-            mapOf("player" to ownerName, "time" to time.toString())
-        )
-    }
 
     fun getGraveAt(location: Location): Grave? {
         return activeGraves[getKey(location)]
@@ -634,7 +589,6 @@ class GraveManager(private val plugin: GraveDiggerX) {
         return false
     }
 
-
     private fun getKey(location: Location): String {
         return GraveIdentity.locationKey(location)
     }
@@ -665,7 +619,7 @@ class GraveManager(private val plugin: GraveDiggerX) {
             }
 
             val totalSeconds = plugin.config.getInt("graves.grave-despawn", 60)
-            val hologramIds = createHologram(location, backup.ownerName, totalSeconds, false)
+            val hologramIds = hologramManager.createHologram(location, backup.ownerName, totalSeconds, false)
             val ghostEntityId = plugin.ghostManager.createGhostAndGetId(backup.ownerId, location, backup.ownerName)
 
             val grave = Grave(
@@ -702,10 +656,10 @@ class GraveManager(private val plugin: GraveDiggerX) {
 
         val alreadyStored = graveBackups.any {
             it.ownerId == grave.ownerId && it.createdAt == grave.createdAt &&
-                it.location.blockX == grave.location.blockX &&
-                it.location.blockY == grave.location.blockY &&
-                it.location.blockZ == grave.location.blockZ &&
-                it.location.world?.name == grave.location.world?.name
+                    it.location.blockX == grave.location.blockX &&
+                    it.location.blockY == grave.location.blockY &&
+                    it.location.blockZ == grave.location.blockZ &&
+                    it.location.world?.name == grave.location.world?.name
         }
         if (alreadyStored) {
             return
