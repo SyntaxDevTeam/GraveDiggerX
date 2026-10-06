@@ -82,7 +82,7 @@ graves:
   blocked-by-region: "<#AAAAAA>Your grave cannot be created in a region you do not own."
   only-player: "<red>This command can only be used by players.</red>"
   no-graves: "<#AAAAAA>No graves found."
-  removal-countdown: "<#AAAAAA>Your grave will be deleted in: <white><time></white> sec"
+  removal-countdown: "<#AAAAAA>Your grave will be deleted in: <white><time></white>"
   locate-header: "<white>Your active graves:</white>"
   locate-entry: "<white><index>.</white> <#AAAAAA>World: <white><world></white> <gray>→</gray> <white>X:<x> Y:<y> Z:<z></white>"
   collection-tx-save-failed: "<#AAAAAA>Failed to persist collection transaction. The grave remains locked until an administrator intervenes."
@@ -90,7 +90,7 @@ graves:
 
 
 graveh:
-  hologram: "<#800020>R.I.P.<newline><#AAAAAA>Expires in: <white><time>s</white><newline><#AAAAAA>Grave of <white><player></white><newline><yellow>Right-click to open"
+  hologram: "<#800020>R.I.P.<newline><#AAAAAA>Expires in: <white><time></white><newline><#AAAAAA>Grave of <white><player></white><newline><yellow>Right-click to open"
   hologram-public: "<#800020>R.I.P.<newline><#AAAAAA>Expires in: <white><time>s</white><newline><#AAAAAA>Grave of <white><player></white><newline><green>Available</green><newline><yellow>Right-click to open"
 
 admin:
