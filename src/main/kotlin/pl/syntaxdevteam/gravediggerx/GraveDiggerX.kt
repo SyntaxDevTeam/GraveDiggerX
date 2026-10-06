@@ -17,7 +17,6 @@ import pl.syntaxdevteam.gravediggerx.common.RuntimeMetrics
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
 import pl.syntaxdevteam.gravediggerx.common.VersionChecker
 import pl.syntaxdevteam.gravediggerx.database.DatabaseHandler
-import pl.syntaxdevteam.gravediggerx.diagnostics.PluginDiagnostics
 import pl.syntaxdevteam.gravediggerx.graves.GraveManager
 import pl.syntaxdevteam.gravediggerx.graves.GraveSerializer
 import pl.syntaxdevteam.gravediggerx.graves.TimeGraveRemove
@@ -26,7 +25,6 @@ import pl.syntaxdevteam.gravediggerx.listeners.GraveClickListener
 import pl.syntaxdevteam.gravediggerx.listeners.GraveDeathListener
 import pl.syntaxdevteam.gravediggerx.listeners.GraveProtectionListener
 import pl.syntaxdevteam.gravediggerx.spirits.GhostManager
-import pl.syntaxdevteam.gravediggerx.graves.TimeFormatter
 
 class GraveDiggerX : JavaPlugin() {
 
@@ -82,9 +80,6 @@ class GraveDiggerX : JavaPlugin() {
         scheduleHealthSummary()
         scheduleTxRecovery()
         SyntaxCore.updateChecker.checkAsync()
-        val diagnostics = PluginDiagnostics(this)
-        diagnostics.runHealthCheck()
-
         VaultEconomyProvider.logInit()
     }
 
