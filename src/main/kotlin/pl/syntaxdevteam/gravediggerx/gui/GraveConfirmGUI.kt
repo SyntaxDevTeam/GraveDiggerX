@@ -42,8 +42,6 @@ class GraveConfirmGUI(
             "y" to loc.blockY.toString(),
             "z" to loc.blockZ.toString()
         )
-
-        // Zielony przycisk - Potwierdź
         val confirmItem = ItemStack(Material.LIME_CONCRETE)
         val confirmMeta = confirmItem.itemMeta
         confirmMeta.displayName(plugin.messageHandler.stringMessageToComponentNoPrefix("gui-confirm", "confirm-name", placeholders))
@@ -51,7 +49,6 @@ class GraveConfirmGUI(
         confirmItem.itemMeta = confirmMeta
         inventory.setItem(2, confirmItem)
 
-        // Czerwony przycisk - Anuluj
         val cancelItem = ItemStack(Material.RED_CONCRETE)
         val cancelMeta = cancelItem.itemMeta
         cancelMeta.displayName(plugin.messageHandler.stringMessageToComponentNoPrefix("gui-confirm", "cancel-name", placeholders))
@@ -73,7 +70,6 @@ class GraveConfirmGUI(
 
         event.isCancelled = true
 
-        // Sprawdzenie czy grób nadal istnieje przed podjęciem akcji
         if (plugin.graveManager.getGraveAt(grave.location) == null) {
             clicker.closeInventory()
             clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "no-graves", emptyMap()))
@@ -82,7 +78,7 @@ class GraveConfirmGUI(
         }
 
         when (event.rawSlot) {
-            2 -> { // Potwierdzenie teleportu
+            2 -> {
                 val cost = plugin.config.getDouble("teleport.cost", 100.0)
 
                 if (cost > 0.0) {
