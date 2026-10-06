@@ -1,7 +1,7 @@
 [![Build Plugin](https://github.com/SyntaxDevTeam/GraveDiggerX/actions/workflows/buildexplorer.yml/badge.svg?branch=main)](https://github.com/SyntaxDevTeam/GraveDiggerX/actions/workflows/buildexplorer.yml) ![GitHub issues](https://img.shields.io/github/issues/SyntaxDevTeam/GraveDiggerX) ![GitHub last commit](https://img.shields.io/github/last-commit/SyntaxDevTeam/GraveDiggerX) ![GitHub Release Date](https://img.shields.io/github/release-date/SyntaxDevTeam/GraveDiggerX)
 ![GitHub commits since latest release (branch)](https://img.shields.io/github/commits-since/SyntaxDevTeam/GraveDiggerX/latest/main) [![Hangar Downloads](https://img.shields.io/hangar/dt/GraveDiggerX?style=flat)](https://hangar.papermc.io/SyntaxDevTeam/GraveDiggerX)
 
-# GraveDiggerX
+# <img src="https://raw.githubusercontent.com/SyntaxDevTeam/GraveDiggerX/main/assets/spirit_grave.png" width="32" height="32" alt="Logo"> GraveDiggerX
 
 GraveDiggerX is a Paper/Folia plugin (API 1.21) that creates a grave when a player dies, stores inventory + XP, and lets the owner recover items via GUI or quick collect (sneak + click).
 
@@ -11,7 +11,7 @@ Na start: [pierwsze kroki](docs/wiki/Pierwsze-kroki.md), [instalacja](docs/wiki/
 
 | In game |
 | --- |
-| ![gravelook.png](https://raw.githubusercontent.com/SyntaxDevTeam/GraveDiggerX/main/assets/gravelook.png) |
+| ![gravelook.png](https://raw.githubusercontent.com/SyntaxDevTeam/GraveDiggerX/main/assets/grave_look_night_1.1.1.png) |
 
 ## What the plugin actually does
 - **Creates a player-head grave** and stores main inventory (slots 0-35), armor, offhand, XP, location, and owner metadata.
