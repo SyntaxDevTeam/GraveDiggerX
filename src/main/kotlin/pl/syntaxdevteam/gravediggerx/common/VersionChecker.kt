@@ -37,11 +37,4 @@ class VersionChecker(private val plugin: GraveDiggerX) {
         }
     }
 
-    fun getSemanticVersion(): SemanticVersion = SemanticVersion.parse(getServerVersion())
-
-    fun isAtLeast(minVersion: String): Boolean {
-        val current = getSemanticVersion()
-        val required = SemanticVersion.parse(minVersion)
-        return current >= required
-    }
 }
