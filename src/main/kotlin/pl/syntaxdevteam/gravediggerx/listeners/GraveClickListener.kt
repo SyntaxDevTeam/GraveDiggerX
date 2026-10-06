@@ -1,15 +1,14 @@
 package pl.syntaxdevteam.gravediggerx.listeners
 
-import org.bukkit.Material
 import org.bukkit.event.Event.Result
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.player.PlayerInteractEvent
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
-import pl.syntaxdevteam.gravediggerx.common.addItemOrDrop
 import pl.syntaxdevteam.gravediggerx.gui.GraveGUI
 import pl.syntaxdevteam.gravediggerx.graves.Grave
+import pl.syntaxdevteam.gravediggerx.graves.collection.GraveItemTransfer
 import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker
 import java.util.UUID
 
@@ -94,60 +93,7 @@ class GraveClickListener(private val plugin: GraveDiggerX) : Listener {
         }
 
         try {
-            for ((slot, item) in grave.items) {
-                if (slot in 0..35) {
-                    player.addItemOrDrop(item)
-                }
-            }
-
-            grave.armorContents["helmet"]?.let {
-                if (it.type != Material.AIR) {
-                    val current = player.inventory.helmet
-                    if (current.type == Material.AIR) {
-                        player.inventory.setHelmet(it)
-                    } else {
-                        player.addItemOrDrop(it)
-                    }
-                }
-            }
-            grave.armorContents["chestplate"]?.let {
-                if (it.type != Material.AIR) {
-                    val current = player.inventory.chestplate
-                    if (current.type == Material.AIR) {
-                        player.inventory.setChestplate(it)
-                    } else {
-                        player.addItemOrDrop(it)
-                    }
-                }
-            }
-            grave.armorContents["leggings"]?.let {
-                if (it.type != Material.AIR) {
-                    val current = player.inventory.leggings
-                    if (current.type == Material.AIR) {
-                        player.inventory.setLeggings(it)
-                    } else {
-                        player.addItemOrDrop(it)
-                    }
-                }
-            }
-            grave.armorContents["boots"]?.let {
-                if (it.type != Material.AIR) {
-                    val current = player.inventory.boots
-                    if (current.type == Material.AIR) {
-                        player.inventory.setBoots(it)
-                    } else {
-                        player.addItemOrDrop(it)
-                    }
-                }
-            }
-            grave.armorContents["offhand"]?.let {
-                if (it.type != Material.AIR) {
-                    val current = player.inventory.itemInOffHand
-                    if (current.type == Material.AIR) player.inventory.setItemInOffHand(it) else player.addItemOrDrop(it)
-                }
-            }
-
-            if (grave.storedXp > 0) player.giveExp(grave.storedXp)
+            GraveItemTransfer.transferTo(player, grave)
 
             val markedCollected = plugin.graveManager.markCollected(grave, ticket)
             if (!markedCollected) {

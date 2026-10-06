@@ -13,8 +13,8 @@ import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
-import pl.syntaxdevteam.gravediggerx.common.addItemOrDrop
 import pl.syntaxdevteam.gravediggerx.graves.Grave
+import pl.syntaxdevteam.gravediggerx.graves.collection.GraveItemTransfer
 import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker
 
 class GraveGUI(
@@ -158,62 +158,7 @@ class GraveGUI(
         }
 
         try {
-            for ((slot, item) in liveGrave.items) {
-                if (slot in 0..35) {
-                    player.addItemOrDrop(item)
-                }
-            }
-
-            liveGrave.armorContents["helmet"]?.let {
-                if (it.type != Material.AIR) {
-                    val current = player.inventory.helmet
-                    if (current == null || current.type == Material.AIR) {
-                        player.inventory.setHelmet(it)
-                    } else {
-                        player.addItemOrDrop(it)
-                    }
-                }
-            }
-            liveGrave.armorContents["chestplate"]?.let {
-                if (it.type != Material.AIR) {
-                    val current = player.inventory.chestplate
-                    if (current == null || current.type == Material.AIR) {
-                        player.inventory.setChestplate(it)
-                    } else {
-                        player.addItemOrDrop(it)
-                    }
-                }
-            }
-            liveGrave.armorContents["leggings"]?.let {
-                if (it.type != Material.AIR) {
-                    val current = player.inventory.leggings
-                    if (current == null || current.type == Material.AIR) {
-                        player.inventory.setLeggings(it)
-                    } else {
-                        player.addItemOrDrop(it)
-                    }
-                }
-            }
-            liveGrave.armorContents["boots"]?.let {
-                if (it.type != Material.AIR) {
-                    val current = player.inventory.boots
-                    if (current == null || current.type == Material.AIR) {
-                        player.inventory.setBoots(it)
-                    } else {
-                        player.addItemOrDrop(it)
-                    }
-                }
-            }
-            liveGrave.armorContents["offhand"]?.let {
-                if (it.type != Material.AIR) {
-                    val current = player.inventory.itemInOffHand
-                    if (current.type == Material.AIR) player.inventory.setItemInOffHand(it) else player.addItemOrDrop(it)
-                }
-            }
-
-            if (liveGrave.storedXp > 0) {
-                player.giveExp(liveGrave.storedXp)
-            }
+            GraveItemTransfer.transferTo(player, liveGrave)
 
             val loc = liveGrave.location.clone().add(0.5, 0.5, 0.5)
             val world = loc.world ?: return
