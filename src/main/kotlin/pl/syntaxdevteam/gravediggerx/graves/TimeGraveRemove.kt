@@ -5,7 +5,6 @@ import org.bukkit.entity.Player
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.common.CancellableTask
 import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
-import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class TimeGraveRemove(private val plugin: GraveDiggerX) {
@@ -48,7 +47,7 @@ class TimeGraveRemove(private val plugin: GraveDiggerX) {
                         "graves",
                         "removal-countdown",
                         mapOf(
-                            "time" to secondsLeft.toString(),
+                            "time" to TimeFormatter.format(secondsLeft),
                             "x" to grave.location.blockX.toString(),
                             "y" to grave.location.blockY.toString(),
                             "z" to grave.location.blockZ.toString()
