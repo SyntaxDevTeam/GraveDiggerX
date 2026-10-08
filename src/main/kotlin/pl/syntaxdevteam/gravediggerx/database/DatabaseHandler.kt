@@ -123,6 +123,7 @@ class DatabaseHandler private constructor(
     private val claimsFilePath = dataFolder.toPath().resolve("collection_claims.json")
     private val collectionTxFilePath = dataFolder.toPath().resolve("collection_tx.json")
     private val fileClaimsLock = Any()
+    private val sqlClaimsLock = Any()
     private val fileClaims = ConcurrentHashMap.newKeySet<String>()
     private val fileTxLock = Any()
     private val fileCollectionTx = ConcurrentHashMap<UUID, CollectionTx>()
@@ -287,10 +288,15 @@ class DatabaseHandler private constructor(
 
     fun tryAcquireCollectionClaim(grave: Grave): Boolean {
         val claimKey = collectionClaimKey(grave)
-        return if (storageBackend == StorageBackend.SQL) {
-            tryAcquireCollectionClaimSql(claimKey, locationKey(grave.location))
-        } else {
-            tryAcquireCollectionClaimFile(claimKey)
+        return try {
+            if (storageBackend == StorageBackend.SQL) {
+                tryAcquireCollectionClaimSql(claimKey, claimKey)
+            } else {
+                tryAcquireCollectionClaimFile(claimKey)
+            }
+        } catch (e: Exception) {
+            logger.warning("Failed to acquire collection claim for $claimKey: ${e.message}")
+            false
         }
     }
 
@@ -683,32 +689,34 @@ class DatabaseHandler private constructor(
         GraveIdentity.collectionClaimKey(grave)
 
     private fun tryAcquireCollectionClaimSql(claimKey: String, graveKey: String): Boolean {
-        val manager = dbManager ?: return false
-        if (!ensureSqlReady()) return false
-        repeat(3) { attempt ->
-            try {
-                manager.execute(
-                    "INSERT INTO grave_collection_claims (claimKey, graveKey, claimedAt) VALUES (?, ?, ?)",
-                    claimKey,
-                    graveKey,
-                    System.currentTimeMillis()
-                )
-                return true
-            } catch (e: Exception) {
-                val message = e.message?.lowercase(Locale.ROOT).orEmpty()
-                if ("unique" in message || "duplicate" in message || "constraint" in message) {
+        synchronized(sqlClaimsLock) {
+            val manager = dbManager ?: return false
+            if (!ensureSqlReady()) return false
+            repeat(3) { attempt ->
+                try {
+                    manager.execute(
+                        "INSERT INTO grave_collection_claims (claimKey, graveKey, claimedAt) VALUES (?, ?, ?)",
+                        claimKey,
+                        graveKey,
+                        System.currentTimeMillis()
+                    )
+                    return true
+                } catch (e: Exception) {
+                    val message = e.message?.lowercase(Locale.ROOT).orEmpty()
+                    if ("unique" in message || "duplicate" in message || "constraint" in message) {
+                        return false
+                    }
+                    val isTransientLock = "database is locked" in message || "database table is locked" in message
+                    if (isTransientLock && attempt < 2) {
+                        Thread.sleep(10)
+                        return@repeat
+                    }
+                    logger.warning("Failed to acquire SQL collection claim for $claimKey: ${e.message}")
                     return false
                 }
-                val isTransientLock = "database is locked" in message || "database table is locked" in message
-                if (isTransientLock && attempt < 2) {
-                    Thread.sleep(10)
-                    return@repeat
-                }
-                logger.warning("Failed to acquire SQL collection claim for $claimKey: ${e.message}")
-                return false
             }
+            return false
         }
-        return false
     }
 
     private fun releaseCollectionClaimSql(claimKey: String) {

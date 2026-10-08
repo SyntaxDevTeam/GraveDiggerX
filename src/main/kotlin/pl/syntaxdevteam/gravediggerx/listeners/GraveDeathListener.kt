@@ -29,11 +29,11 @@ class GraveDeathListener(private val plugin: GraveDiggerX) : Listener {
             player.inventory.getItem(i)?.let { playerItems[i] = it.clone() }
         }
 
-        playerItems[36] = player.inventory.helmet?.clone() ?: ItemStack(Material.AIR)
-        playerItems[37] = player.inventory.chestplate?.clone() ?: ItemStack(Material.AIR)
-        playerItems[38] = player.inventory.leggings?.clone() ?: ItemStack(Material.AIR)
-        playerItems[39] = player.inventory.boots?.clone() ?: ItemStack(Material.AIR)
-        player.inventory.itemInOffHand.let { playerItems[40] = it.clone() }
+        playerItems[36] = player.inventory.helmet.clone()
+        playerItems[37] = player.inventory.chestplate.clone()
+        playerItems[38] = player.inventory.leggings.clone()
+        playerItems[39] = player.inventory.boots.clone()
+        playerItems[40] = player.inventory.itemInOffHand.clone()
 
         val totalXP = calculateTotalExperience(player)
 
