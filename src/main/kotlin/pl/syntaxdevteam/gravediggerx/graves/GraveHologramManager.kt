@@ -16,7 +16,7 @@ class GraveHologramManager(private val plugin: GraveDiggerX) {
 
     fun createHologram(location: Location, ownerName: String, time: Int, isPublic: Boolean): List<UUID> {
         val text: Component = buildHologramText(ownerName, time, isPublic)
-        val hologramLocation = location.clone().add(0.5, 1.5, 0.5)
+        val hologramLocation = location.clone().add(0.5, 1.2, 0.5)
         val world = hologramLocation.world ?: return emptyList()
 
         val textDisplay = world.spawn(hologramLocation, TextDisplay::class.java) { display ->
