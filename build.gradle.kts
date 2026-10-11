@@ -28,6 +28,8 @@ repositories {
 }
 
 dependencies {
+    testImplementation("org.eclipse.aether:aether-api:1.1.0")
+    testImplementation("org.yaml:snakeyaml:2.7")
     compileOnly("io.papermc.paper:paper-api:26.3.build.+")
     compileOnly("pl.syntaxdevteam:syntaxcore:1.4.0-R0.1-SNAPSHOT")
     compileOnly("pl.syntaxdevteam:messageHandler-paper:1.2.0-R0.1-SNAPSHOT")
