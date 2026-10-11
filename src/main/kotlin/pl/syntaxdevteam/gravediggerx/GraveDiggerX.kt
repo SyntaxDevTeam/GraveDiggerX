@@ -78,7 +78,6 @@ class GraveDiggerX : JavaPlugin() {
 
         graveManager.loadGravesFromStorage()
         statsCollector = SyntaxCore.statsCollector
-        scheduleHealthSummary()
         scheduleTxRecovery()
         SyntaxCore.updateChecker.checkAsync()
 
@@ -86,8 +85,6 @@ class GraveDiggerX : JavaPlugin() {
     }
 
     override fun onDisable() {
-        healthSummaryTask?.cancel()
-        healthSummaryTask = null
         txRecoveryTask?.cancel()
         txRecoveryTask = null
         graveManager.removeAllGraves()
