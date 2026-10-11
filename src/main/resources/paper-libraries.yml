@@ -1,3 +1,11 @@
+repositories:
+  syntaxdevteam-snapshots: "https://nexus.syntaxdevteam.pl/repository/maven-snapshots/"
+  syntaxdevteam-releases: "https://nexus.syntaxdevteam.pl/repository/maven-releases/"
+  central: "MAVEN_CENTRAL_DEFAULT_MIRROR"
+  paper: "https://repo.papermc.io/repository/maven-public/"
+  jitpack: "https://jitpack.io/"
+  codemc-snapshots: "https://repo.codemc.io/repository/maven-snapshots/"
+
 libraries:
   # Libraries required by the plugin
   - org.eclipse.aether:aether-api:1.1.0
