@@ -93,6 +93,7 @@ class SyntaxLoader : PluginLoader {
 
     internal fun repositoriesFor(repositoryId: String, config: LibraryConfig): List<RemoteRepository> {
         val selected = config.repositories.getValue(repositoryId)
+        // The selected repository also needs Central for transitive dependencies.
         return if (repositoryId == "central") listOf(selected)
         else listOf(selected, config.repositories.getValue("central"))
     }
