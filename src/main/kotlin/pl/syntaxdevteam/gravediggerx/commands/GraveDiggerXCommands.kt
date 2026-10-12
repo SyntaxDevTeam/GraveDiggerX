@@ -220,6 +220,13 @@ class GraveDiggerXCommands(private val plugin: GraveDiggerX) : BasicCommand {
             return
         }
 
+        val cost = plugin.config.getDouble("teleport.cost", 0.0)
+        if (cost > 0.0 && !pl.syntaxdevteam.gravediggerx.integrations.VaultEconomyProvider.isAvailable) {
+            val msg = plugin.messageHandler.stringMessageToComponent("error", "economy-not-available", emptyMap())
+            sender.sendMessage(msg)
+            return
+        }
+
         val gui = GraveTPGUI(sender, plugin)
         gui.open(sender)
     }

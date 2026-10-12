@@ -2,6 +2,7 @@ package pl.syntaxdevteam.gravediggerx.graves.lifecycle
 
 import org.bukkit.Bukkit
 import org.bukkit.Material
+import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
@@ -26,6 +27,19 @@ class GraveLifecycleService(
     private val regionOwnership = RegionOwnershipChecker.create(plugin)
 
     fun create(player: Player, items: Map<Int, ItemStack>, xp: Int): Grave? {
+        val sanitizedItems = items.mapValues { (_, item) ->
+            if (item.containsEnchantment(Enchantment.VANISHING_CURSE)) {
+                ItemStack(Material.AIR)
+            } else {
+                item.clone()
+            }
+        }
+
+        val hasAnyValidItems = sanitizedItems.values.any { it.type != Material.AIR }
+        if (!hasAnyValidItems && xp <= 0) {
+            return null
+        }
+
         val maxGraves = plugin.config.getInt("graves.max-per-player", 3)
         if (registry.findByOwner(player.uniqueId).size >= maxGraves) {
             player.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "reached-max-graves", mapOf("limit" to maxGraves.toString())))
@@ -54,8 +68,8 @@ class GraveLifecycleService(
             ownerId = player.uniqueId,
             ownerName = player.name,
             location = location,
-            items = items.filterKeys { it in 0..35 }.mapValues { it.value.clone() },
-            armorContents = armor(items),
+            items = sanitizedItems.filterKeys { it in 0..35 }.mapValues { it.value.clone() },
+            armorContents = armor(sanitizedItems),
             hologramIds = rendered.hologramIds,
             originalBlockData = original,
             storedXp = xp,

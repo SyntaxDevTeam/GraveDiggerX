@@ -11,6 +11,7 @@ error:
   not-enough-money: "<#AAAAAA>You don't have enough money! Teleportation costs <white><cost>$</white>."
   transaction-failed: "<#AAAAAA>Economy transaction failed. Please try again later."
   teleport-disabled: "<#AAAAAA>Teleportation to graves is currently <red>disabled</red> on this server."
+  economy-not-available: "<#AAAAAA>This option is unavailable because it does not apply to the Vault plugin!"
 
 reload:
   success: "<#AAAAAA>Configuration reloaded successfully!"
@@ -87,7 +88,6 @@ graves:
   locate-entry: "<white><index>.</white> <#AAAAAA>World: <white><world></white> <gray>→</gray> <white>X:<x> Y:<y> Z:<z></white>"
   collection-tx-save-failed: "<#AAAAAA>Failed to persist collection transaction. The grave remains locked until an administrator intervenes."
   teleported-to-grave: "<#AAAAAA>Teleported to your grave! Cost: <white><cost>$</white>."
-
 
 graveh:
   hologram: "<#800020>R.I.P.<newline><#AAAAAA>Expires in: <white><time></white><newline><#AAAAAA>Grave of <white><player></white><newline><yellow>Right-click to open"

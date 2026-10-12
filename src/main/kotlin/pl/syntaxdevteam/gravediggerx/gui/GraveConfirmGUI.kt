@@ -83,12 +83,24 @@ class GraveConfirmGUI(
 
                 if (cost > 0.0) {
                     if (!VaultEconomyProvider.hasEnough(clicker, cost)) {
-                        clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "not-enough-money", mapOf("cost" to cost.toString())))
+                        clicker.sendMessage(
+                            plugin.messageHandler.stringMessageToComponent(
+                                "error",
+                                "not-enough-money",
+                                mapOf("cost" to cost.toString())
+                            )
+                        )
                         clicker.playSound(clicker.location, Sound.ENTITY_VILLAGER_NO, 1f, 1f)
                         return
                     }
                     if (!VaultEconomyProvider.withdraw(clicker, cost)) {
-                        clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("error", "transaction-failed", emptyMap()))
+                        clicker.sendMessage(
+                            plugin.messageHandler.stringMessageToComponent(
+                                "error",
+                                "transaction-failed",
+                                emptyMap()
+                            )
+                        )
                         return
                     }
                 }
@@ -97,7 +109,13 @@ class GraveConfirmGUI(
                 val targetLocation = grave.location.clone().add(0.5, 1.0, 0.5)
                 clicker.teleport(targetLocation)
                 clicker.playSound(targetLocation, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f)
-                clicker.sendMessage(plugin.messageHandler.stringMessageToComponent("graves", "teleported-to-grave", mapOf("cost" to cost.toString())))
+                clicker.sendMessage(
+                    plugin.messageHandler.stringMessageToComponent(
+                        "graves",
+                        "teleported-to-grave",
+                        mapOf("cost" to cost.toString())
+                    )
+                )
             }
             6 -> {
                 clicker.closeInventory()
