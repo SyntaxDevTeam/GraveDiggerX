@@ -68,7 +68,7 @@ admin:
   no-backups-for-player: "<#AAAAAA>Гравець <white><player></white> <#AAAAAA>не має резервних копій."
   backup-list-header: "<white>Резервні копії могил <white><player>:</white>"
   backup-list-entry: "<white><index>.</white> <#AAAAAA><time> <gray>→</gray> <white>Світ: <world> X:<x> Y:<y> Z:<z></white>"
-  backup-restored: "<#AAAAAA>Відновлено копію<white> <player> <id>"
+  backup-restored: "<#AAAAAA>Могилу гравця <white><player></white> відновлено з копії <white><id></white>. Світ: <white><world></white>, X:<x> Y:<y> Z:<z>. До завершення: <time> с. Предмети в могилі; власник може забрати їх через ПКМ або Shift + ПКМ."
   backup-location-occupied: "<#AAAAAA>Неможливо відновити копію, місце зайняте."
   backup-world-missing: "<#AAAAAA>Неможливо відновити копію, світ відсутній."
   backup-restore-failed: "<#AAAAAA>Не вдалося відновити копію<white> <player> <id>"

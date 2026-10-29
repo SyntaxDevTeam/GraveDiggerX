@@ -67,7 +67,7 @@ admin:
   no-backups-for-player: "<#AAAAAA>Игрок <white><player></white> <#AAAAAA>не имеет резервных копий."
   backup-list-header: "<white>Резервные копии могил <white><player>:</white>"
   backup-list-entry: "<white><index>.</white> <#AAAAAA><time> <gray>→</gray> <white>Мир: <world> X:<x> Y:<y> Z:<z></white>"
-  backup-restored: "<#AAAAAA>Восстановлена копия<white> <player> <id>"
+  backup-restored: "<#AAAAAA>Могила игрока <white><player></white> восстановлена из копии <white><id></white>. Мир: <white><world></white>, X:<x> Y:<y> Z:<z>. До истечения: <time> с. Предметы в могиле; владелец может забрать их через ПКМ или Shift + ПКМ."
   backup-location-occupied: "<#AAAAAA>Нельзя восстановить копию: место занято."
   backup-world-missing: "<#AAAAAA>Нельзя восстановить копию: мир отсутствует."
   backup-restore-failed: "<#AAAAAA>Не удалось восстановить копию<white> <player> <id>"

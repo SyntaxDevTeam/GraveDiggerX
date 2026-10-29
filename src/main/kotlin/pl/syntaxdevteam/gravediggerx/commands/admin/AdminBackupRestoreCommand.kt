@@ -5,6 +5,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack
 import org.bukkit.Bukkit
 import org.jetbrains.annotations.NotNull
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
+import pl.syntaxdevteam.gravediggerx.common.SchedulerProvider
 import pl.syntaxdevteam.gravediggerx.graves.GraveManager
 import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker
 import pl.syntaxdevteam.gravediggerx.permissions.PermissionChecker.PermissionKey
@@ -48,20 +49,35 @@ class AdminBackupRestoreCommand(private val plugin: GraveDiggerX) : BasicCommand
         }
 
         val backup = backups[index - 1]
-        val result = plugin.graveManager.restoreBackup(backup)
-
-        val messageKey = when (result) {
-            GraveManager.BackupRestoreResult.SUCCESS -> "backup-restored"
-            GraveManager.BackupRestoreResult.LOCATION_OCCUPIED -> "backup-location-occupied"
-            GraveManager.BackupRestoreResult.WORLD_MISSING -> "backup-world-missing"
-            GraveManager.BackupRestoreResult.FAILED -> "backup-restore-failed"
+        val location = backup.resolveLocation()
+        if (location == null) {
+            sender.sendMessage(plugin.messageHandler.stringMessageToComponent("admin", "backup-world-missing"))
+            return
         }
+        // Console and player commands may originate in another world/region on Folia.
+        SchedulerProvider.runSyncAt(plugin, location, Runnable {
+            val result = plugin.graveManager.restoreBackup(backup)
 
-        val msg = plugin.messageHandler.stringMessageToComponent(
-            "admin",
-            messageKey,
-            mapOf("player" to playerName, "id" to index.toString())
-        )
-        sender.sendMessage(msg)
+            val messageKey = when (result) {
+                GraveManager.BackupRestoreResult.SUCCESS -> "backup-restored"
+                GraveManager.BackupRestoreResult.LOCATION_OCCUPIED -> "backup-location-occupied"
+                GraveManager.BackupRestoreResult.WORLD_MISSING -> "backup-world-missing"
+                GraveManager.BackupRestoreResult.FAILED -> "backup-restore-failed"
+            }
+
+            val msg = plugin.messageHandler.stringMessageToComponent(
+                "admin",
+                messageKey,
+                mapOf(
+                    "player" to playerName, "id" to index.toString(),
+                    "world" to (backup.worldName ?: "unknown"),
+                    "x" to backup.location.blockX.toString(),
+                    "y" to backup.location.blockY.toString(),
+                    "z" to backup.location.blockZ.toString(),
+                    "time" to plugin.config.getInt("graves.grave-despawn", 60).toString()
+                )
+            )
+            sender.sendMessage(msg)
+        })
     }
 }

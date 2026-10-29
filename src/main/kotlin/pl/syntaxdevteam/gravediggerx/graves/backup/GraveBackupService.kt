@@ -18,7 +18,7 @@ class GraveBackupService(private val plugin: GraveDiggerX) {
         val exists = backups.any {
             it.ownerId == grave.ownerId && it.createdAt == grave.createdAt &&
                 it.location.blockX == grave.location.blockX && it.location.blockY == grave.location.blockY &&
-                it.location.blockZ == grave.location.blockZ && it.location.world?.name == grave.location.world?.name
+                it.location.blockZ == grave.location.blockZ && it.worldName == grave.location.world?.name
         }
         if (exists) return
 

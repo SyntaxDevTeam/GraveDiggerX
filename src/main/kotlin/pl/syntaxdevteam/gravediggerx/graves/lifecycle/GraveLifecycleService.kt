@@ -127,9 +127,9 @@ class GraveLifecycleService(
     }
 
     fun restore(backup: GraveBackup): GraveManager.BackupRestoreResult {
-        val location = backup.location.toBlockLocation()
+        val location = backup.resolveLocation()?.toBlockLocation()
+            ?: return GraveManager.BackupRestoreResult.WORLD_MISSING
         if (registry.findAt(location) != null) return GraveManager.BackupRestoreResult.LOCATION_OCCUPIED
-        if (location.world == null) return GraveManager.BackupRestoreResult.WORLD_MISSING
         return runCatching {
             val block = location.block
             val original = if (block.type == Material.AIR) Bukkit.createBlockData(Material.AIR) else block.blockData.clone()

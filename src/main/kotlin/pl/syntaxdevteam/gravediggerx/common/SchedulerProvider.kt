@@ -287,6 +287,7 @@ object SchedulerProvider {
         delayTicks: Long?
     ): Boolean {
         val regionScheduler = world.javaClass.methods.firstOrNull { it.name == "getRegionScheduler" }?.invoke(world)
+            ?: getServerScheduler("getRegionScheduler")
             ?: return false
         val regionX = location.blockX shr 4
         val regionZ = location.blockZ shr 4
@@ -415,6 +416,7 @@ object SchedulerProvider {
         task: Runnable
     ): Any? {
         val regionScheduler = world.javaClass.methods.firstOrNull { it.name == "getRegionScheduler" }?.invoke(world)
+            ?: getServerScheduler("getRegionScheduler")
             ?: return null
         val regionX = location.blockX shr 4
         val regionZ = location.blockZ shr 4

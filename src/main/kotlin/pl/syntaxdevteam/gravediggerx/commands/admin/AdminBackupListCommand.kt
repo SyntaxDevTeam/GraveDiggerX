@@ -56,7 +56,7 @@ class AdminBackupListCommand(private val plugin: GraveDiggerX) : BasicCommand {
             val loc = backup.location
             val placeholders = mapOf(
                 "index" to (index + 1).toString(),
-                "world" to (loc.world?.name ?: "unknown"),
+                "world" to (backup.worldName ?: "unknown"),
                 "x" to loc.blockX.toString(),
                 "y" to loc.blockY.toString(),
                 "z" to loc.blockZ.toString(),

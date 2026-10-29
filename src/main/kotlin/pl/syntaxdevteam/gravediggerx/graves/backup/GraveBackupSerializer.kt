@@ -36,7 +36,7 @@ object GraveBackupSerializer {
         backupJson.addProperty("id", backup.id.toString())
         backupJson.addProperty("ownerId", backup.ownerId.toString())
         backupJson.addProperty("ownerName", backup.ownerName)
-        backupJson.add("location", encodeLocation(backup.location))
+        backupJson.add("location", encodeLocation(backup.location, backup.worldName))
         backupJson.add("items", encodeItems(backup.items))
         backupJson.add("armorContents", encodeArmor(backup.armorContents))
         backupJson.addProperty("storedXp", backup.storedXp)
@@ -62,13 +62,14 @@ object GraveBackupSerializer {
             armorContents = armorContents,
             storedXp = storedXp,
             createdAt = createdAt,
-            backedUpAt = backedUpAt
+            backedUpAt = backedUpAt,
+            worldName = obj.getAsJsonObject("location")?.get("world")?.takeUnless { it.isJsonNull }?.asString
         )
     }
 
-    private fun encodeLocation(location: Location): JsonObject {
+    private fun encodeLocation(location: Location, worldName: String?): JsonObject {
         val locationJson = JsonObject()
-        locationJson.addProperty("world", location.world?.name ?: "world")
+        locationJson.addProperty("world", worldName)
         locationJson.addProperty("x", location.x)
         locationJson.addProperty("y", location.y)
         locationJson.addProperty("z", location.z)
@@ -97,10 +98,9 @@ object GraveBackupSerializer {
     }
 
     private fun decodeLocation(obj: JsonObject?): Location {
-        val world = obj?.get("world")?.asString
+        val world = obj?.get("world")?.takeUnless { it.isJsonNull }?.asString
             ?.let { Bukkit.getWorld(it) }
-            ?: Bukkit.getWorlds().firstOrNull()
-            ?: Bukkit.getWorld("world")
+
         val x = obj?.get("x")?.asDouble ?: 0.0
         val y = obj?.get("y")?.asDouble ?: 0.0
         val z = obj?.get("z")?.asDouble ?: 0.0
