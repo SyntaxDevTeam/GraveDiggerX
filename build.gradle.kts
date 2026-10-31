@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.4.20"
+    kotlin("jvm") version "2.4.21"
     id("com.gradleup.shadow") version "9.6.1"
     id("xyz.jpenilla.run-paper") version "3.1.0"
     id("pl.syntaxdevteam.plugindeployer") version "1.0.6-R0.2-SNAPSHOT"
@@ -31,9 +31,9 @@ dependencies {
     testImplementation("org.eclipse.aether:aether-api:1.1.0")
     testImplementation("org.yaml:snakeyaml:2.7")
     compileOnly("io.papermc.paper:paper-api:26.3.build.+")
-    compileOnly("pl.syntaxdevteam:syntaxcore:1.4.0-R0.1-SNAPSHOT")
-    compileOnly("pl.syntaxdevteam:messageHandler-paper:1.2.0-R0.1-SNAPSHOT")
-    compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.4")
+    compileOnly("pl.syntaxdevteam:syntaxcore:1.4.0-R0.2-SNAPSHOT")
+    compileOnly("pl.syntaxdevteam:messageHandler-paper:1.2.0-R0.2-SNAPSHOT")
+    compileOnly("com.github.ben-manes.caffeine:caffeine:3.3.1")
     compileOnly("com.zaxxer:HikariCP:7.1.0")
     compileOnly("org.xerial:sqlite-jdbc:3.51.3.0")
     compileOnly("org.mariadb.jdbc:mariadb-java-client:3.5.8")
@@ -43,7 +43,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.0-M1")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    testImplementation("pl.syntaxdevteam:syntaxcore:1.4.0-R0.1-SNAPSHOT")
+    testImplementation("pl.syntaxdevteam:syntaxcore:1.4.0-R0.2-SNAPSHOT")
     testImplementation("com.zaxxer:HikariCP:7.1.0")
     testImplementation("org.xerial:sqlite-jdbc:3.51.3.0")
     testImplementation("org.mockito:mockito-core:5.23.0")
