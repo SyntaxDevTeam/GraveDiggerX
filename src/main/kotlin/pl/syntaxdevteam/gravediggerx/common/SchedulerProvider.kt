@@ -199,7 +199,7 @@ object SchedulerProvider {
                     }
                     task.run()
                     if (!cancelled) {
-                        schedule(this, periodTicks)
+                        val _ = schedule(this, periodTicks)
                     }
                 }
             }

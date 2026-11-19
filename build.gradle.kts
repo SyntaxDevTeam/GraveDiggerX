@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.4.21"
+    kotlin("jvm") version "2.5.0-RC"
     id("com.gradleup.shadow") version "9.6.1"
     id("xyz.jpenilla.run-paper") version "3.1.0"
     id("pl.syntaxdevteam.plugindeployer") version "1.0.6-R0.2-SNAPSHOT"
@@ -12,7 +12,7 @@ val mockitoAgent = configurations.create("mockitoAgent") {
 
 
 group = "pl.syntaxdevteam.gravediggerx"
-version = "1.1.2"
+version = "1.2.0-R0.1-SNAPSHOT"
 description = "A powerful and very effective plugin for managing tombstones after players die."
 
 repositories {
@@ -30,8 +30,8 @@ repositories {
 dependencies {
     testImplementation("org.eclipse.aether:aether-api:1.1.0")
     testImplementation("org.yaml:snakeyaml:2.7")
-    compileOnly("io.papermc.paper:paper-api:26.3.build.+")
-    compileOnly("pl.syntaxdevteam:syntaxcore:1.5.0-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:26.1.2.build.74-stable")
+    compileOnly("pl.syntaxdevteam:syntaxcore:1.5.1-R0.1-SNAPSHOT")
     compileOnly("pl.syntaxdevteam:messageHandler-paper:1.3.0-R0.3-SNAPSHOT")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.3.1")
     compileOnly("pl.syntaxdevteam:syntaxdb-core:0.1.0-R0.1-SNAPSHOT")
@@ -40,8 +40,8 @@ dependencies {
    // compileOnly("net.milkbowl.vault:VaultUnlockedAPI:2.15")
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
-    testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    testImplementation("pl.syntaxdevteam:syntaxcore:1.5.0-R0.1-SNAPSHOT")
+    testImplementation("io.papermc.paper:paper-api:26.1.2.build.74-stable")
+    testImplementation("pl.syntaxdevteam:syntaxcore:1.5.1-R0.1-SNAPSHOT")
     testImplementation("pl.syntaxdevteam:syntaxdb-core:0.1.0-R0.1-SNAPSHOT")
     testImplementation("org.xerial:sqlite-jdbc:3.54.1.0")
     testImplementation("org.mockito:mockito-core:5.24.0")

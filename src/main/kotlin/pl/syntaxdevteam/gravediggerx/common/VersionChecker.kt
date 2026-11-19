@@ -8,8 +8,9 @@ class VersionChecker(private val plugin: GraveDiggerX) {
 
     companion object {
         private val SUPPORTED_VERSIONS: Set<SemanticVersion> = setOf(
-            SemanticVersion(26, 1, 0),
-            SemanticVersion(26,2, 0)
+            SemanticVersion(26, 1, 2),
+            SemanticVersion(26,2, 0),
+            SemanticVersion(26,3, 0)
         )
 
         fun isVersionSupported(version: String): Boolean =
