@@ -151,6 +151,9 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
     archiveClassifier.set("")
     archiveVersion.set(project.version.toString())
     mergeServiceFiles()
+    filesMatching("META-INF/*.kotlin_module") {
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    }
     // Kotlin and SyntaxDB must have a single class identity in Paper's library classloader.
     dependencies {
         exclude(dependency("org.jetbrains.kotlin:kotlin-stdlib"))

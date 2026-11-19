@@ -29,7 +29,7 @@ class SyntaxDbRuntimeLoadingTest {
             val bytecode = jar.getInputStream(bootstrap).use { String(it.readBytes(), Charsets.ISO_8859_1) }
             assertFalse(bytecode.contains("kotlin/"), "Bootstrap must work before Kotlin is loaded")
             val text = jar.getInputStream(jar.getJarEntry("paper-libraries.yml")).bufferedReader().use { it.readText() }
-            assertFalse(text.contains("${"))
+            assertFalse(text.contains("\${"))
             val manifest = Yaml().load<Map<String, Any>>(text)
             val coordinates = (manifest["libraries"] as List<*>).map {
                 if (it is String) it else (it as Map<*, *>)["coordinate"] as String
