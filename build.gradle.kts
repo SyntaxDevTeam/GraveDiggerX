@@ -36,7 +36,7 @@ dependencies {
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.3.1")
     compileOnly("com.zaxxer:HikariCP:7.1.0")
     compileOnly("org.xerial:sqlite-jdbc:3.54.1.0")
-    compileOnly("org.mariadb.jdbc:mariadb-java-client:3.5.11")
+    compileOnly("org.mariadb.jdbc:mariadb-java-client:4.0.0")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.21")
     compileOnly("com.github.milkbowl:VaultAPI:1.7.1")
    // compileOnly("net.milkbowl.vault:VaultUnlockedAPI:2.15")
