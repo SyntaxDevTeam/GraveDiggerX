@@ -46,9 +46,9 @@ dependencies {
     testImplementation("pl.syntaxdevteam:syntaxcore:1.4.0-R0.2-SNAPSHOT")
     testImplementation("com.zaxxer:HikariCP:7.1.0")
     testImplementation("org.xerial:sqlite-jdbc:3.51.3.0")
-    testImplementation("org.mockito:mockito-core:5.23.0")
+    testImplementation("org.mockito:mockito-core:5.24.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:6.3.0")
-    mockitoAgent("org.mockito:mockito-core:5.23.0") {
+    mockitoAgent("org.mockito:mockito-core:5.24.0") {
         isTransitive = false
     }
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.20")
