@@ -32,7 +32,7 @@ dependencies {
     testImplementation("org.yaml:snakeyaml:2.7")
     compileOnly("io.papermc.paper:paper-api:26.3.build.+")
     compileOnly("pl.syntaxdevteam:syntaxcore:1.4.0-R0.2-SNAPSHOT")
-    compileOnly("pl.syntaxdevteam:messageHandler-paper:1.2.0-R0.2-SNAPSHOT")
+    compileOnly("pl.syntaxdevteam:messageHandler-paper:1.2.0-R0.3-SNAPSHOT")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.3.1")
     compileOnly("com.zaxxer:HikariCP:7.1.0")
     compileOnly("org.xerial:sqlite-jdbc:3.51.3.0")
