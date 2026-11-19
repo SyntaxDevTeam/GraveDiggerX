@@ -32,16 +32,16 @@ dependencies {
     testImplementation("org.yaml:snakeyaml:2.7")
     compileOnly("io.papermc.paper:paper-api:26.3.build.+")
     compileOnly("pl.syntaxdevteam:syntaxcore:1.4.0-R0.2-SNAPSHOT")
-    compileOnly("pl.syntaxdevteam:messageHandler-paper:1.2.0-R0.2-SNAPSHOT")
+    compileOnly("pl.syntaxdevteam:messageHandler-paper:1.2.0-R0.3-SNAPSHOT")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.3.1")
     compileOnly("com.zaxxer:HikariCP:7.1.0")
     compileOnly("org.xerial:sqlite-jdbc:3.51.3.0")
-    compileOnly("org.mariadb.jdbc:mariadb-java-client:3.5.8")
-    compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.16")
+    compileOnly("org.mariadb.jdbc:mariadb-java-client:3.5.11")
+    compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.21")
     compileOnly("com.github.milkbowl:VaultAPI:1.7.1")
    // compileOnly("net.milkbowl.vault:VaultUnlockedAPI:2.15")
     testImplementation(kotlin("test"))
-    testImplementation("org.junit.jupiter:junit-jupiter:6.1.0-M1")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     testImplementation("pl.syntaxdevteam:syntaxcore:1.4.0-R0.2-SNAPSHOT")
     testImplementation("com.zaxxer:HikariCP:7.1.0")
@@ -51,12 +51,12 @@ dependencies {
     mockitoAgent("org.mockito:mockito-core:5.23.0") {
         isTransitive = false
     }
-    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.17")
+    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.20")
 
     configurations.all {
         resolutionStrategy {
-            force("com.google.guava:guava:33.5.0-jre")
             force("com.google.code.gson:gson:2.15.0")
+            force("com.google.guava:guava:33.8.0-jre")
         }
     }
 
