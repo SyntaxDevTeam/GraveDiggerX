@@ -56,7 +56,7 @@ dependencies {
     configurations.all {
         resolutionStrategy {
             force("com.google.guava:guava:33.5.0-jre")
-            force("com.google.code.gson:gson:2.13.2")
+            force("com.google.code.gson:gson:2.15.0")
         }
     }
 
