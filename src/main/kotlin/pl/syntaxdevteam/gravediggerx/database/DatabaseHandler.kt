@@ -4,11 +4,6 @@ import org.bukkit.Location
 import com.google.gson.JsonParser
 import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
-import pl.syntaxdevteam.core.database.Column
-import pl.syntaxdevteam.core.database.DatabaseConfig
-import pl.syntaxdevteam.core.database.DatabaseManager
-import pl.syntaxdevteam.core.database.DatabaseType
-import pl.syntaxdevteam.core.database.TableSchema
 import pl.syntaxdevteam.core.logging.DebugLevel
 import pl.syntaxdevteam.core.logging.Logger
 import pl.syntaxdevteam.core.plugin.PluginMetaProvider

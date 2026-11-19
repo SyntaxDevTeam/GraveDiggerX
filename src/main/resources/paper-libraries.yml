@@ -23,7 +23,8 @@ libraries:
   - pl.syntaxdevteam:syntaxcore:1.5.0-R0.1-SNAPSHOT
   # Datebases libraries
   - com.zaxxer:HikariCP:7.1.0
-  - org.mariadb.jdbc:mariadb-java-client:3.5.8
-  - org.xerial:sqlite-jdbc:3.51.3.0
+  - org.mariadb.jdbc:mariadb-java-client:4.0.0
+  - com.mysql:mysql-connector-j:26.7.0
+  - org.xerial:sqlite-jdbc:3.54.1.0
   - org.postgresql:postgresql:42.7.7
   - com.h2database:h2:2.3.232

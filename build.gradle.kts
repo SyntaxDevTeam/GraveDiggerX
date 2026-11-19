@@ -5,7 +5,7 @@ plugins {
     id("pl.syntaxdevteam.plugindeployer") version "1.0.6-R0.2-SNAPSHOT"
 }
 
-val mockitoAgent by configurations.creating {
+val mockitoAgent = configurations.create("mockitoAgent") {
     isCanBeConsumed = false
     isCanBeResolved = true
 }
@@ -48,9 +48,11 @@ dependencies {
     testImplementation("org.xerial:sqlite-jdbc:3.54.1.0")
     testImplementation("org.mockito:mockito-core:5.24.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:6.4.0")
-    mockitoAgent("org.mockito:mockito-core:5.24.0") {
+    add(mockitoAgent.name, "org.mockito:mockito-core:5.24.0") {
         isTransitive = false
     }
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.1.3")
+    testRuntimeOnly("com.h2database:h2:2.3.232")
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.20")
 
     configurations.all {

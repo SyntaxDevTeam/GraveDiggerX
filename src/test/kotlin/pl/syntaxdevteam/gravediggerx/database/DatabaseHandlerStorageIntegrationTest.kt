@@ -41,6 +41,32 @@ class DatabaseHandlerStorageIntegrationTest {
     }
 
     @Test
+    fun `h2 backend keeps existing file storage and schema across reconnects`() {
+        val first = newHandler(tempDir, dbType = "h2", dbName = "integration_h2")
+        val grave = graveStub(UUID.fromString("00000000-0000-0000-0000-000000000123"))
+
+        try {
+            first.connect()
+            first.ensureSchema()
+            assertTrue(first.tryAcquireCollectionClaim(grave))
+        } finally {
+            first.close()
+        }
+
+        val second = newHandler(tempDir, dbType = "h2", dbName = "integration_h2")
+        try {
+            second.connect()
+            second.ensureSchema()
+            assertEquals(false, second.tryAcquireCollectionClaim(grave))
+            second.releaseCollectionClaim(grave)
+            assertTrue(second.tryAcquireCollectionClaim(grave))
+        } finally {
+            second.close()
+        }
+        assertTrue(Files.exists(tempDir.resolve("database/integration_h2.mv.db")))
+    }
+
+    @Test
     fun `sql to file fallback triggers when sql query fails before schema`() {
         val handler = newHandler(tempDir, dbType = "sqlite", dbName = "integration_fallback")
 
