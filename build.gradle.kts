@@ -35,7 +35,7 @@ dependencies {
     compileOnly("pl.syntaxdevteam:messageHandler-paper:1.2.0-R0.3-SNAPSHOT")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.3.1")
     compileOnly("com.zaxxer:HikariCP:7.1.0")
-    compileOnly("org.xerial:sqlite-jdbc:3.51.3.0")
+    compileOnly("org.xerial:sqlite-jdbc:3.54.1.0")
     compileOnly("org.mariadb.jdbc:mariadb-java-client:3.5.11")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.21")
     compileOnly("com.github.milkbowl:VaultAPI:1.7.1")
@@ -45,7 +45,7 @@ dependencies {
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     testImplementation("pl.syntaxdevteam:syntaxcore:1.4.0-R0.2-SNAPSHOT")
     testImplementation("com.zaxxer:HikariCP:7.1.0")
-    testImplementation("org.xerial:sqlite-jdbc:3.51.3.0")
+    testImplementation("org.xerial:sqlite-jdbc:3.54.1.0")
     testImplementation("org.mockito:mockito-core:5.24.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:6.3.0")
     mockitoAgent("org.mockito:mockito-core:5.24.0") {
