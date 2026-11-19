@@ -41,7 +41,7 @@ dependencies {
     compileOnly("com.github.milkbowl:VaultAPI:1.7.1")
    // compileOnly("net.milkbowl.vault:VaultUnlockedAPI:2.15")
     testImplementation(kotlin("test"))
-    testImplementation("org.junit.jupiter:junit-jupiter:6.1.0-M1")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     testImplementation("pl.syntaxdevteam:syntaxcore:1.4.0-R0.2-SNAPSHOT")
     testImplementation("com.zaxxer:HikariCP:7.1.0")
