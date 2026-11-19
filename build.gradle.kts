@@ -51,7 +51,7 @@ dependencies {
     mockitoAgent("org.mockito:mockito-core:5.23.0") {
         isTransitive = false
     }
-    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.17")
+    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.20")
 
     configurations.all {
         resolutionStrategy {
