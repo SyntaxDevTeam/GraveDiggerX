@@ -1,6 +1,7 @@
 package pl.syntaxdevteam.gravediggerx.database
 
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -27,7 +28,7 @@ class DatabaseHandlerStorageIntegrationTest {
     lateinit var tempDir: Path
 
     @Test
-    fun `sqlite backend works on temporary filesystem with real DatabaseManager`() {
+    fun `sqlite backend works on temporary filesystem with SyntaxDB`() {
         val handler = newHandler(tempDir, dbType = "sqlite", dbName = "integration_ok")
 
         handler.connect()
@@ -41,29 +42,45 @@ class DatabaseHandlerStorageIntegrationTest {
     }
 
     @Test
-    fun `h2 backend keeps existing file storage and schema across reconnects`() {
-        val first = newHandler(tempDir, dbType = "h2", dbName = "integration_h2")
+    fun `existing SQLite collection claims survive SyntaxDB upgrade`() {
+        val databaseDir = Files.createDirectories(tempDir.resolve("database"))
+        val path = databaseDir.resolve("legacy.db")
         val grave = graveStub(UUID.fromString("00000000-0000-0000-0000-000000000123"))
-
-        try {
-            first.connect()
-            first.ensureSchema()
-            assertTrue(first.tryAcquireCollectionClaim(grave))
-        } finally {
-            first.close()
+        java.sql.DriverManager.getConnection("jdbc:sqlite:$path").use { connection ->
+            connection.createStatement().use { statement ->
+                statement.executeUpdate("CREATE TABLE grave_collection_claims (id INTEGER PRIMARY KEY AUTOINCREMENT, claimKey VARCHAR(192) UNIQUE, graveKey VARCHAR(128), claimedAt BIGINT)")
+            }
+            connection.prepareStatement("INSERT INTO grave_collection_claims (claimKey, graveKey, claimedAt) VALUES (?, ?, ?)").use { statement ->
+                statement.setString(1, grave.graveId.toString())
+                statement.setString(2, grave.graveId.toString())
+                statement.setLong(3, 1L)
+                statement.executeUpdate()
+            }
         }
-
-        val second = newHandler(tempDir, dbType = "h2", dbName = "integration_h2")
+        val handler = newHandler(tempDir, dbType = "sqlite", dbName = "legacy.db")
         try {
-            second.connect()
-            second.ensureSchema()
-            assertEquals(false, second.tryAcquireCollectionClaim(grave))
-            second.releaseCollectionClaim(grave)
-            assertTrue(second.tryAcquireCollectionClaim(grave))
+            handler.connect()
+            handler.ensureSchema()
+            assertEquals(false, handler.tryAcquireCollectionClaim(grave))
+            handler.releaseCollectionClaim(grave)
+            assertTrue(handler.tryAcquireCollectionClaim(grave))
         } finally {
-            second.close()
+            handler.close()
         }
-        assertTrue(Files.exists(tempDir.resolve("database/integration_h2.mv.db")))
+        assertTrue(Files.exists(path))
+    }
+
+    @Test
+    fun `H2 upgrade fails explicitly without touching existing database`() {
+        val directory = Files.createDirectories(tempDir.resolve("database"))
+        val file = directory.resolve("legacy.mv.db")
+        Files.writeString(file, "existing H2 data")
+        val error = assertFailsWith<IllegalArgumentException> {
+            newHandler(tempDir, dbType = "h2", dbName = "legacy")
+        }
+        assertTrue(error.message.orEmpty().contains("H2 is not supported by SyntaxDB"))
+        assertEquals("existing H2 data", Files.readString(file))
+        assertEquals(false, Files.exists(tempDir.resolve("data.json")))
     }
 
     @Test

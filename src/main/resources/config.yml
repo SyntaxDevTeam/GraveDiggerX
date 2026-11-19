@@ -53,7 +53,8 @@ performance:
 
 # Settings for connecting to the database
 database:
-  # Available options: json, mariadb, mysql, postgresql, sqlite, h2
+  # Available options: json, mariadb, mysql, postgresql, sqlite
+  # SQL uses SyntaxDB; MariaDB uses the MySQL JDBC driver. H2 requires data migration before upgrading.
   type: json
   sql:
     host: localhost
@@ -61,6 +62,8 @@ database:
     dbname: my_database
     username: root
     password: sUpErSrOnGP@ssword
+    # Optional custom JDBC URL for the selected engine (normally leave empty).
+    jdbc-url: ""
 
 # Update check and auto-download settings.
 update:

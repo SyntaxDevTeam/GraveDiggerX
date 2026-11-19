@@ -34,9 +34,7 @@ dependencies {
     compileOnly("pl.syntaxdevteam:syntaxcore:1.5.0-R0.1-SNAPSHOT")
     compileOnly("pl.syntaxdevteam:messageHandler-paper:1.3.0-R0.3-SNAPSHOT")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.3.1")
-    compileOnly("com.zaxxer:HikariCP:7.1.0")
-    compileOnly("org.xerial:sqlite-jdbc:3.54.1.0")
-    compileOnly("org.mariadb.jdbc:mariadb-java-client:4.0.0")
+    compileOnly("pl.syntaxdevteam:syntaxdb-core:0.1.0-R0.1-SNAPSHOT")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.21")
     compileOnly("com.github.milkbowl:VaultAPI:1.7.1")
    // compileOnly("net.milkbowl.vault:VaultUnlockedAPI:2.15")
@@ -44,7 +42,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     testImplementation("pl.syntaxdevteam:syntaxcore:1.5.0-R0.1-SNAPSHOT")
-    testImplementation("com.zaxxer:HikariCP:7.1.0")
+    testImplementation("pl.syntaxdevteam:syntaxdb-core:0.1.0-R0.1-SNAPSHOT")
     testImplementation("org.xerial:sqlite-jdbc:3.54.1.0")
     testImplementation("org.mockito:mockito-core:5.24.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:6.4.0")
@@ -52,7 +50,6 @@ dependencies {
         isTransitive = false
     }
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.1.3")
-    testRuntimeOnly("com.h2database:h2:2.3.232")
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.20")
 
     configurations.all {

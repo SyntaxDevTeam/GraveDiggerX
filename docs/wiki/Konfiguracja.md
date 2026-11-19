@@ -52,7 +52,9 @@ Te wartości są ustawieniami technicznymi. Zmieniaj je tylko podczas diagnozowa
 
 ## Baza danych
 
-`database.type` obsługuje wartości `json`, `mariadb`, `mysql`, `postgresql`, `sqlite` oraz `h2`. Dla serwera SQL ustaw `database.sql.host`, `port`, `dbname`, `username` i `password`. Nie publikuj pliku zawierającego prawdziwe hasło.
+`database.type` obsługuje wartości `json`, `mariadb`, `mysql`, `postgresql` oraz `sqlite`. Silniki SQL są obsługiwane przez SyntaxDB; MariaDB korzysta ze sterownika MySQL. Dla serwera SQL ustaw `database.sql.host`, `port`, `dbname`, `username` i `password`. Opcjonalnie ustaw `database.sql.jdbc-url`. Nie publikuj pliku zawierającego prawdziwe hasło.
+
+Aktualizacja do SyntaxDB zachowuje dotychczasowe tabele i ścieżkę SQLite `database/<dbname>.db`. H2 nie jest obsługiwane przez SyntaxDB: przed aktualizacją wykonaj kopię i przenieś dane do obsługiwanego silnika. Sama zmiana `database.type` nie migruje danych; plugin odrzuca konfigurację H2 zamiast otwierać pusty magazyn.
 
 ## Wydajność
 

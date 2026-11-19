@@ -87,9 +87,14 @@ class GraveDiggerX : JavaPlugin() {
     override fun onDisable() {
         txRecoveryTask?.cancel()
         txRecoveryTask = null
-        graveManager.removeAllGraves()
-        databaseHandler.close()
-        logger.err(pluginMeta.name + " " + pluginMeta.version + " has been disabled ☹️")
+        if (::databaseHandler.isInitialized) {
+            try {
+                if (::graveManager.isInitialized) graveManager.removeAllGraves()
+            } finally {
+                databaseHandler.close()
+            }
+        }
+        if (::logger.isInitialized) logger.err(pluginMeta.name + " " + pluginMeta.version + " has been disabled ☹️")
     }
 
     private fun setupDatabase() {

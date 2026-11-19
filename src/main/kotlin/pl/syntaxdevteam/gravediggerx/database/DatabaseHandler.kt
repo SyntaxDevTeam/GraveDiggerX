@@ -4,9 +4,6 @@ import org.bukkit.Location
 import com.google.gson.JsonParser
 import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
-import pl.syntaxdevteam.core.logging.DebugLevel
-import pl.syntaxdevteam.core.logging.Logger
-import pl.syntaxdevteam.core.plugin.PluginMetaProvider
 import pl.syntaxdevteam.gravediggerx.GraveDiggerX
 import pl.syntaxdevteam.gravediggerx.graves.Grave
 import pl.syntaxdevteam.gravediggerx.graves.GraveDataStore
@@ -15,6 +12,11 @@ import pl.syntaxdevteam.gravediggerx.graves.GraveSerializer
 import pl.syntaxdevteam.gravediggerx.graves.collection.CollectionState
 import pl.syntaxdevteam.gravediggerx.graves.collection.CollectionTx
 import pl.syntaxdevteam.gravediggerx.graves.collection.CollectionTxStateMachine
+import pl.syntaxdevteam.syntaxdb.Database
+import pl.syntaxdevteam.syntaxdb.DatabaseClient
+import pl.syntaxdevteam.syntaxdb.config.DatabaseType
+import pl.syntaxdevteam.syntaxdb.config.databaseConfig
+import pl.syntaxdevteam.syntaxdb.row.Row
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -27,7 +29,6 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DatabaseHandler private constructor(
-    private val coreLogger: Logger,
     private val logger: LogSink,
     private val pluginName: String,
     private val dataFolder: java.io.File,
@@ -51,7 +52,6 @@ class DatabaseHandler private constructor(
     )
 
     constructor(plugin: GraveDiggerX) : this(
-        coreLogger = plugin.logger,
         logger = LogSink(
             debug = { plugin.logger.debug(it) },
             warning = { plugin.logger.warning(it) },
@@ -74,11 +74,6 @@ class DatabaseHandler private constructor(
         warning: (String) -> Unit = {},
         error: (String) -> Unit = {}
     ) : this(
-        coreLogger = Logger(object : PluginMetaProvider {
-            override val name: String = pluginName
-            override val version: String = "test"
-            override val debugLevel: DebugLevel = DebugLevel.OFF
-        }),
         logger = LogSink(debug, warning, error),
         pluginName = pluginName,
         dataFolder = dataFolder,
@@ -93,27 +88,31 @@ class DatabaseHandler private constructor(
     private val configuredType =
         configString("database.type")?.trim()?.lowercase(Locale.ROOT) ?: "yaml"
 
-    private val storageBackend = resolveBackend(configuredType)
     private val dbType: DatabaseType? = parseDatabaseType(configuredType)
-    private val dbConfig = if (storageBackend == StorageBackend.SQL) {
-        dbType?.let {
-            val databaseName = resolveDatabaseName(
-                configString("database.sql.dbname")
-            )
-            DatabaseConfig(
-                type = it,
-                host = configString("database.sql.host") ?: "localhost",
-                port = resolvePort(it, configInt("database.sql.port")),
-                database = databaseName,
-                username = configString("database.sql.username") ?: "root",
-                password = configString("database.sql.password") ?: "",
-                filePath = resolveDatabaseFilePath(it, databaseName)
-            )
+    private val storageBackend = if (dbType == null) StorageBackend.FILE else StorageBackend.SQL
+    private val dbConfig = dbType?.let { type ->
+        databaseConfig(type) {
+            host = configString("database.sql.host") ?: "localhost"
+            port = configInt("database.sql.port").takeIf { it > 0 } ?: type.defaultPort
+            val name = resolveDatabaseName(configString("database.sql.dbname"))
+            if (type == DatabaseType.SQLITE) {
+                file = resolveSqliteDatabasePath(name)
+            } else {
+                database = name
+                username = configString("database.sql.username") ?: "root"
+                password = configString("database.sql.password") ?: ""
+            }
+            configString("database.sql.jdbc-url")?.takeIf { it.isNotBlank() }?.let { jdbcUrl = it }
+            if (type == DatabaseType.MYSQL) property("characterEncoding", "UTF-8")
+            pool {
+                connectionTimeoutMs = 30_000
+                poolName = "$pluginName-${type.configName}"
+            }
         }
-    } else {
-        null
     }
-    private val dbManager = dbConfig?.let { DatabaseManager(it, coreLogger) }
+    private val databaseLock = Any()
+    private var db: Database? = null
+    private var databaseClosed = false
     private val sqlOperational = AtomicBoolean(false)
     private val claimsFilePath = dataFolder.toPath().resolve("collection_claims.json")
     private val collectionTxFilePath = dataFolder.toPath().resolve("collection_tx.json")
@@ -132,25 +131,23 @@ class DatabaseHandler private constructor(
             return
         }
 
-        if (ensureSqlReady(logFailure = false)) {
-            logger.debug("Using ${dbType?.name?.lowercase(Locale.ROOT)} database backend.")
+        if (sqlDatabase(logFailure = false) != null) {
+            logger.debug("Using $configuredType database backend (SyntaxDB).")
         } else {
             logger.err("Failed to connect to database, continuing with file storage.")
         }
     }
 
     fun close() {
-        if (storageBackend != StorageBackend.SQL) {
+        synchronized(databaseLock) {
+            databaseClosed = true
             sqlOperational.set(false)
-            return
-        }
-
-        try {
-            dbManager?.close()
-        } catch (e: Exception) {
-            logger.warning("Failed to close database connection: ${e.message}")
-        } finally {
-            sqlOperational.set(false)
+            try {
+                db?.close()
+                db = null
+            } catch (e: Exception) {
+                logger.warning("Failed to close database connection: ${e.message}")
+            }
         }
     }
 
@@ -159,56 +156,47 @@ class DatabaseHandler private constructor(
             return
         }
 
-        val manager = dbManager ?: return
-        if (!ensureSqlReady()) return
-        val schema = TableSchema(
-            "graves",
-            listOf(
-                Column("id", idDefinition()),
-                Column("graveKey", "VARCHAR(128) UNIQUE"),
-                Column("ownerId", "VARCHAR(36)"),
-                Column("ownerName", "VARCHAR(64)"),
-                Column("world", "VARCHAR(64)"),
-                Column("x", "DOUBLE"),
-                Column("y", "DOUBLE"),
-                Column("z", "DOUBLE"),
-                Column("yaw", "FLOAT"),
-                Column("pitch", "FLOAT"),
-                Column("createdAt", "BIGINT"),
-                Column("storedXp", "INT"),
-                Column("payload", payloadColumnType())
-            )
-        )
-
+        val manager = sqlDatabase() ?: return
         try {
-            manager.createTable(schema)
-            manager.createTable(
-                TableSchema(
-                    "grave_collection_claims",
-                    listOf(
-                        Column("id", idDefinition()),
-                        Column("claimKey", "VARCHAR(192) UNIQUE"),
-                        Column("graveKey", "VARCHAR(128)"),
-                        Column("claimedAt", "BIGINT")
-                    )
+            // Preserve the exact legacy table/column names and types. No destructive migrations.
+            manager.executeSql("""
+                CREATE TABLE IF NOT EXISTS graves (
+                    id ${idDefinition()},
+                    graveKey VARCHAR(128) UNIQUE,
+                    ownerId VARCHAR(36),
+                    ownerName VARCHAR(64),
+                    world VARCHAR(64),
+                    x DOUBLE,
+                    y DOUBLE,
+                    z DOUBLE,
+                    yaw FLOAT,
+                    pitch FLOAT,
+                    createdAt BIGINT,
+                    storedXp INT,
+                    payload ${payloadColumnType()}
                 )
-            )
-            manager.createTable(
-                TableSchema(
-                    "grave_collection_tx",
-                    listOf(
-                        Column("id", idDefinition()),
-                        Column("txId", "VARCHAR(36) UNIQUE"),
-                        Column("graveId", "VARCHAR(36)"),
-                        Column("collectorId", "VARCHAR(36)"),
-                        Column("state", "VARCHAR(16)"),
-                        Column("version", "INT"),
-                        Column("updatedAt", "BIGINT"),
-                        Column("expiresAt", "BIGINT"),
-                        Column("lastError", "TEXT")
-                    )
+            """.trimIndent())
+            manager.executeSql("""
+                CREATE TABLE IF NOT EXISTS grave_collection_claims (
+                    id ${idDefinition()},
+                    claimKey VARCHAR(192) UNIQUE,
+                    graveKey VARCHAR(128),
+                    claimedAt BIGINT
                 )
-            )
+            """.trimIndent())
+            manager.executeSql("""
+                CREATE TABLE IF NOT EXISTS grave_collection_tx (
+                    id ${idDefinition()},
+                    txId VARCHAR(36) UNIQUE,
+                    graveId VARCHAR(36),
+                    collectorId VARCHAR(36),
+                    state VARCHAR(16),
+                    version INT,
+                    updatedAt BIGINT,
+                    expiresAt BIGINT,
+                    lastError TEXT
+                )
+            """.trimIndent())
         } catch (e: Exception) {
             sqlOperational.set(false)
             logger.err("Failed to create graves table, falling back to file storage. ${e.message}")
@@ -221,17 +209,17 @@ class DatabaseHandler private constructor(
             return
         }
 
-        val manager = dbManager ?: return
-        if (!ensureSqlReady()) {
+        val manager = sqlDatabase()
+        if (manager == null) {
             fileStore.saveAllGraves(graves)
             return
         }
 
         try {
-            manager.execute("DELETE FROM graves")
+            manager.executeSql("DELETE FROM graves")
             graves.forEach { grave ->
                 val record = grave.toRecord()
-                manager.execute(
+                manager.executeSql(
                     """
                     INSERT INTO graves (
                         graveKey, ownerId, ownerName, world, x, y, z, yaw, pitch, createdAt, storedXp, payload
@@ -263,10 +251,7 @@ class DatabaseHandler private constructor(
             return fileStore.loadAllGraves()
         }
 
-        val manager = dbManager ?: return fileStore.loadAllGraves()
-        if (!ensureSqlReady()) {
-            return fileStore.loadAllGraves()
-        }
+        val manager = sqlDatabase() ?: return fileStore.loadAllGraves()
 
         return loadAllGravesFromSql(manager) ?: fileStore.loadAllGraves()
     }
@@ -310,10 +295,9 @@ class DatabaseHandler private constructor(
 
     fun clearAllCollectionClaims() {
         if (storageBackend == StorageBackend.SQL) {
-            val manager = dbManager ?: return
-            if (!ensureSqlReady(logFailure = false)) return
+            val manager = sqlDatabase(logFailure = false) ?: return
             try {
-                manager.execute("DELETE FROM grave_collection_claims")
+                manager.executeSql("DELETE FROM grave_collection_claims")
             } catch (e: Exception) {
                 logger.warning("Failed to clear SQL collection claims: ${e.message}")
             }
@@ -360,10 +344,9 @@ class DatabaseHandler private constructor(
         val now = System.currentTimeMillis()
         val threshold = now - stuckThresholdMs.coerceAtLeast(1000L)
         if (storageBackend == StorageBackend.SQL) {
-            val manager = dbManager ?: return emptyList()
-            if (!ensureSqlReady(logFailure = false)) return emptyList()
+            val manager = sqlDatabase(logFailure = false) ?: return emptyList()
             return runCatching {
-                manager.query(
+                manager.queryRows(
                     """
                         SELECT txId, graveId, collectorId, state, updatedAt, expiresAt
                         FROM grave_collection_tx
@@ -376,12 +359,12 @@ class DatabaseHandler private constructor(
                     threshold
                 ) { rs ->
                     StuckCollectionTx(
-                        txId = UUID.fromString(rs.getString("txId")),
-                        graveId = UUID.fromString(rs.getString("graveId")),
-                        collectorId = UUID.fromString(rs.getString("collectorId")),
-                        state = CollectionState.valueOf(rs.getString("state")),
-                        updatedAt = rs.getLong("updatedAt"),
-                        expiresAt = rs.getLong("expiresAt")
+                        txId = UUID.fromString(requireNotNull(rs.string("txId"))),
+                        graveId = UUID.fromString(requireNotNull(rs.string("graveId"))),
+                        collectorId = UUID.fromString(requireNotNull(rs.string("collectorId"))),
+                        state = CollectionState.valueOf(requireNotNull(rs.string("state"))),
+                        updatedAt = (rs.long("updatedAt") ?: 0L),
+                        expiresAt = (rs.long("expiresAt") ?: 0L)
                     )
                 }
             }.getOrElse {
@@ -456,10 +439,9 @@ class DatabaseHandler private constructor(
         val now = System.currentTimeMillis()
         val threshold = now - stuckThresholdMs.coerceAtLeast(1000L)
         if (storageBackend == StorageBackend.SQL) {
-            val manager = dbManager ?: return 0
-            if (!ensureSqlReady(logFailure = false)) return 0
+            val manager = sqlDatabase(logFailure = false) ?: return 0
             return runCatching {
-                manager.query(
+                manager.queryRows(
                     """
                         SELECT txId FROM grave_collection_tx
                         WHERE state IN (?, ?) AND updatedAt < ?
@@ -467,7 +449,7 @@ class DatabaseHandler private constructor(
                     CollectionState.CLAIMED.name,
                     CollectionState.COLLECTING.name,
                     threshold
-                ) { rs -> rs.getString("txId") }.size
+                ) { rs -> requireNotNull(rs.string("txId")) }.size
             }.getOrElse {
                 logger.warning("Failed to count stuck SQL collection tx: ${it.message}")
                 0
@@ -485,10 +467,9 @@ class DatabaseHandler private constructor(
 
     fun clearCollectionState(grave: Grave) {
         if (storageBackend == StorageBackend.SQL) {
-            val manager = dbManager ?: return
-            if (!ensureSqlReady(logFailure = false)) return
+            val manager = sqlDatabase(logFailure = false) ?: return
             runCatching {
-                manager.execute("DELETE FROM grave_collection_tx WHERE graveId = ?", grave.graveId.toString())
+                manager.executeSql("DELETE FROM grave_collection_tx WHERE graveId = ?", grave.graveId.toString())
             }.onFailure {
                 logger.warning("Failed to clear collection tx for grave ${grave.graveId}: ${it.message}")
             }
@@ -500,69 +481,32 @@ class DatabaseHandler private constructor(
         }
     }
 
-    private fun ensureSqlReady(logFailure: Boolean = true): Boolean {
-        if (storageBackend != StorageBackend.SQL) {
-            return false
-        }
-
-        val manager = dbManager ?: return false
-        if (sqlOperational.get()) return true
-        return try {
-            manager.connect()
+    /** A failed or stopped SyntaxDB instance cannot be restarted. Recreate it only after cleanup. */
+    private fun sqlDatabase(logFailure: Boolean = true): Database? = synchronized(databaseLock) {
+        val config = dbConfig ?: return@synchronized null
+        if (databaseClosed) return@synchronized null
+        val current = db
+        if (current?.isReady == true) {
             sqlOperational.set(true)
-            true
-        } catch (e: Exception) {
-            if (logFailure) {
-                logger.debug("Database connection attempt failed: ${e.message}")
-            }
-            false
+            return@synchronized current
         }
-    }
-
-    private fun resolveBackend(type: String): StorageBackend = when (type.lowercase(Locale.ROOT)) {
-        "mysql", "mariadb", "postgresql", "postgres", "sqlite", "h2" -> StorageBackend.SQL
-        else -> StorageBackend.FILE
+        try {
+            current?.close()
+            db = null
+            val replacement = Database.create(config)
+            db = replacement
+            replacement.start()
+            sqlOperational.set(true)
+            replacement
+        } catch (e: Exception) {
+            sqlOperational.set(false)
+            if (logFailure) logger.debug("Database connection attempt failed: ${e.message}")
+            null
+        }
     }
 
     private fun resolveDatabaseName(configuredName: String?): String =
         configuredName?.takeUnless { it.isBlank() } ?: pluginName
-
-    private fun resolveDatabaseFilePath(type: DatabaseType, baseName: String): String? = when (type) {
-        DatabaseType.SQLITE -> resolveSqliteDatabasePath(baseName)
-        DatabaseType.H2 -> resolveH2DatabasePath(baseName)
-        else -> null
-    }
-
-    private fun resolveH2DatabasePath(name: String): String {
-        val trimmed = name.trim()
-        val normalized = trimmed.replace("\\", "/")
-        val specialPrefixes = listOf("mem:", "file:", "zip:", "ssl:", "tcp:")
-        if (specialPrefixes.any { normalized.startsWith(it, ignoreCase = true) }) {
-            return trimmed
-        }
-
-        if (normalized.startsWith("~/") || normalized.startsWith("./") || normalized.startsWith("/")) {
-            return trimmed
-        }
-
-        val path = try {
-            Path.of(trimmed)
-        } catch (_: Exception) {
-            null
-        }
-        if (path?.isAbsolute == true) {
-            return path.toString()
-        }
-
-        val dataFolderPath = dataFolder.toPath()
-        createDirectoryIfMissing(dataFolderPath)
-        val databaseRoot = dataFolderPath.resolve("database")
-        createDirectoryIfMissing(databaseRoot)
-
-        val resolvedPath = databaseRoot.resolve(trimmed)
-        resolvedPath.parent?.let { createDirectoryIfMissing(it) }
-        return resolvedPath.toAbsolutePath().toString()
-    }
 
     private fun resolveSqliteDatabasePath(name: String): String {
         val trimmed = name.trim().removeSuffix(".db")
@@ -577,25 +521,25 @@ class DatabaseHandler private constructor(
     }
 
     private fun loadAllGravesFromSql(
-        manager: DatabaseManager,
+        manager: Database,
         attemptRecovery: Boolean = true
     ): List<Grave>? {
         return try {
-            val records = manager.query("SELECT * FROM graves ORDER BY createdAt ASC") { rs ->
+            val records = manager.queryRows("SELECT * FROM graves ORDER BY createdAt ASC") { rs ->
                 GraveRecord(
-                    id = rs.getInt("id"),
-                    graveKey = rs.getString("graveKey"),
-                    ownerId = rs.getString("ownerId"),
-                    ownerName = rs.getString("ownerName"),
-                    world = rs.getString("world"),
-                    x = rs.getDouble("x"),
-                    y = rs.getDouble("y"),
-                    z = rs.getDouble("z"),
-                    yaw = rs.getFloat("yaw"),
-                    pitch = rs.getFloat("pitch"),
-                    createdAt = rs.getLong("createdAt"),
-                    storedXp = rs.getInt("storedXp"),
-                    payload = rs.getString("payload")
+                    id = (rs.int("id") ?: 0),
+                    graveKey = requireNotNull(rs.string("graveKey")),
+                    ownerId = requireNotNull(rs.string("ownerId")),
+                    ownerName = requireNotNull(rs.string("ownerName")),
+                    world = requireNotNull(rs.string("world")),
+                    x = (rs.double("x") ?: 0.0),
+                    y = (rs.double("y") ?: 0.0),
+                    z = (rs.double("z") ?: 0.0),
+                    yaw = (rs.double("yaw")?.toFloat() ?: 0f),
+                    pitch = (rs.double("pitch")?.toFloat() ?: 0f),
+                    createdAt = (rs.long("createdAt") ?: 0L),
+                    storedXp = (rs.int("storedXp") ?: 0),
+                    payload = requireNotNull(rs.string("payload"))
                 )
             }
             records.mapNotNull { GraveSerializer.decodeGraveFromString(it.payload) }
@@ -643,38 +587,29 @@ class DatabaseHandler private constructor(
     private fun idDefinition(): String = when (dbType) {
         DatabaseType.SQLITE -> "INTEGER PRIMARY KEY AUTOINCREMENT"
         DatabaseType.POSTGRESQL -> "SERIAL PRIMARY KEY"
-        DatabaseType.MSSQL -> "INT IDENTITY(1,1) PRIMARY KEY"
-        DatabaseType.H2 -> "INT AUTO_INCREMENT PRIMARY KEY"
         else -> "INT AUTO_INCREMENT PRIMARY KEY"
     }
 
-    private fun payloadColumnType(): String = when (dbType) {
-        DatabaseType.MYSQL, DatabaseType.MARIADB -> "LONGTEXT"
-        DatabaseType.MSSQL -> "NVARCHAR(MAX)"
-        else -> "TEXT"
-    }
+    private fun payloadColumnType(): String =
+        if (dbType == DatabaseType.MYSQL) "LONGTEXT" else "TEXT"
 
-    private fun parseDatabaseType(type: String): DatabaseType? = when (type.lowercase(Locale.ROOT)) {
-        "mysql" -> DatabaseType.MYSQL
-        "mariadb" -> DatabaseType.MARIADB
+    private fun parseDatabaseType(type: String): DatabaseType? = when (type) {
+        "mysql", "mariadb" -> DatabaseType.MYSQL
         "postgresql", "postgres" -> DatabaseType.POSTGRESQL
         "sqlite" -> DatabaseType.SQLITE
-        "h2" -> DatabaseType.H2
-        else -> null
+        "h2" -> throw IllegalArgumentException(
+            "H2 is not supported by SyntaxDB. Back up and migrate the existing H2 database before upgrading; " +
+                "do not switch database.type without transferring its data."
+        )
+        "json", "yaml" -> null
+        else -> throw IllegalArgumentException("Unsupported database.type: $type")
     }
 
-    private fun defaultPort(type: DatabaseType): Int = when (type) {
-        DatabaseType.POSTGRESQL -> 5432
-        DatabaseType.MYSQL, DatabaseType.MARIADB -> 3306
-        DatabaseType.MSSQL -> 1433
-        else -> 0
-    }
+    private fun DatabaseClient.executeSql(sql: String, vararg params: Any?): Int =
+        execute(sql, params.toList())
 
-    private fun resolvePort(type: DatabaseType, configuredPort: Int): Int {
-        val port = configuredPort.takeIf { it > 0 }
-        if (port != null) return port
-        return defaultPort(type)
-    }
+    private fun <T> DatabaseClient.queryRows(sql: String, vararg params: Any?, mapper: (Row) -> T): List<T> =
+        query(sql, params.toList()).map(mapper)
 
     private fun locationKey(location: Location): String {
         return GraveIdentity.locationKey(location)
@@ -685,11 +620,10 @@ class DatabaseHandler private constructor(
 
     private fun tryAcquireCollectionClaimSql(claimKey: String, graveKey: String): Boolean {
         synchronized(sqlClaimsLock) {
-            val manager = dbManager ?: return false
-            if (!ensureSqlReady()) return false
+            val manager = sqlDatabase() ?: return false
             repeat(3) { attempt ->
                 try {
-                    manager.execute(
+                    manager.executeSql(
                         "INSERT INTO grave_collection_claims (claimKey, graveKey, claimedAt) VALUES (?, ?, ?)",
                         claimKey,
                         graveKey,
@@ -715,10 +649,9 @@ class DatabaseHandler private constructor(
     }
 
     private fun releaseCollectionClaimSql(claimKey: String) {
-        val manager = dbManager ?: return
-        if (!ensureSqlReady(logFailure = false)) return
+        val manager = sqlDatabase(logFailure = false) ?: return
         try {
-            manager.execute("DELETE FROM grave_collection_claims WHERE claimKey = ?", claimKey)
+            manager.executeSql("DELETE FROM grave_collection_claims WHERE claimKey = ?", claimKey)
         } catch (e: Exception) {
             logger.warning("Failed to release SQL collection claim for $claimKey: ${e.message}")
         }
@@ -785,26 +718,25 @@ class DatabaseHandler private constructor(
     }
 
     private fun beginCollectionTxSql(tx: CollectionTx): CollectionTx? {
-        val manager = dbManager ?: return null
-        if (!ensureSqlReady()) return null
+        val manager = sqlDatabase() ?: return null
         val now = System.currentTimeMillis()
         return try {
-            manager.execute("DELETE FROM grave_collection_tx WHERE graveId = ? AND state != ? AND expiresAt < ?",
+            manager.executeSql("DELETE FROM grave_collection_tx WHERE graveId = ? AND state != ? AND expiresAt < ?",
                 tx.graveId.toString(),
                 CollectionState.COLLECTED.name,
                 now
             )
-            val existing = manager.query(
+            val existing = manager.queryRows(
                 "SELECT txId FROM grave_collection_tx WHERE graveId = ? AND state IN (?, ?, ?)",
                 tx.graveId.toString(),
                 CollectionState.CLAIMED.name,
                 CollectionState.COLLECTING.name,
                 CollectionState.COLLECTED.name
-            ) { rs -> rs.getString("txId") }
+            ) { rs -> requireNotNull(rs.string("txId")) }
             if (existing.isNotEmpty()) {
                 return null
             }
-            manager.execute(
+            manager.executeSql(
                 """
                     INSERT INTO grave_collection_tx
                     (txId, graveId, collectorId, state, version, updatedAt, expiresAt, lastError)
@@ -827,16 +759,15 @@ class DatabaseHandler private constructor(
     }
 
     private fun transitionCollectionTxSql(graveId: UUID, txId: UUID, from: CollectionState, to: CollectionState, error: String?): Boolean {
-        val manager = dbManager ?: return false
-        if (!ensureSqlReady()) return false
+        val manager = sqlDatabase() ?: return false
         return try {
-            val current = manager.query(
+            val current = manager.queryRows(
                 "SELECT state FROM grave_collection_tx WHERE graveId = ? AND txId = ?",
                 graveId.toString(),
                 txId.toString()
-            ) { rs -> rs.getString("state") }.firstOrNull() ?: return false
+            ) { rs -> requireNotNull(rs.string("state")) }.firstOrNull() ?: return false
             if (current != from.name) return false
-            manager.execute(
+            manager.executeSql(
                 """
                     UPDATE grave_collection_tx
                     SET state = ?, version = version + 1, updatedAt = ?, lastError = ?
@@ -884,11 +815,10 @@ class DatabaseHandler private constructor(
     }
 
     private fun unlockCollectionTxSql(identifier: String, now: Long): TxUpdateResult {
-        val manager = dbManager ?: return TxUpdateResult(0, emptySet())
-        if (!ensureSqlReady(logFailure = false)) return TxUpdateResult(0, emptySet())
+        val manager = sqlDatabase(logFailure = false) ?: return TxUpdateResult(0, emptySet())
         return runCatching {
             val uuid = UUID.fromString(identifier).toString()
-            val targets = manager.query(
+            val targets = manager.queryRows(
                 """
                     SELECT txId, graveId, state FROM grave_collection_tx
                     WHERE (graveId = ? OR txId = ?) AND state IN (?, ?, ?)
@@ -899,10 +829,10 @@ class DatabaseHandler private constructor(
                 CollectionState.COLLECTING.name,
                 CollectionState.FAILED.name
             ) { rs ->
-                Triple(rs.getString("txId"), rs.getString("graveId"), rs.getString("state"))
+                Triple(requireNotNull(rs.string("txId")), requireNotNull(rs.string("graveId")), requireNotNull(rs.string("state")))
             }
             targets.forEach { (txId, graveId, _) ->
-                manager.execute(
+                manager.executeSql(
                     """
                     UPDATE grave_collection_tx
                     SET state = ?, version = version + 1, updatedAt = ?, expiresAt = ?, lastError = ?
@@ -950,10 +880,9 @@ class DatabaseHandler private constructor(
     }
 
     private fun recoverExpiredCollectionTxSql(now: Long, retryThreshold: Long): TxUpdateResult {
-        val manager = dbManager ?: return TxUpdateResult(0, emptySet())
-        if (!ensureSqlReady(logFailure = false)) return TxUpdateResult(0, emptySet())
+        val manager = sqlDatabase(logFailure = false) ?: return TxUpdateResult(0, emptySet())
         return runCatching {
-            val expired = manager.query(
+            val expired = manager.queryRows(
                 """
                     SELECT txId, graveId, state FROM grave_collection_tx
                     WHERE (state IN (?, ?) AND expiresAt < ?) OR (state = ? AND updatedAt < ?)
@@ -963,9 +892,9 @@ class DatabaseHandler private constructor(
                 now,
                 CollectionState.FAILED.name,
                 retryThreshold
-            ) { rs -> Triple(rs.getString("txId"), rs.getString("graveId"), rs.getString("state")) }
+            ) { rs -> Triple(requireNotNull(rs.string("txId")), requireNotNull(rs.string("graveId")), requireNotNull(rs.string("state"))) }
             expired.forEach { (txId, graveId, state) ->
-                manager.execute(
+                manager.executeSql(
                     """
                     UPDATE grave_collection_tx
                     SET state = ?, version = version + 1, updatedAt = ?, lastError = ?

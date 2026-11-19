@@ -48,8 +48,10 @@ Na start: [pierwsze kroki](docs/wiki/Pierwsze-kroki.md), [instalacja](docs/wiki/
 | `spirits.enabled` | Enables/disables grave spirit (Allay). |
 | `teleport.enabled` | Enables or disables the grave teleportation feature. |
 | `teleport.cost` | Cost required to teleport to a grave (integrated with Vault). |
-| `database.type` | Data backend: `json`, `mariadb`, `mysql`, `postgresql`, `sqlite`, `h2`. |
-| `database.sql.*` | SQL connection settings for SQL backends. |
+| `database.type` | Data backend: `json`, `mariadb`, `mysql`, `postgresql`, `sqlite` (SQL via SyntaxDB). |
+| `database.sql.*` | SQL connection settings; optional `jdbc-url` override. |
+
+**Storage upgrade:** SyntaxDB preserves the existing SQL tables and SQLite path `database/<dbname>.db`. MariaDB uses the MySQL JDBC driver. H2 is not supported by SyntaxDB: back up and transfer the H2 data to a supported backend before upgrading; simply changing `database.type` does not migrate data. The plugin rejects H2 rather than silently opening an empty backend.
 | `language` | Message locale selection (`EN`, `PL`; also includes `messages_ru.yml` and `messages_uk.yml`). |
 | `update.*` | Update check and auto-download sources (Hangar/GitHub/Modrinth). |
 | `stats.enabled` | Anonymous usage statistics toggle. |
