@@ -47,7 +47,7 @@ dependencies {
     testImplementation("com.zaxxer:HikariCP:7.1.0")
     testImplementation("org.xerial:sqlite-jdbc:3.51.3.0")
     testImplementation("org.mockito:mockito-core:5.24.0")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:6.3.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:6.4.0")
     mockitoAgent("org.mockito:mockito-core:5.24.0") {
         isTransitive = false
     }
