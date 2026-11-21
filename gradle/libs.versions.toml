@@ -7,7 +7,7 @@ hikari = "7.1.0"
 sqlite = "3.54.1.0"
 mysql = "26.7.0"
 postgresql = "42.7.7"
-protobuf = "4.31.1"
+protobuf = "4.36.2"
 gson = "2.15.0"
 
 [plugins]
